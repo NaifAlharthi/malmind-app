@@ -39,10 +39,17 @@ Two accounts, both free to start:
 2. Click **New query**.
 3. Open `supabase/schema.sql` in this project, copy its entire contents,
    paste into the SQL Editor, and click **Run**.
-4. That's it — this creates every table MalMind needs (profiles, story
-   chapters, net worth snapshots, goal funds, advisor messages, budget
-   items), each with Row Level Security already configured so users can
-   only ever touch their own data.
+4. Click **New query** again. Open `supabase/schema_part2.sql`, copy its
+   entire contents, paste in, and click **Run**.
+5. That's it — together these two files create every table MalMind needs:
+   profiles, story chapters, net worth snapshots, goal funds, advisor
+   messages, budget items, life phases, year plans, income entries, and
+   investment settings — each with Row Level Security already configured
+   so users can only ever touch their own data.
+
+If you already ran `schema.sql` before (from an earlier version of this
+app), you only need to run `schema_part2.sql` now — it only adds the new
+tables and won't touch what already exists.
 
 ## Getting your Supabase credentials
 
@@ -133,6 +140,26 @@ comfortably cover testing and early users:
 You'll eventually pay for both as usage genuinely grows past free-tier
 limits — not before.
 
+## All 13 tools are now real
+
+Every tool originally built as a standalone HTML prototype is now a real,
+connected page in this app, reading and writing its own Supabase tables
+under the logged-in user's account:
+
+**Think** — My Financial Story, Lifetime Income, Financial Positioning,
+Velocity of Money, Doubling Path, Ratios & Stats, Standard of Living (tracked)
+
+**Decide** — Standard of Living (design), Year Master Plan, Money Waterfall,
+Goal Fund, Dynamic Budgeting
+
+**Always on** — AI Advisor
+
+Money Waterfall and Year Master Plan intentionally read the *same*
+`year_plans` table — same numbers, two different visual treatments, exactly
+as designed in the original HTML prototypes. Standard of Living is one page
+with two modes, reached via `?mode=plan` (Decide) and `?mode=track` (Think),
+matching the original tabbed design.
+
 ## What's still demo/placeholder, and where
 
 - **Financial Positioning's comparison lines** (national average, higher
@@ -141,12 +168,9 @@ limits — not before.
   Your own logged net worth data is 100% real.
 - **Nafath login** is not implemented — that requires a formal government
   partnership, a separate track from this engineering work.
-- **The rest of the HTML prototype suite** (Ratios & Stats, Year Master
-  Plan, Money Waterfall, Goal Fund, Dynamic Budgeting, Standard of Living,
-  etc.) still run on hardcoded sample data as standalone files. Migrating
-  each into this real app — reading and writing its own Supabase tables —
-  is the natural next phase of work, following the same pattern established
-  here for Story, Positioning, and the Advisor.
+- **Ratios & Stats** only shows a ratio once you have real data feeding it
+  (a Year Master Plan, a logged net worth snapshot, a goal fund, or budget
+  items) — rather than showing fake numbers before you've entered anything.
 
 ## Architecture, in one paragraph
 

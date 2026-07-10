@@ -126,44 +126,56 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4 mt-6">
-        <Link
-          href="/story"
-          className="bg-white border border-black/10 rounded-2xl p-5 hover:border-[#1D9E75] transition-colors"
-        >
-          <div className="text-lg mb-2">📖</div>
-          <div className="font-medium text-sm text-[#141414] mb-1">
-            My Financial Story
-          </div>
-          <div className="text-xs text-[#898781] leading-relaxed">
-            Add chapters, tell your story, build the archive.
-          </div>
-        </Link>
-        <Link
-          href="/positioning"
-          className="bg-white border border-black/10 rounded-2xl p-5 hover:border-[#1D9E75] transition-colors"
-        >
-          <div className="text-lg mb-2">📊</div>
-          <div className="font-medium text-sm text-[#141414] mb-1">
-            Financial Positioning
-          </div>
-          <div className="text-xs text-[#898781] leading-relaxed">
-            Log real net worth snapshots and see your trajectory.
-          </div>
-        </Link>
-        <Link
-          href="/advisor"
-          className="bg-white border border-black/10 rounded-2xl p-5 hover:border-[#1D9E75] transition-colors"
-        >
-          <div className="text-lg mb-2">💬</div>
-          <div className="font-medium text-sm text-[#141414] mb-1">
-            AI Advisor
-          </div>
-          <div className="text-xs text-[#898781] leading-relaxed">
-            Ask anything — it already knows your real profile and story.
-          </div>
-        </Link>
+      <div className="mb-2">
+        <div className="text-[10px] tracking-[0.08em] uppercase text-[#4A78C4] font-semibold mb-2">
+          Think
+        </div>
+        <div className="grid sm:grid-cols-3 gap-3 mb-6">
+          <ToolCard href="/story" icon="📖" title="My Financial Story" desc="Add chapters, build the archive." />
+          <ToolCard href="/lifetime-income" icon="💰" title="Lifetime Income" desc="Every riyal earned and kept." />
+          <ToolCard href="/positioning" icon="📊" title="Financial Positioning" desc="Log net worth, see your trajectory." />
+          <ToolCard href="/velocity" icon="⏱" title="Velocity of Money" desc="Months to each milestone." />
+          <ToolCard href="/doubling-path" icon="📈" title="Doubling Path" desc="When your portfolio doubles." />
+          <ToolCard href="/ratios" icon="🩺" title="Ratios & Stats" desc="Your financial health, measured." />
+        </div>
+      </div>
+
+      <div className="mb-2">
+        <div className="text-[10px] tracking-[0.08em] uppercase text-[#1D9E75] font-semibold mb-2">
+          Decide
+        </div>
+        <div className="grid sm:grid-cols-3 gap-3 mb-6">
+          <ToolCard href="/standard-of-living?mode=plan" icon="🪜" title="Standard of Living" desc="Design your life's stepping stones." />
+          <ToolCard href="/year-plan" icon="🗓" title="Year Master Plan" desc="This year's opening to target." />
+          <ToolCard href="/waterfall" icon="💧" title="Money Waterfall" desc="Your plan, as a visual flow." />
+          <ToolCard href="/goal-fund" icon="🎯" title="Goal Fund" desc="Save for one specific thing." />
+          <ToolCard href="/budgeting" icon="🛋" title="Dynamic Budgeting" desc="What to buy, and when." />
+          <ToolCard href="/advisor" icon="💬" title="AI Advisor" desc="Ask anything, in full context." />
+        </div>
       </div>
     </div>
+  );
+}
+
+function ToolCard({
+  href,
+  icon,
+  title,
+  desc,
+}: {
+  href: string;
+  icon: string;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="bg-white border border-black/10 rounded-2xl p-5 hover:border-[#1D9E75] transition-colors"
+    >
+      <div className="text-lg mb-2">{icon}</div>
+      <div className="font-medium text-sm text-[#141414] mb-1">{title}</div>
+      <div className="text-xs text-[#898781] leading-relaxed">{desc}</div>
+    </Link>
   );
 }
