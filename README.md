@@ -50,12 +50,16 @@ Two accounts, both free to start:
    of Money page.
 7. One more. Open `supabase/schema_part5.sql`, copy its contents, paste
    in, and click **Run** — this adds an `icon` column to `goal_funds`.
-8. Last one. Open `supabase/schema_part6.sql`, copy its contents, paste
-   in, and click **Run** — this adds five self-reported columns to
-   `profiles` (liquid savings, monthly debt payments, total debt, monthly
-   housing payment, monthly investment contribution) for the Ratios &
-   Stats page.
-9. That's it — together these files create every table MalMind needs:
+8. Open `supabase/schema_part6.sql`, copy its contents, paste in, and
+   click **Run** — this adds five self-reported columns to `profiles`
+   (liquid savings, monthly debt payments, total debt, monthly housing
+   payment, monthly investment contribution) for the Ratios & Stats page.
+9. Last one. Open `supabase/schema_part7.sql`, copy its contents, paste
+   in, and click **Run** — this adds an end year, editable theme/to-do/
+   net-worth-goal fields, and a 4th tier to `life_phases`, and switches
+   `living_standard_actuals` to tier-based tracking, for the Standard of
+   Living page.
+10. That's it — together these files create every table MalMind needs:
    profiles, story chapters, net worth snapshots, goal funds, advisor
    messages, budget items, life phases, year plans, income entries, and
    investment settings — each with Row Level Security already configured
@@ -63,8 +67,9 @@ Two accounts, both free to start:
 
 If you already ran earlier schema files before (from an earlier version
 of this app), you only need to run whichever of `schema_part3.sql` /
-`schema_part4.sql` / `schema_part5.sql` / `schema_part6.sql` you haven't
-yet — they only add new columns and won't touch what already exists.
+`schema_part4.sql` / `schema_part5.sql` / `schema_part6.sql` /
+`schema_part7.sql` you haven't yet — they only add new columns and won't
+touch what already exists.
 
 ## Getting your Supabase credentials
 
