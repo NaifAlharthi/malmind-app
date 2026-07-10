@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { joinName } from '@/lib/name';
 
 export default function SignupPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { name }, // picked up by the handle_new_user() trigger
+        data: { name: joinName(firstName, lastName) }, // picked up by the handle_new_user() trigger
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -49,15 +51,26 @@ export default function SignupPage() {
         </p>
 
         <form onSubmit={handleSignup} className="space-y-4">
-          <div>
-            <label className="text-xs text-[#898781] block mb-1">Full name</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-[#898781] block mb-1">First name</label>
+              <input
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-[#898781] block mb-1">Last name</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+              />
+            </div>
           </div>
           <div>
             <label className="text-xs text-[#898781] block mb-1">Email</label>
