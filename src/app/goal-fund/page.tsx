@@ -1,12 +1,20 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import {
+  PRESETS, targetFromMonthly, monthlyFromTarget, buildFundSeries, fundStatus, monthLabel,
+  type FundStatus,
+} from '@/lib/goalFund';
 
 interface GoalFund {
   id: string;
   name: string;
+  icon: string;
   target_amount: number;
   monthly_contribution: number;
   maturity_years: number;
@@ -23,6 +31,28 @@ function fmt(n: number) {
   return Math.round(n).toLocaleString();
 }
 
+function fmtCompact(n: number) {
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return Math.round(n / 1e3) + 'K';
+  return String(Math.round(n));
+}
+
+const STATUS_LABEL: Record<FundStatus, string> = {
+  'not-started': 'Not started yet',
+  ahead: 'Ahead of plan',
+  ontrack: 'On track',
+  behind: 'Behind plan',
+};
+
+const STATUS_CLASS: Record<FundStatus, string> = {
+  'not-started': 'bg-[#E6F1FB] text-[#0C447C]',
+  ahead: 'bg-[#E1F5EE] text-[#085041]',
+  ontrack: 'bg-[#E6F1FB] text-[#0C447C]',
+  behind: 'bg-[#FBE9EC] text-[#A32D2D]',
+};
+
+type Mode = 'monthly' | 'target';
+
 export default function GoalFundPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -32,11 +62,16 @@ export default function GoalFundPage() {
   const [actuals, setActuals] = useState<Actual[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [visibleMonths, setVisibleMonths] = useState(12);
 
-  // form fields for creating a new fund
-  const [name, setName] = useState("My Child's 18th Birthday Fund");
+  // new-fund form
+  const [selectedPreset, setSelectedPreset] = useState(PRESETS[0].id);
+  const [icon, setIcon] = useState(PRESETS[0].icon);
+  const [name, setName] = useState(PRESETS[0].name);
+  const [mode, setMode] = useState<Mode>('monthly');
   const [monthly, setMonthly] = useState('1500');
-  const [years, setYears] = useState('18');
+  const [target, setTarget] = useState('324000');
+  const [years, setYears] = useState(String(PRESETS[0].years));
   const [roi, setRoi] = useState('3');
 
   const load = useCallback(async () => {
@@ -57,46 +92,60 @@ export default function GoalFundPage() {
 
     if (data) {
       setFunds(data as GoalFund[]);
-      if (data.length > 0 && !activeFundId) setActiveFundId(data[0].id);
+      setActiveFundId((prev) => prev ?? (data.length > 0 ? data[0].id : null));
     }
     setLoading(false);
-  }, [supabase, router, activeFundId]);
+  }, [supabase, router]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const loadActuals = useCallback(
-    async (fundId: string) => {
-      const { data } = await supabase
-        .from('goal_fund_actuals')
-        .select('month_index, actual_amount')
-        .eq('goal_fund_id', fundId)
-        .order('month_index', { ascending: true });
-      if (data) setActuals(data as Actual[]);
-    },
-    [supabase]
-  );
+  const loadActuals = useCallback(async (fundId: string) => {
+    const { data } = await supabase
+      .from('goal_fund_actuals')
+      .select('month_index, actual_amount')
+      .eq('goal_fund_id', fundId)
+      .order('month_index', { ascending: true });
+    if (data) setActuals(data as Actual[]);
+  }, [supabase]);
 
   useEffect(() => {
-    if (activeFundId) loadActuals(activeFundId);
+    if (activeFundId) {
+      setVisibleMonths(12);
+      loadActuals(activeFundId);
+    }
   }, [activeFundId, loadActuals]);
+
+  function applyPreset(id: string) {
+    const p = PRESETS.find((x) => x.id === id);
+    if (!p) return;
+    setSelectedPreset(id);
+    setIcon(p.icon);
+    setName(p.name);
+    setYears(String(p.years));
+  }
 
   async function createFund() {
     if (!userId) return;
-    const monthlyNum = parseFloat(monthly.replace(/[^0-9.]/g, '')) || 0;
     const yearsNum = parseFloat(years) || 1;
     const roiNum = parseFloat(roi) || 0;
+    const monthlyNum = parseFloat(monthly.replace(/[^0-9.]/g, '')) || 0;
+    const targetNum = parseFloat(target.replace(/[^0-9.]/g, '')) || 0;
+
+    const finalMonthly = mode === 'monthly' ? monthlyNum : monthlyFromTarget(targetNum, yearsNum, roiNum);
+    const finalTarget = mode === 'monthly' ? targetFromMonthly(monthlyNum, yearsNum, roiNum) : targetNum;
 
     const { data, error } = await supabase
       .from('goal_funds')
       .insert({
         user_id: userId,
         name,
-        monthly_contribution: monthlyNum,
+        icon,
+        monthly_contribution: finalMonthly,
         maturity_years: yearsNum,
         expected_return: roiNum,
-        target_amount: computeTarget(monthlyNum, yearsNum, roiNum),
+        target_amount: finalTarget,
         start_date: new Date().toISOString().slice(0, 10),
       })
       .select()
@@ -112,40 +161,47 @@ export default function GoalFundPage() {
   async function deleteFund(id: string) {
     await supabase.from('goal_funds').delete().eq('id', id);
     setFunds((prev) => prev.filter((f) => f.id !== id));
-    if (activeFundId === id) setActiveFundId(funds[0]?.id ?? null);
-  }
-
-  function computeTarget(monthlyAmt: number, yrs: number, roiPct: number) {
-    const totalMonths = Math.round(yrs * 12);
-    const monthlyRoi = roiPct / 100 / 12;
-    if (monthlyRoi > 0) {
-      return monthlyAmt * ((Math.pow(1 + monthlyRoi, totalMonths) - 1) / monthlyRoi);
-    }
-    return monthlyAmt * totalMonths;
+    if (activeFundId === id) setActiveFundId(funds.find((f) => f.id !== id)?.id ?? null);
   }
 
   async function logActual(monthIndex: number, amount: number) {
     if (!activeFundId || !userId) return;
     await supabase.from('goal_fund_actuals').upsert(
-      {
-        goal_fund_id: activeFundId,
-        user_id: userId,
-        month_index: monthIndex,
-        actual_amount: amount,
-      },
+      { goal_fund_id: activeFundId, user_id: userId, month_index: monthIndex, actual_amount: amount },
       { onConflict: 'goal_fund_id,month_index' }
     );
     loadActuals(activeFundId);
   }
 
   const activeFund = funds.find((f) => f.id === activeFundId);
-  const totalMonths = activeFund ? Math.round(activeFund.maturity_years * 12) : 0;
-  const monthlyRoi = activeFund ? activeFund.expected_return / 100 / 12 : 0;
 
-  const cumActual = actuals.reduce((s, a) => s + a.actual_amount, 0);
-  const pctToGoal = activeFund && activeFund.target_amount > 0
-    ? Math.min(999, (cumActual / activeFund.target_amount) * 100)
-    : 0;
+  const actualsMap = useMemo(
+    () => Object.fromEntries(actuals.map((a) => [a.month_index, a.actual_amount])),
+    [actuals]
+  );
+
+  const series = useMemo(
+    () =>
+      activeFund
+        ? buildFundSeries(activeFund.monthly_contribution, activeFund.maturity_years, activeFund.expected_return, actualsMap)
+        : [],
+    [activeFund, actualsMap]
+  );
+
+  const status = fundStatus(series);
+  const lastLogged = [...series].reverse().find((s) => s.actualLogged !== null);
+  const cumActual = lastLogged?.cumActual ?? 0;
+  const pctToGoal = activeFund && activeFund.target_amount > 0 ? Math.min(999, (cumActual / activeFund.target_amount) * 100) : 0;
+  const startDate = activeFund ? new Date(activeFund.start_date) : new Date();
+
+  const chartData = series.map((s, i) => ({
+    label: monthLabel(startDate, i),
+    cumTarget: s.cumTarget,
+    cumActual: s.actualLogged !== null ? s.cumActual : null,
+  }));
+
+  const simpleSum = activeFund ? activeFund.monthly_contribution * Math.round(activeFund.maturity_years * 12) : 0;
+  const bonus = activeFund ? activeFund.target_amount - simpleSum : 0;
 
   if (loading) {
     return <div className="text-sm text-[#898781]">Loading your goal funds…</div>;
@@ -160,8 +216,9 @@ export default function GoalFundPage() {
         Goal Fund
       </h1>
       <p className="text-sm text-[#3D3D3A] mb-6 max-w-xl">
-        A house down payment, your child&apos;s 18th birthday, Hajj — any goal
-        with a target and a date, tracked against your real monthly saving.
+        A house down payment, your child&apos;s 18th birthday, Hajj, a wedding — any goal with a
+        target and a date. Set it once, save monthly, and track exactly whether you&apos;re ahead,
+        on pace, or behind.
       </p>
 
       {/* fund selector */}
@@ -170,12 +227,13 @@ export default function GoalFundPage() {
           <button
             key={f.id}
             onClick={() => setActiveFundId(f.id)}
-            className={`px-4 py-2 rounded-full text-sm font-medium border ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border ${
               activeFundId === f.id
                 ? 'bg-[#141414] text-white border-[#141414]'
                 : 'bg-white text-[#3D3D3A] border-black/10'
             }`}
           >
+            <span>{f.icon}</span>
             {f.name}
           </button>
         ))}
@@ -189,32 +247,71 @@ export default function GoalFundPage() {
 
       {creating && (
         <div className="bg-white border border-black/10 rounded-2xl p-6 mb-6">
-          <div className="font-serif text-lg font-medium mb-4">New goal fund</div>
-          <div className="grid sm:grid-cols-2 gap-4 mb-4">
-            <div className="sm:col-span-2">
-              <label className="text-xs text-[#898781] block mb-1">
-                What are you saving for?
-              </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
-              />
+          <div className="flex gap-2 flex-wrap mb-4">
+            {PRESETS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => applyPreset(p.id)}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border ${
+                  selectedPreset === p.id
+                    ? 'bg-[#E1F5EE] border-[#1D9E75] text-[#085041]'
+                    : 'bg-white border-black/15 text-[#3D3D3A]'
+                }`}
+              >
+                <span>{p.icon}</span>
+                {p.id === 'child' ? 'Child at 18' : p.name.replace(' Fund', '')}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-[#E1F5EE] flex items-center justify-center text-lg shrink-0">
+              {icon}
             </div>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="flex-1 font-serif text-lg font-semibold text-[#141414] border-b-[1.5px] border-dashed border-black/15 focus:border-[#1D9E75] outline-none pb-1 bg-transparent"
+            />
+          </div>
+
+          <div className="inline-flex border border-black/10 rounded-lg overflow-hidden mb-4">
+            <button
+              onClick={() => setMode('monthly')}
+              className={`px-4 py-2 text-xs font-medium ${mode === 'monthly' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+            >
+              I know what I can save monthly
+            </button>
+            <button
+              onClick={() => setMode('target')}
+              className={`px-4 py-2 text-xs font-medium ${mode === 'target' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+            >
+              I know my target amount
+            </button>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4 mb-1">
+            {mode === 'monthly' ? (
+              <div>
+                <label className="text-xs text-[#898781] block mb-1">Monthly saving (SAR)</label>
+                <input
+                  value={monthly}
+                  onChange={(e) => setMonthly(e.target.value)}
+                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs text-[#898781] block mb-1">Target amount at maturity (SAR)</label>
+                <input
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+                />
+              </div>
+            )}
             <div>
-              <label className="text-xs text-[#898781] block mb-1">
-                Monthly saving (SAR)
-              </label>
-              <input
-                value={monthly}
-                onChange={(e) => setMonthly(e.target.value)}
-                className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-[#898781] block mb-1">
-                Years to maturity
-              </label>
+              <label className="text-xs text-[#898781] block mb-1">Years to maturity</label>
               <input
                 value={years}
                 onChange={(e) => setYears(e.target.value)}
@@ -222,9 +319,7 @@ export default function GoalFundPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-[#898781] block mb-1">
-                Expected annual return (%)
-              </label>
+              <label className="text-xs text-[#898781] block mb-1">Expected annual return (%)</label>
               <input
                 value={roi}
                 onChange={(e) => setRoi(e.target.value)}
@@ -232,17 +327,15 @@ export default function GoalFundPage() {
               />
             </div>
           </div>
-          <div className="flex gap-2">
+
+          <div className="flex gap-2 mt-4">
             <button
               onClick={createFund}
               className="text-sm bg-[#085041] text-white rounded-lg px-4 py-2 font-medium"
             >
               Create fund
             </button>
-            <button
-              onClick={() => setCreating(false)}
-              className="text-sm text-[#898781] px-4 py-2"
-            >
+            <button onClick={() => setCreating(false)} className="text-sm text-[#898781] px-4 py-2">
               Cancel
             </button>
           </div>
@@ -257,117 +350,160 @@ export default function GoalFundPage() {
 
       {activeFund && (
         <>
-          {/* hero */}
-          <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-6 mb-4 text-white">
-            <div className="text-xs tracking-[0.1em] uppercase text-[#C9A84C] mb-1">
-              Target at maturity
-            </div>
-            <div className="font-serif text-3xl font-bold mb-1">
-              SAR {fmt(activeFund.target_amount)}
-            </div>
-            <div className="text-xs text-white/50 mb-4">{activeFund.name}</div>
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/10">
-              <div>
-                <div className="text-[10px] text-white/45 mb-1">Monthly</div>
-                <div className="text-sm font-medium">
-                  SAR {fmt(activeFund.monthly_contribution)}
+          {/* hero row */}
+          <div className="grid sm:grid-cols-[1.3fr_1fr] gap-3.5 mb-5">
+            <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-6 text-white relative overflow-hidden">
+              <div className="text-xs tracking-[0.1em] uppercase text-[#C9A84C] mb-2">
+                Target at maturity
+              </div>
+              <div className="font-serif text-3xl font-bold mb-1">SAR {fmt(activeFund.target_amount)}</div>
+              <div className="text-xs text-white/50 mb-4">
+                {icon || activeFund.icon} {activeFund.name}
+              </div>
+              <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/10">
+                <div>
+                  <div className="text-[10px] text-white/45 mb-1">Monthly saving</div>
+                  <div className="text-sm font-medium">SAR {fmt(activeFund.monthly_contribution)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-white/45 mb-1">Duration</div>
+                  <div className="text-sm font-medium">{Math.round(activeFund.maturity_years * 12)} months</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-white/45 mb-1">Expected return</div>
+                  <div className="text-sm font-medium">{activeFund.expected_return}%/yr</div>
                 </div>
               </div>
-              <div>
-                <div className="text-[10px] text-white/45 mb-1">Duration</div>
-                <div className="text-sm font-medium">{totalMonths} months</div>
+            </div>
+
+            <div className="bg-white border border-black/10 rounded-2xl p-6 flex flex-col items-center justify-center">
+              <div className="text-[11px] tracking-[0.08em] uppercase text-[#898781] mb-3">Current progress</div>
+              <div className="relative w-36 h-36">
+                <svg viewBox="0 0 150 150" className="w-full h-full -rotate-90">
+                  <circle cx="75" cy="75" r="60" fill="none" stroke="#EFEDE8" strokeWidth="12" />
+                  <circle
+                    cx="75" cy="75" r="60" fill="none" stroke="#1D9E75" strokeWidth="12" strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 60}
+                    strokeDashoffset={2 * Math.PI * 60 * (1 - Math.min(1, pctToGoal / 100))}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <div className="font-serif text-2xl font-bold text-[#085041]">{pctToGoal.toFixed(1)}%</div>
+                  <div className="text-[10px] text-[#898781]">of goal</div>
+                </div>
               </div>
-              <div>
-                <div className="text-[10px] text-white/45 mb-1">Return</div>
-                <div className="text-sm font-medium">{activeFund.expected_return}%/yr</div>
+              <div className={`mt-3 text-xs font-medium px-3.5 py-1.5 rounded-full ${STATUS_CLASS[status]}`}>
+                {STATUS_LABEL[status]}
               </div>
             </div>
           </div>
 
-          {/* progress */}
-          <div className="bg-white border border-black/10 rounded-2xl p-6 mb-6 flex items-center gap-6">
-            <div className="relative w-28 h-28 flex-shrink-0">
-              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#EFEDE8" strokeWidth="10" />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="42"
-                  fill="none"
-                  stroke="#1D9E75"
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 42}
-                  strokeDashoffset={2 * Math.PI * 42 * (1 - Math.min(1, pctToGoal / 100))}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="font-serif text-lg font-bold text-[#085041]">
-                  {pctToGoal.toFixed(1)}%
-                </div>
-                <div className="text-[9px] text-[#898781]">of goal</div>
-              </div>
+          <div className="text-xs text-[#085041] font-medium mb-5 -mt-2">
+            {activeFund.expected_return > 0 ? (
+              <>
+                SAR {fmt(simpleSum)} from your own contributions, plus SAR {fmt(bonus)} from the{' '}
+                {activeFund.expected_return}% return — that&apos;s the power of investing it, not just saving it.
+              </>
+            ) : (
+              <>This is a pure savings total — set a return above 0% to see what investing this fund could add.</>
+            )}
+          </div>
+
+          {/* trajectory chart */}
+          <div className="bg-white border border-black/10 rounded-2xl p-6 mb-5">
+            <div className="text-sm font-medium text-[#141414]">Your fund over time</div>
+            <div className="text-xs text-[#898781] mb-1">
+              The dashed line is your plan. The solid line is what you&apos;ve actually saved.
             </div>
-            <div>
-              <div className="text-sm font-medium text-[#141414]">
-                SAR {fmt(cumActual)} saved so far
-              </div>
-              <div className="text-xs text-[#898781] mt-1">
-                Across {actuals.length} logged month{actuals.length === 1 ? '' : 's'}
-              </div>
-              <button
-                onClick={() => deleteFund(activeFund.id)}
-                className="text-xs text-[#A32D2D] mt-3"
-              >
-                Delete this fund
-              </button>
+            <div className="h-72 mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData}>
+                  <CartesianGrid stroke="#ececE6" />
+                  <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#898781' }} interval={Math.max(0, Math.floor(chartData.length / 8) - 1)} angle={-45} textAnchor="end" height={50} />
+                  <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => `SAR ${fmtCompact(Number(v))}`} />
+                  <Tooltip
+                    formatter={(value, name) => {
+                      if (value == null) return ['—', name];
+                      return [`SAR ${fmt(Number(value))}`, name];
+                    }}
+                  />
+                  <Line type="monotone" dataKey="cumTarget" name="Target" stroke="#141414" strokeWidth={2} strokeDasharray="5 4" dot={false} />
+                  <Line type="monotone" dataKey="cumActual" name="Actual" stroke="#1D9E75" strokeWidth={2.5} dot={false} connectNulls />
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
           {/* monthly tracker */}
-          <div className="bg-white border border-black/10 rounded-2xl overflow-hidden">
-            <div className="px-5 py-3 bg-[#F5F4F0] text-xs font-semibold text-[#898781] grid grid-cols-4 gap-3">
-              <span>Month</span>
-              <span>Target</span>
-              <span>Actual</span>
-              <span className="text-right">Difference</span>
+          <div className="mb-5">
+            <div className="font-serif text-lg font-medium text-[#141414] mb-1">Monthly tracker</div>
+            <div className="text-xs text-[#898781] mb-3">
+              Log what you actually saved. MalMind tracks the difference automatically.
             </div>
-            {Array.from({ length: Math.min(totalMonths, 24) }, (_, i) => i + 1).map((m) => {
-              const actualRow = actuals.find((a) => a.month_index === m);
-              const diff = actualRow ? actualRow.actual_amount - activeFund.monthly_contribution : null;
-              return (
-                <div
-                  key={m}
-                  className="px-5 py-2.5 grid grid-cols-4 gap-3 items-center text-sm border-t border-black/5"
+            <div className="bg-white border border-black/10 rounded-2xl overflow-hidden">
+              <div className="grid grid-cols-[36px_1fr_90px_90px_80px_80px] gap-2.5 px-4 py-2.5 bg-[#F5F4F0] text-[10px] font-semibold uppercase tracking-wide text-[#898781]">
+                <span>#</span>
+                <span>Month</span>
+                <span>Target</span>
+                <span>Actual</span>
+                <span className="text-right">Diff.</span>
+                <span className="text-right">Accum.</span>
+              </div>
+              {series.slice(0, visibleMonths).map((s) => {
+                const hasActual = s.actualLogged !== null;
+                const diff = hasActual ? s.actualLogged! - s.target : null;
+                const accumDiff = s.cumActual - s.cumTarget;
+                return (
+                  <div key={s.m} className="grid grid-cols-[36px_1fr_90px_90px_80px_80px] gap-2.5 px-4 py-2.5 items-center text-xs border-t border-black/5">
+                    <span className="text-[#898781]">{s.m}</span>
+                    <span className="text-[#141414] font-medium">{monthLabel(startDate, s.m - 1)}</span>
+                    <span className="text-[#3D3D3A]">SAR {fmt(s.target)}</span>
+                    <input
+                      type="text"
+                      defaultValue={hasActual ? fmt(s.actualLogged!) : ''}
+                      placeholder="—"
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
+                        if (!isNaN(val)) logActual(s.m, val);
+                      }}
+                      className="w-full bg-[#F5F4F0] border border-black/10 rounded-md px-2 py-1 text-xs outline-none focus:border-[#1D9E75]"
+                    />
+                    <span className={`text-right font-semibold ${diff === null ? 'text-[#898781]' : diff >= 0 ? 'text-[#085041]' : 'text-[#C0504D]'}`}>
+                      {diff === null ? '—' : `${diff >= 0 ? '+' : ''}${fmt(diff)}`}
+                    </span>
+                    <span className={`text-right ${!hasActual ? 'text-[#898781]' : accumDiff >= 0 ? 'text-[#085041]' : 'text-[#C0504D]'}`}>
+                      {hasActual ? `${accumDiff >= 0 ? '+' : ''}${fmt(accumDiff)}` : '—'}
+                    </span>
+                  </div>
+                );
+              })}
+              {visibleMonths < series.length && (
+                <button
+                  onClick={() => setVisibleMonths((v) => v + 24)}
+                  className="w-full text-center py-3 text-xs font-medium text-[#085041] border-t border-black/5"
                 >
-                  <span className="text-[#898781] text-xs">Month {m}</span>
-                  <span className="text-[#3D3D3A]">
-                    SAR {fmt(activeFund.monthly_contribution)}
-                  </span>
-                  <input
-                    type="text"
-                    defaultValue={actualRow ? fmt(actualRow.actual_amount) : ''}
-                    placeholder="—"
-                    onBlur={(e) => {
-                      const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
-                      if (!isNaN(val)) logActual(m, val);
-                    }}
-                    className="w-full bg-[#F5F4F0] border border-black/10 rounded-md px-2 py-1 text-xs outline-none"
-                  />
-                  <span
-                    className={`text-right text-xs font-medium ${
-                      diff === null
-                        ? 'text-[#898781]'
-                        : diff >= 0
-                        ? 'text-[#085041]'
-                        : 'text-[#A32D2D]'
-                    }`}
-                  >
-                    {diff === null ? '—' : `${diff >= 0 ? '+' : ''}${fmt(diff)}`}
-                  </span>
-                </div>
-              );
-            })}
+                  Show more months
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-5">
+            <button onClick={() => deleteFund(activeFund.id)} className="text-xs text-[#A32D2D]">
+              Delete this fund
+            </button>
+          </div>
+
+          {/* nudge */}
+          <div className="flex gap-3 items-start bg-[#FAF6EA] border border-[#C9A84C] rounded-xl p-4">
+            <div className="w-7 h-7 rounded-full bg-[#C9A84C] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">
+              M
+            </div>
+            <div className="text-xs text-[#5A4A1A] leading-relaxed">
+              <strong className="text-[#3A2F0A]">This fund is now part of your plan.</strong> MalMind tracks it
+              alongside everything else — if a big decision would mean skipping a month here, I&apos;ll show you
+              what that costs against this exact goal, in these exact terms.
+            </div>
           </div>
         </>
       )}

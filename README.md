@@ -48,7 +48,9 @@ Two accounts, both free to start:
    copy its contents, paste in, and click **Run** — this adds two more
    columns to `profiles` (side income, monthly expense) for the Velocity
    of Money page.
-7. That's it — together these files create every table MalMind needs:
+7. One more. Open `supabase/schema_part5.sql`, copy its contents, paste
+   in, and click **Run** — this adds an `icon` column to `goal_funds`.
+8. That's it — together these files create every table MalMind needs:
    profiles, story chapters, net worth snapshots, goal funds, advisor
    messages, budget items, life phases, year plans, income entries, and
    investment settings — each with Row Level Security already configured
@@ -56,8 +58,8 @@ Two accounts, both free to start:
 
 If you already ran earlier schema files before (from an earlier version
 of this app), you only need to run whichever of `schema_part3.sql` /
-`schema_part4.sql` you haven't yet — they only add new columns and won't
-touch what already exists.
+`schema_part4.sql` / `schema_part5.sql` you haven't yet — they only add
+new columns and won't touch what already exists.
 
 ## Getting your Supabase credentials
 
