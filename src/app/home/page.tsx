@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
+import { firstNameOf } from '@/lib/name';
 
 interface Profile {
   name: string;
@@ -91,7 +92,7 @@ export default function HomePage() {
       <div className="flex justify-between items-start mb-2">
         <div>
           <h1 className="font-serif text-2xl font-semibold text-[#141414]">
-            Good to see you, {profile.name}
+            Good to see you, {firstNameOf(profile.name)}
           </h1>
           <p className="text-sm text-[#3D3D3A]">
             This is your real, saved account — not a demo.
@@ -112,7 +113,7 @@ export default function HomePage() {
         <div className="text-xs tracking-[0.1em] uppercase text-[#C9A84C] mb-1">
           Your profile
         </div>
-        <div className="font-serif text-xl font-semibold">{profile.name}</div>
+        <div className="font-serif text-xl font-semibold">{firstNameOf(profile.name)}</div>
         <div className="text-xs text-white/50 mb-4">
           {profile.employment} · {profile.city}
         </div>

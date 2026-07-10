@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { firstNameOf } from '@/lib/name';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -34,7 +35,7 @@ export default function AdvisorPage() {
       .select('name')
       .eq('id', user.id)
       .single();
-    if (profile?.name) setName(profile.name);
+    if (profile?.name) setName(firstNameOf(profile.name));
 
     const { data: history } = await supabase
       .from('advisor_messages')

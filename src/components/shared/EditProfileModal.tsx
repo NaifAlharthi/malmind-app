@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { splitName, joinName } from '@/lib/name';
 
 export interface EditableProfile {
   name: string;
@@ -25,7 +26,8 @@ export default function EditProfileModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [age, setAge] = useState('');
   const [city, setCity] = useState('');
   const [employment, setEmployment] = useState('');
@@ -50,7 +52,9 @@ export default function EditProfileModal({
         .single();
 
       if (data) {
-        setName(data.name ?? '');
+        const { firstName, lastName } = splitName(data.name ?? '');
+        setFirstName(firstName);
+        setLastName(lastName);
         setAge(data.age != null ? String(data.age) : '');
         setCity(data.city ?? '');
         setEmployment(data.employment ?? '');
@@ -76,7 +80,7 @@ export default function EditProfileModal({
     }
 
     const updated: EditableProfile = {
-      name: name.trim(),
+      name: joinName(firstName, lastName),
       age: age.trim() === '' ? null : Number(age),
       city: city.trim() === '' ? null : city.trim(),
       employment: employment.trim() === '' ? null : employment.trim(),
@@ -125,15 +129,26 @@ export default function EditProfileModal({
           <div className="text-sm text-[#898781] py-8 text-center">Loading…</div>
         ) : (
           <form onSubmit={handleSave} className="space-y-4">
-            <div>
-              <label className="text-xs text-[#898781] block mb-1">Full name</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-[#898781] block mb-1">First name</label>
+                <input
+                  type="text"
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-[#898781] block mb-1">Last name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

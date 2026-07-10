@@ -13,6 +13,7 @@ import {
   Legend,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import { firstNameOf } from '@/lib/name';
 
 interface NetWorthRow {
   year: number;
@@ -49,7 +50,7 @@ export default function PositioningPage() {
       .select('name')
       .eq('id', user.id)
       .single();
-    if (profile?.name) setName(profile.name);
+    if (profile?.name) setName(firstNameOf(profile.name));
 
     const { data } = await supabase
       .from('net_worth_snapshots')

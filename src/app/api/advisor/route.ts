@@ -8,6 +8,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { firstNameOf } from '@/lib/name';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
           .join('\n')
       : 'No chapters recorded yet.';
 
-  const name = profile?.name || 'there';
+  const name = firstNameOf(profile?.name) || 'there';
   const age = profile?.age ?? 'unknown';
   const employment = profile?.employment || 'unspecified employment';
   const city = profile?.city || 'an unspecified city';
