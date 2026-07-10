@@ -44,15 +44,20 @@ Two accounts, both free to start:
 5. Click **New query** once more. Open `supabase/schema_part3.sql`, copy
    its contents, paste in, and click **Run** — this adds three columns to
    `profiles` for the Lifetime Income page's "Understand" projection view.
-6. That's it — together these files create every table MalMind needs:
+6. Click **New query** one more time. Open `supabase/schema_part4.sql`,
+   copy its contents, paste in, and click **Run** — this adds two more
+   columns to `profiles` (side income, monthly expense) for the Velocity
+   of Money page.
+7. That's it — together these files create every table MalMind needs:
    profiles, story chapters, net worth snapshots, goal funds, advisor
    messages, budget items, life phases, year plans, income entries, and
    investment settings — each with Row Level Security already configured
    so users can only ever touch their own data.
 
-If you already ran `schema.sql` and `schema_part2.sql` before (from an
-earlier version of this app), you only need to run `schema_part3.sql` now
-— it only adds new columns and won't touch what already exists.
+If you already ran earlier schema files before (from an earlier version
+of this app), you only need to run whichever of `schema_part3.sql` /
+`schema_part4.sql` you haven't yet — they only add new columns and won't
+touch what already exists.
 
 ## Getting your Supabase credentials
 
