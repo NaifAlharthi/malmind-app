@@ -6,6 +6,9 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import UnderstandView from './UnderstandView';
+
+type PageMode = 'log' | 'understand';
 
 interface IncomeEntry {
   id: string;
@@ -27,6 +30,7 @@ export default function LifetimeIncomePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [entries, setEntries] = useState<IncomeEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<PageMode>('log');
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -116,6 +120,25 @@ export default function LifetimeIncomePage() {
         actually stayed with you.
       </p>
 
+      <div className="inline-flex border border-black/10 rounded-lg overflow-hidden mb-6">
+        <button
+          onClick={() => setMode('log')}
+          className={`px-4 py-2 text-xs font-medium ${mode === 'log' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+        >
+          Log your real income
+        </button>
+        <button
+          onClick={() => setMode('understand')}
+          className={`px-4 py-2 text-xs font-medium ${mode === 'understand' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+        >
+          Understand your lifetime income
+        </button>
+      </div>
+
+      {mode === 'understand' && <UnderstandView />}
+
+      {mode === 'log' && (
+      <>
       {/* log entry */}
       <div className="bg-white border border-black/10 rounded-2xl p-5 mb-6 flex flex-wrap gap-3 items-end">
         <div>
@@ -219,6 +242,8 @@ export default function LifetimeIncomePage() {
             </div>
           </div>
         </>
+      )}
+      </>
       )}
     </div>
   );
