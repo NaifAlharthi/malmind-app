@@ -1,180 +1,508 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useProfileContext } from '@/components/shared/AppShell';
+import {
+  computeRatios, verdictLabel,
+  type RatioResult, type FinancialSnapshot, type Category,
+} from '@/lib/ratios';
+import RatioViz from './RatioViz';
 
-function fmt(n: number) {
-  return Math.round(n).toLocaleString();
+function fmtSar(n: number) {
+  return 'SAR ' + Math.round(n).toLocaleString();
 }
 
-interface Ratio {
-  title: string;
-  value: string;
-  verdict: 'good' | 'watch' | 'attention';
-  note: string;
+const CATEGORIES: (Category | 'All')[] = ['All', 'Liquidity', 'Savings', 'Debt', 'Net worth', 'Spending'];
+
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+interface IncomeRow {
+  year: number;
+  month: number;
+  income: number;
+  spending: number;
 }
+interface NetWorthRow {
+  year: number;
+  amount: number;
+}
+
+type Period = 'since-last' | 'all-time';
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 export default function RatiosPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { openEditProfile } = useProfileContext();
+
   const [loading, setLoading] = useState(true);
-  const [ratios, setRatios] = useState<Ratio[]>([]);
-  const [dataAvailable, setDataAvailable] = useState(false);
+  const [snapshot, setSnapshot] = useState<FinancialSnapshot | null>(null);
+  const [netWorthRows, setNetWorthRows] = useState<NetWorthRow[]>([]);
+  const [incomeRows, setIncomeRows] = useState<IncomeRow[]>([]);
 
-  const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push('/login');
-      return;
-    }
+  const [period, setPeriod] = useState<Period>('since-last');
+  const [activeCat, setActiveCat] = useState<Category | 'All'>('All');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    const [
-      { data: profile },
-      { data: netWorthRows },
-      { data: yearPlan },
-      { data: budgetItems },
-      { data: goalFunds },
-    ] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('net_worth_snapshots').select('year, amount').eq('user_id', user.id).order('year', { ascending: true }),
-      supabase.from('year_plans').select('*').eq('user_id', user.id).eq('year', new Date().getFullYear()).maybeSingle(),
-      supabase.from('budget_items').select('cost, phase').eq('user_id', user.id),
-      supabase.from('goal_funds').select('monthly_contribution').eq('user_id', user.id),
-    ]);
-
-    const computed: Ratio[] = [];
-    let hasAnyData = false;
-
-    // Savings rate — from the year plan
-    if (yearPlan) {
-      hasAnyData = true;
-      const disposable = yearPlan.monthly_income - yearPlan.monthly_expenses;
-      const savingsRate = yearPlan.monthly_income > 0 ? (disposable * (yearPlan.save_rate / 100) / yearPlan.monthly_income) * 100 : 0;
-      computed.push({
-        title: 'Savings rate',
-        value: `${savingsRate.toFixed(1)}%`,
-        verdict: savingsRate >= 20 ? 'good' : savingsRate >= 10 ? 'watch' : 'attention',
-        note: `You keep ${savingsRate.toFixed(1)}% of your income, based on your Year Master Plan.`,
-      });
-
-      const burnRate = yearPlan.monthly_income > 0 ? (yearPlan.monthly_expenses / yearPlan.monthly_income) * 100 : 0;
-      computed.push({
-        title: 'Spending-to-income',
-        value: `${burnRate.toFixed(1)}%`,
-        verdict: burnRate <= 70 ? 'good' : burnRate <= 85 ? 'watch' : 'attention',
-        note: `You spend ${burnRate.toFixed(1)}% of what you earn each month.`,
-      });
-    }
-
-    // Net worth to income — from real snapshots + profile
-    if (netWorthRows && netWorthRows.length > 0 && profile?.monthly_income) {
-      hasAnyData = true;
-      const latestNW = netWorthRows[netWorthRows.length - 1].amount;
-      const annualIncome = profile.monthly_income * 12;
-      const multiple = annualIncome > 0 ? latestNW / annualIncome : 0;
-      computed.push({
-        title: 'Net worth to income',
-        value: `${multiple.toFixed(2)}×`,
-        verdict: multiple >= 2 ? 'good' : multiple >= 1 ? 'watch' : 'attention',
-        note: `Your logged net worth is ${multiple.toFixed(2)}× your annual income.`,
-      });
-
-      if (netWorthRows.length >= 2) {
-        const prev = netWorthRows[netWorthRows.length - 2].amount;
-        const growth = prev > 0 ? ((latestNW - prev) / prev) * 100 : 0;
-        computed.push({
-          title: 'Net worth growth',
-          value: `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`,
-          verdict: growth >= 8 ? 'good' : growth >= 0 ? 'watch' : 'attention',
-          note: `Net worth changed ${growth.toFixed(1)}% between your last two logged snapshots.`,
-        });
-      }
-    }
-
-    // Budget commitment ratio
-    if (budgetItems && budgetItems.length > 0) {
-      hasAnyData = true;
-      const total = budgetItems.reduce((s, i) => s + i.cost, 0);
-      const phase1 = budgetItems.filter((i) => i.phase === 1).reduce((s, i) => s + i.cost, 0);
-      const essentialShare = total > 0 ? (phase1 / total) * 100 : 0;
-      computed.push({
-        title: 'Essential purchase share',
-        value: `${essentialShare.toFixed(0)}%`,
-        verdict: essentialShare >= 40 ? 'good' : 'watch',
-        note: `${essentialShare.toFixed(0)}% of your planned purchases (SAR ${fmt(total)} total) are Phase 1 essentials.`,
-      });
-    }
-
-    // Goal commitment vs income
-    if (goalFunds && goalFunds.length > 0 && profile?.monthly_income) {
-      hasAnyData = true;
-      const totalCommitted = goalFunds.reduce((s, g) => s + g.monthly_contribution, 0);
-      const commitRate = profile.monthly_income > 0 ? (totalCommitted / profile.monthly_income) * 100 : 0;
-      computed.push({
-        title: 'Goal commitment rate',
-        value: `${commitRate.toFixed(1)}%`,
-        verdict: commitRate <= 30 ? 'good' : commitRate <= 50 ? 'watch' : 'attention',
-        note: `You've committed SAR ${fmt(totalCommitted)}/month across ${goalFunds.length} goal fund${goalFunds.length === 1 ? '' : 's'}.`,
-      });
-    }
-
-    setRatios(computed);
-    setDataAvailable(hasAnyData);
-    setLoading(false);
-  }, [supabase, router]);
+  const [synthOpen, setSynthOpen] = useState(false);
+  const [synthLoading, setSynthLoading] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [ratiosSummary, setRatiosSummary] = useState('');
 
   useEffect(() => {
-    load();
-  }, [load]);
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
+      const [{ data: profile }, { data: nwData }, { data: incomeData }, { data: yearPlan }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('monthly_income, age, liquid_savings, monthly_debt_payments, total_debt, monthly_housing_payment, monthly_investment_contribution')
+          .eq('id', user.id)
+          .single(),
+        supabase.from('net_worth_snapshots').select('year, amount').eq('user_id', user.id).order('year', { ascending: true }),
+        supabase.from('income_entries').select('year, month, income, spending').eq('user_id', user.id).order('year', { ascending: true }).order('month', { ascending: true }),
+        supabase.from('year_plans').select('monthly_expenses').eq('user_id', user.id).eq('year', new Date().getFullYear()).maybeSingle(),
+      ]);
+
+      const nwRows = (nwData as NetWorthRow[]) ?? [];
+      const incRows = (incomeData as IncomeRow[]) ?? [];
+      setNetWorthRows(nwRows);
+      setIncomeRows(incRows);
+
+      // Prefer real logged months; fall back to the Year Master Plan's
+      // budgeted monthly expenses if nothing has been logged yet.
+      const recentSpending =
+        incRows.length > 0
+          ? incRows.slice(-6).map((r) => Number(r.spending))
+          : yearPlan?.monthly_expenses
+          ? [Number(yearPlan.monthly_expenses)]
+          : [];
+
+      setSnapshot({
+        monthlyIncome: profile?.monthly_income ? Number(profile.monthly_income) : null,
+        age: profile?.age ?? null,
+        liquidSavings: profile?.liquid_savings != null ? Number(profile.liquid_savings) : null,
+        monthlyDebtPayments: profile?.monthly_debt_payments != null ? Number(profile.monthly_debt_payments) : null,
+        totalDebt: profile?.total_debt != null ? Number(profile.total_debt) : null,
+        monthlyHousingPayment: profile?.monthly_housing_payment != null ? Number(profile.monthly_housing_payment) : null,
+        monthlyInvestmentContribution: profile?.monthly_investment_contribution != null ? Number(profile.monthly_investment_contribution) : null,
+        netWorthByYear: nwRows.map((r) => ({ year: r.year, amount: Number(r.amount) })),
+        recentSpending,
+      });
+      setLoading(false);
+    })();
+  }, [supabase, router]);
+
+  const ratios = useMemo(() => (snapshot ? computeRatios(snapshot) : []), [snapshot]);
+  const vitals = ratios.filter((r) => r.vital);
+  const filtered = activeCat === 'All' ? ratios : ratios.filter((r) => r.cat === activeCat);
+
+  // ── Answer hero: real net worth change ──
+  const hero = useMemo(() => {
+    if (netWorthRows.length < 2) return null;
+    const latest = netWorthRows[netWorthRows.length - 1];
+    const baseline = period === 'since-last' ? netWorthRows[netWorthRows.length - 2] : netWorthRows[0];
+    const change = latest.amount - baseline.amount;
+    const spark = period === 'since-last' ? netWorthRows.slice(-2) : netWorthRows;
+    const monthsElapsed = Math.max(1, (latest.year - baseline.year) * 12);
+
+    const savingsRatio = ratios.find((r) => r.id === 'split');
+    let savedEstimate: number | null = null;
+    if (savingsRatio?.ready && snapshot?.monthlyIncome) {
+      savedEstimate = (savingsRatio.value! / 100) * snapshot.monthlyIncome * monthsElapsed;
+    }
+
+    return { latest, baseline, change, spark, savedEstimate };
+  }, [netWorthRows, period, ratios, snapshot]);
+
+  async function startSynthesis() {
+    const readyLines = ratios
+      .filter((r) => r.ready)
+      .map((r) => `- ${r.title}: ${r.value}${r.unit?.startsWith('%') ? '' : ' ' + r.unit} (${verdictLabel(r.verdict!)})`)
+      .join('\n');
+    const missingLines = ratios
+      .filter((r) => !r.ready)
+      .map((r) => `- ${r.title}: not enough data yet (${r.missingHint})`)
+      .join('\n');
+    const summary = `Ready ratios:\n${readyLines || 'none yet'}\n\nNot yet computable:\n${missingLines || 'none'}`;
+    setRatiosSummary(summary);
+
+    setSynthOpen(true);
+    setSynthLoading(true);
+    const initialMessages: ChatMessage[] = [
+      { role: 'user', content: 'Please analyze my complete financial ratio picture: what patterns do you see across these ratios together, what opportunities do they suggest, and what matters most right now?' },
+    ];
+
+    try {
+      const res = await fetch('/api/ratios-synthesis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ratiosSummary: summary, messages: initialMessages }),
+      });
+      const data = await res.json();
+      setMessages([...initialMessages, { role: 'assistant', content: data.reply }]);
+    } catch {
+      setMessages([...initialMessages, { role: 'assistant', content: 'Something went wrong reaching your analyst. Please try again.' }]);
+    }
+    setSynthLoading(false);
+  }
+
+  async function sendChat(text: string) {
+    if (!text.trim()) return;
+    const next = [...messages, { role: 'user' as const, content: text }];
+    setMessages(next);
+    setChatInput('');
+    setSynthLoading(true);
+    try {
+      const res = await fetch('/api/ratios-synthesis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ratiosSummary, messages: next }),
+      });
+      const data = await res.json();
+      setMessages([...next, { role: 'assistant', content: data.reply }]);
+    } catch {
+      setMessages([...next, { role: 'assistant', content: 'Something went wrong reaching your analyst. Please try again.' }]);
+    }
+    setSynthLoading(false);
+  }
 
   if (loading) {
-    return <div className="text-sm text-[#898781]">Computing your ratios…</div>;
+    return <div className="text-sm text-[#898781]">Loading your ratios…</div>;
   }
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.1em] uppercase text-[#4A78C4] font-semibold mb-1">
-        Think
-      </div>
-      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">
-        Ratios &amp; Stats
-      </h1>
+      <div className="text-[10px] tracking-[0.1em] uppercase text-[#4A78C4] font-semibold mb-1">Think</div>
+      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">Ratios &amp; Stats</h1>
       <p className="text-sm text-[#3D3D3A] mb-6 max-w-xl">
-        The handful of numbers that tell you if things are healthy — computed
-        live from what you&apos;ve actually entered across MalMind.
+        Every number here is drawn from your stored history. Ratios you haven&apos;t unlocked yet show what to log to
+        see them.
       </p>
 
-      {!dataAvailable ? (
-        <div className="bg-white border border-black/10 rounded-2xl p-8 text-center text-sm text-[#898781]">
-          Fill in your Year Master Plan, log a net worth snapshot, or add a
-          goal fund — your ratios will appear here automatically, computed
-          from real data across every tool.
+      {/* answer hero */}
+      {hero ? (
+        <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-7 mb-5 relative overflow-hidden">
+          <div className="text-[11px] tracking-[0.12em] uppercase text-[#C9A84C] mb-1">
+            The question most people cannot answer
+          </div>
+          <div className="font-serif text-sm text-white/55 mb-4 max-w-lg">
+            &quot;How much richer or poorer are you than you were before?&quot; Most people guess. You don&apos;t have to.
+          </div>
+          <div className="inline-flex gap-1 bg-white/10 rounded-lg p-1 mb-5">
+            <button
+              onClick={() => setPeriod('since-last')}
+              className={`px-3.5 py-1.5 rounded text-xs font-medium ${period === 'since-last' ? 'bg-white/20 text-white' : 'text-white/55'}`}
+            >
+              Since last snapshot
+            </button>
+            <button
+              onClick={() => setPeriod('all-time')}
+              className={`px-3.5 py-1.5 rounded text-xs font-medium ${period === 'all-time' ? 'bg-white/20 text-white' : 'text-white/55'}`}
+            >
+              All-time
+            </button>
+          </div>
+          <div className="grid sm:grid-cols-[1.2fr_1fr] gap-6 items-center">
+            <div>
+              <div className={`font-serif text-4xl font-bold mb-2 ${hero.change >= 0 ? 'text-white' : 'text-[#F0999A]'}`}>
+                {hero.change >= 0 ? '+' : '-'}{fmtSar(Math.abs(hero.change))}
+              </div>
+              <div className="text-sm text-white/75 leading-relaxed max-w-sm">
+                You are <strong className="text-white font-semibold">{fmtSar(Math.abs(hero.change))}</strong>{' '}
+                {hero.change >= 0 ? 'richer' : 'poorer'} than you were {period === 'since-last' ? `in ${hero.baseline.year}` : `since your first record in ${hero.baseline.year}`} — from{' '}
+                <strong className="text-white font-semibold">{fmtSar(hero.baseline.amount)}</strong> to{' '}
+                <strong className="text-white font-semibold">{fmtSar(hero.latest.amount)}</strong>.
+              </div>
+            </div>
+            {hero.savedEstimate != null && (
+              <div className="flex flex-col gap-2.5">
+                <div className="flex justify-between items-center text-xs pb-2 border-b border-white/10">
+                  <span className="text-white/55">Estimated from saving</span>
+                  <span className="text-white font-serif font-semibold">{fmtSar(hero.savedEstimate)}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-white/55">Everything else — investments, debt, market moves</span>
+                  <span className="text-white font-serif font-semibold">{fmtSar(hero.change - hero.savedEstimate)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          {hero.spark.length >= 2 && (
+            <div className="mt-5">
+              <div className="text-[10px] text-white/40 mb-1.5">Net worth over the period</div>
+              <NetWorthSpark points={hero.spark} positive={hero.change >= 0} />
+            </div>
+          )}
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-3">
-          {ratios.map((r) => (
-            <div key={r.title} className="bg-white border border-black/10 rounded-xl p-5">
-              <div className="flex justify-between items-start mb-2">
-                <div className="text-xs font-semibold text-[#141414]">{r.title}</div>
-                <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                    r.verdict === 'good'
-                      ? 'bg-[#E1F5EE] text-[#085041]'
-                      : r.verdict === 'watch'
-                      ? 'bg-[#FBF1E0] text-[#8A6416]'
-                      : 'bg-[#FBE9EC] text-[#A32D2D]'
-                  }`}
-                >
-                  {r.verdict === 'good' ? 'Healthy' : r.verdict === 'watch' ? 'Watch' : 'Needs attention'}
-                </span>
+        <div className="bg-white border border-black/10 rounded-2xl p-6 mb-5 text-sm text-[#3D3D3A]">
+          Log at least two net worth snapshots in{' '}
+          <a href="/positioning" className="text-[#085041] font-medium">Financial Positioning</a> to see how much
+          richer or poorer you&apos;ve become.
+        </div>
+      )}
+
+      {/* talk to your analyst CTA */}
+      {!synthOpen ? (
+        <button
+          onClick={startSynthesis}
+          className="w-full bg-white border-[1.5px] border-dashed border-[#5DCAA5] rounded-2xl p-6 mb-5 text-center hover:border-[#1D9E75] hover:bg-[#E1F5EE] transition-colors"
+        >
+          <div className="text-xl mb-2">M</div>
+          <div className="font-serif text-lg font-semibold text-[#141414] mb-1">The Blend</div>
+          <div className="text-xs text-[#085041] font-medium mb-2">Every ratio, blended into one stance on your finances</div>
+          <div className="text-xs text-[#3D3D3A] max-w-md mx-auto mb-3 leading-relaxed">
+            Like handing your complete financial statement to a real analyst and asking: what do you actually see
+            here?
+          </div>
+          <span className="inline-block bg-[#085041] text-white text-xs font-semibold rounded-lg px-5 py-2.5">
+            Talk to your analyst →
+          </span>
+        </button>
+      ) : (
+        <div className="bg-white border border-black/10 rounded-2xl overflow-hidden mb-5">
+          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-black/10 bg-[#F5F4F0]">
+            <div className="w-8 h-8 rounded-full bg-[#085041] flex items-center justify-center font-serif font-bold text-[#C9A84C] text-sm">M</div>
+            <div>
+              <div className="text-xs font-semibold text-[#141414]">Your analyst</div>
+              <div className="text-[11px] text-[#085041] flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1D9E75]" />Reading your real ratios
               </div>
-              <div className="font-serif text-2xl font-bold text-[#141414] mb-2">{r.value}</div>
-              <div className="text-xs text-[#3D3D3A]">{r.note}</div>
+            </div>
+          </div>
+          <div className="p-5 flex flex-col gap-4 max-h-[520px] overflow-y-auto">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex gap-2.5 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${m.role === 'user' ? 'bg-[#EFEDE8] text-[#3D3D3A]' : 'bg-[#085041] text-[#C9A84C] font-serif'}`}>
+                  {m.role === 'user' ? 'You' : 'M'}
+                </div>
+                <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-xs leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#085041] text-white rounded-tr-sm' : 'bg-[#F5F4F0] text-[#3D3D3A] rounded-tl-sm'}`}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {synthLoading && (
+              <div className="flex gap-2.5">
+                <div className="w-6 h-6 rounded-full bg-[#085041] flex items-center justify-center text-[10px] font-bold text-[#C9A84C] font-serif shrink-0 mt-0.5">M</div>
+                <div className="bg-[#F5F4F0] rounded-2xl rounded-tl-sm px-4 py-3 text-xs text-[#898781]">Reasoning across your complete picture…</div>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 px-4 py-3 border-t border-black/10 bg-[#F5F4F0]">
+            <input
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') sendChat(chatInput); }}
+              placeholder="Ask your analyst anything about this…"
+              className="flex-1 bg-white border border-black/10 rounded-full px-4 py-2 text-xs outline-none focus:border-[#1D9E75]"
+            />
+            <button
+              onClick={() => sendChat(chatInput)}
+              disabled={synthLoading}
+              className="w-9 h-9 rounded-full bg-[#085041] text-white flex items-center justify-center disabled:opacity-50"
+            >
+              ↑
+            </button>
+          </div>
+          <div className="text-[10px] text-[#898781] leading-relaxed px-5 py-3 bg-[#F5F4F0] border-t border-black/10">
+            This analysis is generated from your stored ratios and is informational, not licensed financial advice.
+          </div>
+        </div>
+      )}
+
+      {/* vitals */}
+      <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-6 mb-6">
+        <div className="text-[11px] tracking-[0.12em] uppercase text-[#C9A84C] mb-4">Vital signs</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          {vitals.map((r) => (
+            <div key={r.id} className="bg-white/5 border border-white/10 rounded-xl p-3.5">
+              <div className="text-[11px] text-white/55 mb-2">{r.title}</div>
+              {r.ready ? (
+                <>
+                  <div className="h-10 mb-1.5"><RatioViz r={r} big /></div>
+                  <div className="font-serif text-base font-bold text-white">
+                    {r.unit?.startsWith('%') ? `${r.value}%` : r.unit === 'x annual income' ? `${r.value}x` : `${r.value} ${r.unit}`}
+                  </div>
+                </>
+              ) : (
+                <div className="text-[11px] text-white/40 leading-relaxed">Not enough data yet</div>
+              )}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* category filter */}
+      <div className="flex gap-2 flex-wrap mb-5">
+        {CATEGORIES.map((c) => (
+          <button
+            key={c}
+            onClick={() => setActiveCat(c)}
+            className={`px-4 py-2 rounded-full text-xs font-medium border ${
+              activeCat === c ? 'bg-[#141414] text-white border-[#141414]' : 'bg-white text-[#3D3D3A] border-black/10'
+            }`}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {/* ratio grid */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mb-6">
+        {filtered.map((r) => (
+          <RatioCard
+            key={r.id}
+            r={r}
+            expanded={expandedId === r.id}
+            onToggle={() => setExpandedId((prev) => (prev === r.id ? null : r.id))}
+            onSetInProfile={openEditProfile}
+            netWorthRows={netWorthRows}
+            incomeRows={incomeRows}
+          />
+        ))}
+      </div>
+
+      <div className="flex gap-3 items-start bg-[#FAF6EA] border border-[#C9A84C] rounded-xl p-4">
+        <div className="w-7 h-7 rounded-full bg-[#C9A84C] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">M</div>
+        <div className="text-xs text-[#5A4A1A] leading-relaxed">
+          <strong className="text-[#3A2F0A]">These ratios update as your story grows.</strong> The more you log in
+          Lifetime Income and Financial Positioning, and the more you fill in on your profile, the sharper these
+          readings get.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NetWorthSpark({ points, positive }: { points: NetWorthRow[]; positive: boolean }) {
+  const W = 620, H = 44;
+  const values = points.map((p) => p.amount);
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = points
+    .map((p, i) => {
+      const x = (i / (points.length - 1 || 1)) * (W - 4) + 2;
+      const y = H - 4 - ((p.amount - min) / range) * (H - 8);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  const color = positive ? '#5DCAA5' : '#F0999A';
+  const lastX = W - 2;
+  const lastY = H - 4 - ((values[values.length - 1] - min) / range) * (H - 8);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="44">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
+      <circle cx={lastX} cy={lastY} r={3} fill={color} />
+    </svg>
+  );
+}
+
+function RatioCard({
+  r, expanded, onToggle, onSetInProfile, netWorthRows, incomeRows,
+}: {
+  r: RatioResult;
+  expanded: boolean;
+  onToggle: () => void;
+  onSetInProfile: () => void;
+  netWorthRows: NetWorthRow[];
+  incomeRows: IncomeRow[];
+}) {
+  if (!r.ready) {
+    return (
+      <div className="bg-white border border-black/10 rounded-2xl p-5">
+        <div className="text-xs font-semibold text-[#141414] mb-2">{r.title}</div>
+        <div className="text-[11px] text-[#898781] leading-relaxed mb-3">{r.missingHint}</div>
+        <button onClick={onSetInProfile} className="text-[11px] font-medium text-[#085041] bg-[#E1F5EE] border border-[#5DCAA5] rounded-lg px-3 py-1.5">
+          Set in Edit Profile
+        </button>
+      </div>
+    );
+  }
+
+  const verdictClass =
+    r.verdict === 'good' ? 'bg-[#E1F5EE] text-[#085041]' : r.verdict === 'watch' ? 'bg-[#FBF1E0] text-[#8A6416]' : 'bg-[#FBE9EC] text-[#A32D2D]';
+
+  const log = ratioLog(r.id, netWorthRows, incomeRows);
+
+  return (
+    <div
+      onClick={onToggle}
+      className={`bg-white border border-black/10 rounded-2xl p-5 cursor-pointer hover:border-[#5DCAA5] transition-colors ${expanded ? 'sm:col-span-2 lg:col-span-3' : ''}`}
+    >
+      <div className="flex justify-between items-start gap-2 mb-1">
+        <div className="text-xs font-semibold text-[#141414] leading-snug">{r.title}</div>
+        <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${verdictClass}`}>{verdictLabel(r.verdict!)}</span>
+      </div>
+      <div className="flex items-baseline gap-1.5 mb-3">
+        <span className="font-serif text-2xl font-bold text-[#141414]">
+          {r.unit?.startsWith('%') ? `${r.value}%` : r.unit === 'x' || r.unit === 'x annual income' ? `${r.value}x` : r.value}
+        </span>
+        {!r.unit?.startsWith('%') && r.unit !== 'x' && <span className="text-[11px] text-[#898781]">{r.unit}</span>}
+      </div>
+      <div className="h-24 mb-3"><RatioViz r={r} /></div>
+      <div className="text-[11px] text-[#3D3D3A] leading-relaxed pt-2.5 border-t border-black/5" dangerouslySetInnerHTML={{ __html: r.note ?? '' }} />
+      {!expanded && <div className="text-[10px] text-[#898781] mt-2 text-center">Tap for the calculation →</div>}
+
+      {expanded && (
+        <div className="mt-4 pt-4 border-t border-black/10 grid sm:grid-cols-2 gap-5" onClick={(e) => e.stopPropagation()}>
+          <div>
+            <div className="text-[10px] tracking-[0.08em] uppercase text-[#898781] mb-2.5">How this is calculated</div>
+            <div className="bg-[#F5F4F0] rounded-lg px-3.5 py-3 mb-2.5">
+              <div className="text-xs text-[#3D3D3A] mb-1.5">{r.formula}</div>
+              <div className="font-serif text-sm font-semibold text-[#085041]">{r.calc}</div>
+            </div>
+            {r.inputs?.map((inp, i) => (
+              <div key={i} className="flex justify-between items-baseline py-2 border-t border-black/5 text-xs">
+                <div className="text-[#3D3D3A]">
+                  {inp.label}
+                  <span className="block text-[10px] text-[#898781] mt-0.5">{inp.source}</span>
+                </div>
+                <div className="font-serif font-semibold text-[#141414]">{inp.value}</div>
+              </div>
+            ))}
+          </div>
+          <div>
+            <div className="text-[10px] tracking-[0.08em] uppercase text-[#898781] mb-2.5">The entries behind this number</div>
+            {log.length > 0 ? (
+              log.map((l, i) => (
+                <div key={i} className="flex justify-between items-center py-2 border-t border-black/5 text-xs">
+                  <span className="text-[#898781] w-14 shrink-0">{l.date}</span>
+                  <span className="text-[#3D3D3A] flex-1">{l.text}</span>
+                  <span className="font-serif text-[#141414]">{l.amt}</span>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-[#898781] leading-relaxed">
+                This is a single self-reported figure, not a tracked history. Update it anytime from Edit Profile.
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
+}
+
+function ratioLog(id: string, netWorthRows: NetWorthRow[], incomeRows: IncomeRow[]): { date: string; text: string; amt: string }[] {
+  if (['ladder', 'yearbars', 'layers', 'ownership'].includes(id)) {
+    return [...netWorthRows].reverse().slice(0, 5).map((r) => ({ date: String(r.year), text: 'Net worth snapshot', amt: fmtSar(r.amount) }));
+  }
+  if (['split', 'candle', 'donut', 'runway'].includes(id)) {
+    return [...incomeRows].reverse().slice(0, 5).map((r) => ({
+      date: `${MONTH_SHORT[r.month - 1]} ${r.year}`,
+      text: 'Income / spending logged',
+      amt: `${fmtSar(r.income)} / ${fmtSar(r.spending)}`,
+    }));
+  }
+  return [];
 }
