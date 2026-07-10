@@ -1,9 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import EditProfileModal from './EditProfileModal';
+
+interface ProfileContextValue {
+  openEditProfile: () => void;
+  profileVersion: number;
+}
+
+const ProfileContext = createContext<ProfileContextValue | null>(null);
+
+// Lets any page inside AppShell (e.g. the home page's own "Edit" button)
+// open the same profile modal as the sidebar avatar, and know when the
+// profile has changed elsewhere so it can refetch its own copy.
+export function useProfileContext() {
+  const ctx = useContext(ProfileContext);
+  if (!ctx) {
+    throw new Error('useProfileContext must be used within AppShell');
+  }
+  return ctx;
+}
 
 const START_ITEMS = [
   { href: '/home', label: 'Home', icon: '⌂' },
@@ -35,6 +54,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const [initials, setInitials] = useState('?');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [profileVersion, setProfileVersion] = useState(0);
 
   useEffect(() => {
     if (FULL_BLEED_PATHS.includes(pathname)) return;
@@ -50,7 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         .single();
       if (data?.name) setInitials(data.name.charAt(0).toUpperCase());
     })();
-  }, [pathname, supabase]);
+  }, [pathname, supabase, profileVersion]);
 
   if (FULL_BLEED_PATHS.includes(pathname)) {
     return <>{children}</>;
@@ -81,7 +102,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F4F0] text-[#141414] flex">
+    <ProfileContext.Provider
+      value={{ openEditProfile: () => setEditProfileOpen(true), profileVersion }}
+    >
+      <div className="min-h-screen bg-[#F5F4F0] text-[#141414] flex">
       {/* mobile top bar */}
       <div className="sm:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-white border-b border-black/10 flex items-center justify-between px-4">
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-xl">
@@ -90,9 +114,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/home" className="font-serif text-lg font-semibold">
           Mal<span className="text-[#1D9E75]">Mind</span>
         </Link>
-        <div className="w-7 h-7 rounded-full bg-[#E1F5EE] border border-[#5DCAA5] flex items-center justify-center text-[10px] font-semibold text-[#085041]">
+        <button
+          onClick={() => setEditProfileOpen(true)}
+          title="Edit profile"
+          className="w-7 h-7 rounded-full bg-[#E1F5EE] border border-[#5DCAA5] flex items-center justify-center text-[10px] font-semibold text-[#085041] hover:bg-[#c9ece0] transition-colors"
+        >
           {initials}
-        </div>
+        </button>
       </div>
 
       {/* sidebar */}
@@ -105,9 +133,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/home" className="font-serif text-xl font-semibold tracking-tight">
             Mal<span className="text-[#1D9E75]">Mind</span>
           </Link>
-          <div className="w-7 h-7 rounded-full bg-[#E1F5EE] border border-[#5DCAA5] flex items-center justify-center text-[10px] font-semibold text-[#085041]">
+          <button
+            onClick={() => setEditProfileOpen(true)}
+            title="Edit profile"
+            className="w-7 h-7 rounded-full bg-[#E1F5EE] border border-[#5DCAA5] flex items-center justify-center text-[10px] font-semibold text-[#085041] hover:bg-[#c9ece0] transition-colors"
+          >
             {initials}
-          </div>
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
@@ -167,6 +199,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 min-w-0 px-6 py-8 pt-20 sm:pt-8 max-w-4xl mx-auto w-full">
         {children}
       </main>
-    </div>
+
+      <EditProfileModal
+        open={editProfileOpen}
+        onClose={() => setEditProfileOpen(false)}
+        onSaved={(updated) => {
+          setInitials(updated.name.charAt(0).toUpperCase() || '?');
+          setProfileVersion((v) => v + 1);
+        }}
+      />
+      </div>
+    </ProfileContext.Provider>
   );
 }

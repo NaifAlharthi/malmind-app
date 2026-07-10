@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useProfileContext } from '@/components/shared/AppShell';
 
 interface Profile {
   name: string;
@@ -15,6 +16,7 @@ interface Profile {
 export default function HomePage() {
   const router = useRouter();
   const supabase = createClient();
+  const { openEditProfile, profileVersion } = useProfileContext();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [chapterCount, setChapterCount] = useState(0);
   const [span, setSpan] = useState(0);
@@ -56,7 +58,7 @@ export default function HomePage() {
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, profileVersion]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -100,7 +102,13 @@ export default function HomePage() {
         </button>
       </div>
 
-      <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-6 my-6 text-white">
+      <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-6 my-6 text-white relative">
+        <button
+          onClick={openEditProfile}
+          className="absolute top-6 right-6 text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors"
+        >
+          Edit
+        </button>
         <div className="text-xs tracking-[0.1em] uppercase text-[#C9A84C] mb-1">
           Your profile
         </div>
