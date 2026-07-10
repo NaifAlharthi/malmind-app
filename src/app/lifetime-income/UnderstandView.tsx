@@ -200,7 +200,7 @@ export default function UnderstandView() {
                 <CartesianGrid stroke="#ececE6" />
                 <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#898781' }} interval={tickInterval} angle={-45} textAnchor="end" height={50} />
                 <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => fmtCompact(v)} />
-                <Tooltip formatter={(v: number) => `SAR ${fmt(v)}`} />
+                <Tooltip formatter={(v) => `SAR ${fmt(Number(v))}`} />
                 <Bar dataKey="cumulativeIncome" name="Total earned (cumulative)" fill="#4A78C4" />
                 <Line type="monotone" dataKey="cumulativeSaved" name="What actually stayed (savings)" stroke="#C0504D" strokeWidth={2.5} dot={false} />
               </ComposedChart>
@@ -219,7 +219,7 @@ export default function UnderstandView() {
                 <CartesianGrid stroke="#ececE6" />
                 <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#898781' }} interval={tickInterval} angle={-45} textAnchor="end" height={50} />
                 <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
-                <Tooltip formatter={(v: number) => `${v.toFixed(0)}%`} />
+                <Tooltip formatter={(v) => `${Number(v).toFixed(0)}%`} />
                 <Area type="monotone" dataKey="keptShare" name="Kept" stackId="a" stroke="#4A78C4" fill="#B8CCE8" />
                 <Area type="monotone" dataKey="spentShare" name="Spent" stackId="a" stroke="#C0504D" fill="#E8C4C2" />
               </AreaChart>

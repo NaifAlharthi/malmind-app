@@ -254,10 +254,9 @@ export default function VelocityPage() {
                 label={{ value: unit === 'months' ? 'Months' : 'Years', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#898781' }}
               />
               <Tooltip
-                formatter={(value: number | null, key: string) => {
-                  const sc = SCENARIOS.find((s) => s.key === key);
-                  if (value == null) return ['out of reach', sc?.label ?? key];
-                  return [`${value} ${unit}`, sc?.label ?? key];
+                formatter={(value, name) => {
+                  if (value == null) return ['out of reach', name];
+                  return [`${value} ${unit}`, name];
                 }}
               />
               {SCENARIOS.filter((s) => activeScenarioKeys.includes(s.key)).map((s) => (

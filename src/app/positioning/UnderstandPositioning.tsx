@@ -226,9 +226,9 @@ export default function UnderstandPositioning() {
                     <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => `${Math.round(v / 1000)}K`} />
                     <Tooltip
                       labelFormatter={(v) => `Age ${v}`}
-                      formatter={(value: number, key: string) => {
-                        if (key === 'base' || key === 'gapValue' || key === 'gainValue') return [undefined, undefined];
-                        return [`SAR ${fmt(value)}`, key === 'you' ? 'You' : key === 'national' ? 'National avg' : 'Higher peer'];
+                      formatter={(value, name) => {
+                        if (name === 'base' || name === 'gapValue' || name === 'gainValue') return [undefined, undefined];
+                        return [`SAR ${fmt(Number(value))}`, name];
                       }}
                     />
                     <Area dataKey="base" stackId="fill" stroke="none" fill="transparent" legendType="none" />
@@ -261,7 +261,7 @@ export default function UnderstandPositioning() {
                     <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : `${Math.round(v / 1000)}K`)} />
                     <Tooltip
                       labelFormatter={(v) => `Age ${v}`}
-                      formatter={(value: number, key: string) => [`SAR ${fmt(value)}`, key === 'you' ? 'You' : key === 'national' ? 'National avg' : 'Higher peer']}
+                      formatter={(value, name) => [`SAR ${fmt(Number(value))}`, name]}
                     />
                     <Line type="monotone" dataKey="national" name="National avg" stroke="#2a78d6" strokeWidth={2} dot={false} strokeDasharray="4 4" />
                     <Line type="monotone" dataKey="higher" name="Higher peer" stroke="#141414" strokeWidth={2} dot={false} strokeDasharray="4 4" />
