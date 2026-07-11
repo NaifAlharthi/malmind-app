@@ -54,22 +54,25 @@ Two accounts, both free to start:
    click **Run** — this adds five self-reported columns to `profiles`
    (liquid savings, monthly debt payments, total debt, monthly housing
    payment, monthly investment contribution) for the Ratios & Stats page.
-9. Last one. Open `supabase/schema_part7.sql`, copy its contents, paste
-   in, and click **Run** — this adds an end year, editable theme/to-do/
+9. Open `supabase/schema_part7.sql`, copy its contents, paste in, and
+   click **Run** — this adds an end year, editable theme/to-do/
    net-worth-goal fields, and a 4th tier to `life_phases`, and switches
    `living_standard_actuals` to tier-based tracking, for the Standard of
    Living page.
-10. That's it — together these files create every table MalMind needs:
+10. Last one. Open `supabase/schema_part8.sql`, copy its contents, paste
+   in, and click **Run** — this creates the `assets` table used by the
+   3D "your life, in space" world on the home page.
+11. That's it — together these files create every table MalMind needs:
    profiles, story chapters, net worth snapshots, goal funds, advisor
-   messages, budget items, life phases, year plans, income entries, and
-   investment settings — each with Row Level Security already configured
-   so users can only ever touch their own data.
+   messages, budget items, life phases, year plans, income entries,
+   investment settings, and assets — each with Row Level Security already
+   configured so users can only ever touch their own data.
 
 If you already ran earlier schema files before (from an earlier version
 of this app), you only need to run whichever of `schema_part3.sql` /
 `schema_part4.sql` / `schema_part5.sql` / `schema_part6.sql` /
-`schema_part7.sql` you haven't yet — they only add new columns and won't
-touch what already exists.
+`schema_part7.sql` / `schema_part8.sql` you haven't yet — they only add
+new tables/columns and won't touch what already exists.
 
 ## Getting your Supabase credentials
 
