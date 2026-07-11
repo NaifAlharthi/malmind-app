@@ -175,13 +175,13 @@ export default function UnderstandView() {
       <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-4">
         <button
           onClick={() => setChartMode('earned')}
-          className={`px-4 py-2 text-xs font-medium ${chartMode === 'earned' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+          className={`px-4 py-2 text-xs font-medium ${chartMode === 'earned' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           What you&apos;ve earned vs kept
         </button>
         <button
           onClick={() => setChartMode('split')}
-          className={`px-4 py-2 text-xs font-medium ${chartMode === 'split' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+          className={`px-4 py-2 text-xs font-medium ${chartMode === 'split' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           Income vs spending, over time
         </button>

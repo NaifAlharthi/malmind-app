@@ -223,13 +223,13 @@ export default function DoublingPathPage() {
           <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden shrink-0">
             <button
               onClick={() => setScale('log')}
-              className={`px-3 py-1.5 text-xs font-medium ${scale === 'log' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+              className={`px-3 py-1.5 text-xs font-medium ${scale === 'log' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               Log scale
             </button>
             <button
               onClick={() => setScale('linear')}
-              className={`px-3 py-1.5 text-xs font-medium ${scale === 'linear' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+              className={`px-3 py-1.5 text-xs font-medium ${scale === 'linear' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               Linear
             </button>

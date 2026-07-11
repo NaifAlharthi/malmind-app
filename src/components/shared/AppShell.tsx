@@ -93,7 +93,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         onClick={() => setSidebarOpen(false)}
         className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
           active
-            ? 'bg-[var(--ink)] text-white font-medium'
+            ? 'bg-[var(--ink)] text-[var(--surface-0)] font-medium'
             : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
         }`}
       >

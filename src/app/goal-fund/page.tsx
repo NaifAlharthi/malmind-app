@@ -229,7 +229,7 @@ export default function GoalFundPage() {
             onClick={() => setActiveFundId(f.id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border ${
               activeFundId === f.id
-                ? 'bg-[var(--ink)] text-white border-[var(--ink)]'
+                ? 'bg-[var(--ink)] text-[var(--surface-0)] border-[var(--ink)]'
                 : 'bg-[var(--surface-card)] text-[var(--ink-2)] border-[var(--border-default)]'
             }`}
           >
@@ -278,13 +278,13 @@ export default function GoalFundPage() {
           <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-4">
             <button
               onClick={() => setMode('monthly')}
-              className={`px-4 py-2 text-xs font-medium ${mode === 'monthly' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+              className={`px-4 py-2 text-xs font-medium ${mode === 'monthly' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               I know what I can save monthly
             </button>
             <button
               onClick={() => setMode('target')}
-              className={`px-4 py-2 text-xs font-medium ${mode === 'target' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+              className={`px-4 py-2 text-xs font-medium ${mode === 'target' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               I know my target amount
             </button>

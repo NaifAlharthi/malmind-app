@@ -179,13 +179,13 @@ export default function UnderstandPositioning() {
       <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-6">
         <button
           onClick={() => setSubView('stand')}
-          className={`px-4 py-2 text-xs font-medium ${subView === 'stand' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+          className={`px-4 py-2 text-xs font-medium ${subView === 'stand' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           Where you stand
         </button>
         <button
           onClick={() => setSubView('quad')}
-          className={`px-4 py-2 text-xs font-medium ${subView === 'quad' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+          className={`px-4 py-2 text-xs font-medium ${subView === 'quad' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           What to do about it
         </button>

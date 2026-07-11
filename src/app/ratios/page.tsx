@@ -349,7 +349,7 @@ export default function RatiosPage() {
             key={c}
             onClick={() => setActiveCat(c)}
             className={`px-4 py-2 rounded-full text-xs font-medium border ${
-              activeCat === c ? 'bg-[var(--ink)] text-white border-[var(--ink)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)] border-[var(--border-default)]'
+              activeCat === c ? 'bg-[var(--ink)] text-[var(--surface-0)] border-[var(--ink)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)] border-[var(--border-default)]'
             }`}
           >
             {c}

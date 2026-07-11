@@ -160,7 +160,7 @@ export default function BudgetingPage() {
             key={v}
             onClick={() => setView(v)}
             className={`px-3 py-1.5 rounded-md text-xs font-medium ${
-              view === v ? 'bg-[var(--ink)] text-white' : 'text-[var(--muted)]'
+              view === v ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--muted)]'
             }`}
           >
             {v === 'area' ? 'By room' : v === 'priority' ? 'By priority' : 'All items'}

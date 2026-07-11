@@ -99,13 +99,13 @@ export default function PositioningPage() {
       <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-6">
         <button
           onClick={() => setMode('log')}
-          className={`px-4 py-2 text-xs font-medium ${mode === 'log' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+          className={`px-4 py-2 text-xs font-medium ${mode === 'log' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           Log your net worth
         </button>
         <button
           onClick={() => setMode('understand')}
-          className={`px-4 py-2 text-xs font-medium ${mode === 'understand' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+          className={`px-4 py-2 text-xs font-medium ${mode === 'understand' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           Understand your positioning
         </button>

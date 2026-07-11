@@ -232,13 +232,13 @@ export default function VelocityPage() {
           <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden shrink-0">
             <button
               onClick={() => setUnit('months')}
-              className={`px-3 py-1.5 text-xs font-medium ${unit === 'months' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+              className={`px-3 py-1.5 text-xs font-medium ${unit === 'months' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               Months
             </button>
             <button
               onClick={() => setUnit('years')}
-              className={`px-3 py-1.5 text-xs font-medium ${unit === 'years' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+              className={`px-3 py-1.5 text-xs font-medium ${unit === 'years' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               Years
             </button>
