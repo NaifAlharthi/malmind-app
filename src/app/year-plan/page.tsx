@@ -85,7 +85,7 @@ export default function YearPlanPage() {
   }
 
   if (loading || !plan) {
-    return <div className="text-sm text-[#898781]">Loading your year plan…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading your year plan…</div>;
   }
 
   const disposable = plan.monthly_income - plan.monthly_expenses;
@@ -98,26 +98,26 @@ export default function YearPlanPage() {
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.1em] uppercase text-[#1D9E75] font-semibold mb-1">
+      <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--green)] font-semibold mb-1">
         Decide
       </div>
-      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
         Year Master Plan
       </h1>
-      <p className="text-sm text-[#3D3D3A] mb-6 max-w-xl">
+      <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
         Your {plan.year} opening balance to your year-end target, with income
         trickling through spending, saving, and investing.
       </p>
 
       {/* hero */}
-      <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-6 mb-6 text-white">
+      <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 mb-6 text-white">
         <div className="grid grid-cols-2 gap-6 mb-4">
           <div>
-            <div className="text-[10px] text-[#C9A84C] mb-1">Opening balance</div>
+            <div className="text-[10px] text-[var(--gold)] mb-1">Opening balance</div>
             <div className="font-serif text-2xl font-bold">SAR {fmt(plan.opening_balance)}</div>
           </div>
           <div>
-            <div className="text-[10px] text-[#C9A84C] mb-1">Target by year end</div>
+            <div className="text-[10px] text-[var(--gold)] mb-1">Target by year end</div>
             <div className="font-serif text-2xl font-bold">SAR {fmt(plan.target_balance)}</div>
           </div>
         </div>
@@ -131,11 +131,11 @@ export default function YearPlanPage() {
       </div>
 
       {/* editable inputs */}
-      <div className="bg-white border border-black/10 rounded-2xl p-6 mb-6">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
         <div className="text-sm font-medium mb-4">Adjust your plan</div>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-[#898781] block mb-1">Opening balance (SAR)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">Opening balance (SAR)</label>
             <input
               type="text"
               defaultValue={fmt(plan.opening_balance)}
@@ -143,11 +143,11 @@ export default function YearPlanPage() {
                 const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
                 if (!isNaN(val)) updatePlan({ opening_balance: val });
               }}
-              className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+              className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
             />
           </div>
           <div>
-            <label className="text-xs text-[#898781] block mb-1">Target balance (SAR)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">Target balance (SAR)</label>
             <input
               type="text"
               defaultValue={fmt(plan.target_balance)}
@@ -155,11 +155,11 @@ export default function YearPlanPage() {
                 const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
                 if (!isNaN(val)) updatePlan({ target_balance: val });
               }}
-              className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+              className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
             />
           </div>
           <div>
-            <label className="text-xs text-[#898781] block mb-1">Monthly income (SAR)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">Monthly income (SAR)</label>
             <input
               type="text"
               defaultValue={fmt(plan.monthly_income)}
@@ -167,11 +167,11 @@ export default function YearPlanPage() {
                 const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
                 if (!isNaN(val)) updatePlan({ monthly_income: val });
               }}
-              className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+              className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
             />
           </div>
           <div>
-            <label className="text-xs text-[#898781] block mb-1">Monthly expenses (SAR)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">Monthly expenses (SAR)</label>
             <input
               type="text"
               defaultValue={fmt(plan.monthly_expenses)}
@@ -179,11 +179,11 @@ export default function YearPlanPage() {
                 const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
                 if (!isNaN(val)) updatePlan({ monthly_expenses: val });
               }}
-              className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+              className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
             />
           </div>
           <div>
-            <label className="text-xs text-[#898781] block mb-1">
+            <label className="text-xs text-[var(--muted)] block mb-1">
               Save rate ({plan.save_rate}% of disposable)
             </label>
             <input
@@ -196,7 +196,7 @@ export default function YearPlanPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-[#898781] block mb-1">
+            <label className="text-xs text-[var(--muted)] block mb-1">
               Invest split ({plan.invest_split}% of savings)
             </label>
             <input
@@ -212,17 +212,17 @@ export default function YearPlanPage() {
       </div>
 
       {/* trickle down */}
-      <div className="bg-white border border-black/10 rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 bg-[#F5F4F0] text-sm font-medium">Monthly trickle-down</div>
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden">
+        <div className="px-5 py-3 bg-[var(--surface-0)] text-sm font-medium">Monthly trickle-down</div>
         {[
-          { label: 'Income', value: plan.monthly_income, color: '#141414' },
-          { label: 'Expenses', value: -plan.monthly_expenses, color: '#A32D2D' },
-          { label: 'Disposable', value: disposable, color: '#3D3D3A' },
-          { label: 'Saved', value: monthlySaved, color: '#085041' },
-          { label: '  → Invested', value: monthlyInvested, color: '#1D9E75' },
-          { label: '  → Cash', value: monthlyCash, color: '#4A78C4' },
+          { label: 'Income', value: plan.monthly_income, color: 'var(--ink)' },
+          { label: 'Expenses', value: -plan.monthly_expenses, color: 'var(--red-dark-text)' },
+          { label: 'Disposable', value: disposable, color: 'var(--ink-2)' },
+          { label: 'Saved', value: monthlySaved, color: 'var(--green-dark)' },
+          { label: '  → Invested', value: monthlyInvested, color: 'var(--green)' },
+          { label: '  → Cash', value: monthlyCash, color: 'var(--blue)' },
         ].map((row) => (
-          <div key={row.label} className="px-5 py-2.5 flex justify-between items-center text-sm border-t border-black/5">
+          <div key={row.label} className="px-5 py-2.5 flex justify-between items-center text-sm border-t border-[var(--border-faint)]">
             <span style={{ color: row.color }}>{row.label}</span>
             <span className="font-medium" style={{ color: row.color }}>
               {row.value >= 0 ? '+' : ''}SAR {fmt(row.value)}

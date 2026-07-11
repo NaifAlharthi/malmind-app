@@ -85,7 +85,7 @@ export default function StoryPage() {
   }
 
   if (loading) {
-    return <div className="text-sm text-[#898781]">Loading your story…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading your story…</div>;
   }
 
   const minYear = chapters.length > 0 ? chapters[0].start_year : 2020;
@@ -95,37 +95,37 @@ export default function StoryPage() {
 
   return (
     <div>
-      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
         My Financial Story
       </h1>
-      <p className="text-sm text-[#3D3D3A] mb-6 max-w-xl">
+      <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
         This is your real, saved story — stored under your account, feeding
         your positioning chart and your advisor.
       </p>
 
       {chapters.length === 0 ? (
-        <div className="bg-white border border-black/10 rounded-2xl p-8 text-center mb-6">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center mb-6">
           <div className="text-2xl mb-2">📖</div>
           <div className="font-serif text-lg font-medium mb-1">
             Your story is empty so far
           </div>
-          <div className="text-sm text-[#898781] mb-4">
+          <div className="text-sm text-[var(--muted)] mb-4">
             Add your first chapter — even one line is a real start.
           </div>
           <button
             onClick={handleAddChapter}
-            className="text-sm text-white bg-[#085041] rounded-lg px-4 py-2 font-medium"
+            className="text-sm text-white bg-[var(--green-dark)] rounded-lg px-4 py-2 font-medium"
           >
             + Add your first chapter
           </button>
         </div>
       ) : (
         <>
-          <div className="bg-white border border-black/10 rounded-2xl p-6 mb-6">
-            <div className="text-xs text-[#898781] mb-4">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
+            <div className="text-xs text-[var(--muted)] mb-4">
               Tap a chapter below to edit it
             </div>
-            <div className="relative h-14 bg-[#F0EDE6] rounded-full overflow-hidden flex">
+            <div className="relative h-14 bg-[var(--surface-1)] rounded-full overflow-hidden flex">
               {chapters.map((c) => {
                 const widthPct =
                   ((c.end_year - c.start_year) / totalSpan) * 100;
@@ -135,7 +135,7 @@ export default function StoryPage() {
                     key={c.id}
                     style={{ width: `${widthPct}%` }}
                     className={`h-full flex items-center justify-center text-[10px] font-medium text-white cursor-pointer border-r-2 border-white/40 ${
-                      isClear ? 'bg-[#1D9E75]' : 'bg-[#C9BFA8]'
+                      isClear ? 'bg-[var(--green)]' : 'bg-[var(--chart-neutral-5)]'
                     }`}
                     onClick={() => setEditingId(c.id)}
                     title={c.title}
@@ -145,7 +145,7 @@ export default function StoryPage() {
                 );
               })}
             </div>
-            <div className="flex justify-between text-[10px] text-[#898781] mt-2">
+            <div className="flex justify-between text-[10px] text-[var(--muted)] mt-2">
               <span>{minYear}</span>
               <span>{maxYear}</span>
             </div>
@@ -155,7 +155,7 @@ export default function StoryPage() {
             {chapters.map((c) => (
               <div
                 key={c.id}
-                className="bg-white border border-black/10 rounded-xl p-4"
+                className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-4"
               >
                 <div
                   className="flex justify-between items-start cursor-pointer"
@@ -166,32 +166,32 @@ export default function StoryPage() {
                       <span
                         className={`w-2 h-2 rounded-full ${
                           c.vividness === 'clear'
-                            ? 'bg-[#1D9E75]'
-                            : 'bg-[#C9BFA8]'
+                            ? 'bg-[var(--green)]'
+                            : 'bg-[var(--chart-neutral-5)]'
                         }`}
                       />
-                      <span className="font-medium text-sm text-[#141414]">
+                      <span className="font-medium text-sm text-[var(--ink)]">
                         {c.title}
                       </span>
                     </div>
-                    <div className="text-xs text-[#898781] mt-0.5">
+                    <div className="text-xs text-[var(--muted)] mt-0.5">
                       {c.start_year}–{c.end_year}
                     </div>
-                    <div className="text-xs text-[#3D3D3A] mt-1.5">
+                    <div className="text-xs text-[var(--ink-2)] mt-1.5">
                       {c.note}
                     </div>
                   </div>
-                  <span className="text-xs text-[#898781]">✎</span>
+                  <span className="text-xs text-[var(--muted)]">✎</span>
                 </div>
 
                 {editingId === c.id && (
-                  <div className="mt-3 pt-3 border-t border-black/10 grid sm:grid-cols-2 gap-3">
+                  <div className="mt-3 pt-3 border-t border-[var(--border-default)] grid sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] text-[#898781] block mb-1">
+                      <label className="text-[10px] text-[var(--muted)] block mb-1">
                         Title
                       </label>
                       <input
-                        className="w-full text-xs bg-[#F5F4F0] border border-black/10 rounded-md px-2 py-1.5"
+                        className="w-full text-xs bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5"
                         value={c.title}
                         onChange={(e) =>
                           handleUpdateChapter(c.id, { title: e.target.value })
@@ -200,12 +200,12 @@ export default function StoryPage() {
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1">
-                        <label className="text-[10px] text-[#898781] block mb-1">
+                        <label className="text-[10px] text-[var(--muted)] block mb-1">
                           Start year
                         </label>
                         <input
                           type="number"
-                          className="w-full text-xs bg-[#F5F4F0] border border-black/10 rounded-md px-2 py-1.5"
+                          className="w-full text-xs bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5"
                           value={c.start_year}
                           onChange={(e) =>
                             handleUpdateChapter(c.id, {
@@ -216,12 +216,12 @@ export default function StoryPage() {
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="text-[10px] text-[#898781] block mb-1">
+                        <label className="text-[10px] text-[var(--muted)] block mb-1">
                           End year
                         </label>
                         <input
                           type="number"
-                          className="w-full text-xs bg-[#F5F4F0] border border-black/10 rounded-md px-2 py-1.5"
+                          className="w-full text-xs bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5"
                           value={c.end_year}
                           onChange={(e) =>
                             handleUpdateChapter(c.id, {
@@ -232,11 +232,11 @@ export default function StoryPage() {
                       </div>
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="text-[10px] text-[#898781] block mb-1">
+                      <label className="text-[10px] text-[var(--muted)] block mb-1">
                         What happened
                       </label>
                       <textarea
-                        className="w-full text-xs bg-[#F5F4F0] border border-black/10 rounded-md px-2 py-1.5"
+                        className="w-full text-xs bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5"
                         rows={2}
                         value={c.note}
                         onChange={(e) =>
@@ -250,7 +250,7 @@ export default function StoryPage() {
                     <div className="sm:col-span-2 text-right">
                       <button
                         onClick={() => handleDeleteChapter(c.id)}
-                        className="text-xs text-[#A32D2D]"
+                        className="text-xs text-[var(--red-dark-text)]"
                       >
                         Delete this chapter
                       </button>
@@ -263,7 +263,7 @@ export default function StoryPage() {
 
           <button
             onClick={handleAddChapter}
-            className="mt-4 text-sm text-[#085041] bg-[#E1F5EE] border border-[#5DCAA5] rounded-lg px-4 py-2 font-medium hover:bg-[#1D9E75] hover:text-white transition-colors"
+            className="mt-4 text-sm text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-4 py-2 font-medium hover:bg-[var(--green)] hover:text-white transition-colors"
           >
             + Add a chapter
           </button>

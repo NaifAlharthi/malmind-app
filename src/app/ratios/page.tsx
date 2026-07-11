@@ -177,22 +177,22 @@ export default function RatiosPage() {
   }
 
   if (loading) {
-    return <div className="text-sm text-[#898781]">Loading your ratios…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading your ratios…</div>;
   }
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.1em] uppercase text-[#4A78C4] font-semibold mb-1">Think</div>
-      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">Ratios &amp; Stats</h1>
-      <p className="text-sm text-[#3D3D3A] mb-6 max-w-xl">
+      <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--blue)] font-semibold mb-1">Think</div>
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">Ratios &amp; Stats</h1>
+      <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
         Every number here is drawn from your stored history. Ratios you haven&apos;t unlocked yet show what to log to
         see them.
       </p>
 
       {/* answer hero */}
       {hero ? (
-        <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-7 mb-5 relative overflow-hidden">
-          <div className="text-[11px] tracking-[0.12em] uppercase text-[#C9A84C] mb-1">
+        <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-7 mb-5 relative overflow-hidden">
+          <div className="text-[11px] tracking-[0.12em] uppercase text-[var(--gold)] mb-1">
             The question most people cannot answer
           </div>
           <div className="font-serif text-sm text-white/55 mb-4 max-w-lg">
@@ -214,7 +214,7 @@ export default function RatiosPage() {
           </div>
           <div className="grid sm:grid-cols-[1.2fr_1fr] gap-6 items-center">
             <div>
-              <div className={`font-serif text-4xl font-bold mb-2 ${hero.change >= 0 ? 'text-white' : 'text-[#F0999A]'}`}>
+              <div className={`font-serif text-4xl font-bold mb-2 ${hero.change >= 0 ? 'text-white' : 'text-[var(--red-soft-2)]'}`}>
                 {hero.change >= 0 ? '+' : '-'}{fmtSar(Math.abs(hero.change))}
               </div>
               <div className="text-sm text-white/75 leading-relaxed max-w-sm">
@@ -245,9 +245,9 @@ export default function RatiosPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white border border-black/10 rounded-2xl p-6 mb-5 text-sm text-[#3D3D3A]">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-5 text-sm text-[var(--ink-2)]">
           Log at least two net worth snapshots in{' '}
-          <a href="/positioning" className="text-[#085041] font-medium">Financial Positioning</a> to see how much
+          <a href="/positioning" className="text-[var(--green-dark)] font-medium">Financial Positioning</a> to see how much
           richer or poorer you&apos;ve become.
         </div>
       )}
@@ -256,73 +256,73 @@ export default function RatiosPage() {
       {!synthOpen ? (
         <button
           onClick={startSynthesis}
-          className="w-full bg-white border-[1.5px] border-dashed border-[#5DCAA5] rounded-2xl p-6 mb-5 text-center hover:border-[#1D9E75] hover:bg-[#E1F5EE] transition-colors"
+          className="w-full bg-[var(--surface-card)] border-[1.5px] border-dashed border-[var(--green-border)] rounded-2xl p-6 mb-5 text-center hover:border-[var(--green)] hover:bg-[var(--green-bg)] transition-colors"
         >
           <div className="text-xl mb-2">M</div>
-          <div className="font-serif text-lg font-semibold text-[#141414] mb-1">The Blend</div>
-          <div className="text-xs text-[#085041] font-medium mb-2">Every ratio, blended into one stance on your finances</div>
-          <div className="text-xs text-[#3D3D3A] max-w-md mx-auto mb-3 leading-relaxed">
+          <div className="font-serif text-lg font-semibold text-[var(--ink)] mb-1">The Blend</div>
+          <div className="text-xs text-[var(--green-dark)] font-medium mb-2">Every ratio, blended into one stance on your finances</div>
+          <div className="text-xs text-[var(--ink-2)] max-w-md mx-auto mb-3 leading-relaxed">
             Like handing your complete financial statement to a real analyst and asking: what do you actually see
             here?
           </div>
-          <span className="inline-block bg-[#085041] text-white text-xs font-semibold rounded-lg px-5 py-2.5">
+          <span className="inline-block bg-[var(--green-dark)] text-white text-xs font-semibold rounded-lg px-5 py-2.5">
             Talk to your analyst →
           </span>
         </button>
       ) : (
-        <div className="bg-white border border-black/10 rounded-2xl overflow-hidden mb-5">
-          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-black/10 bg-[#F5F4F0]">
-            <div className="w-8 h-8 rounded-full bg-[#085041] flex items-center justify-center font-serif font-bold text-[#C9A84C] text-sm">M</div>
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden mb-5">
+          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border-default)] bg-[var(--surface-0)]">
+            <div className="w-8 h-8 rounded-full bg-[var(--green-dark)] flex items-center justify-center font-serif font-bold text-[var(--gold)] text-sm">M</div>
             <div>
-              <div className="text-xs font-semibold text-[#141414]">Your analyst</div>
-              <div className="text-[11px] text-[#085041] flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1D9E75]" />Reading your real ratios
+              <div className="text-xs font-semibold text-[var(--ink)]">Your analyst</div>
+              <div className="text-[11px] text-[var(--green-dark)] flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)]" />Reading your real ratios
               </div>
             </div>
           </div>
           <div className="p-5 flex flex-col gap-4 max-h-[520px] overflow-y-auto">
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-2.5 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${m.role === 'user' ? 'bg-[#EFEDE8] text-[#3D3D3A]' : 'bg-[#085041] text-[#C9A84C] font-serif'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${m.role === 'user' ? 'bg-[var(--surface-1)] text-[var(--ink-2)]' : 'bg-[var(--green-dark)] text-[var(--gold)] font-serif'}`}>
                   {m.role === 'user' ? 'You' : 'M'}
                 </div>
-                <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-xs leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#085041] text-white rounded-tr-sm' : 'bg-[#F5F4F0] text-[#3D3D3A] rounded-tl-sm'}`}>
+                <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-xs leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[var(--green-dark)] text-white rounded-tr-sm' : 'bg-[var(--surface-0)] text-[var(--ink-2)] rounded-tl-sm'}`}>
                   {m.content}
                 </div>
               </div>
             ))}
             {synthLoading && (
               <div className="flex gap-2.5">
-                <div className="w-6 h-6 rounded-full bg-[#085041] flex items-center justify-center text-[10px] font-bold text-[#C9A84C] font-serif shrink-0 mt-0.5">M</div>
-                <div className="bg-[#F5F4F0] rounded-2xl rounded-tl-sm px-4 py-3 text-xs text-[#898781]">Reasoning across your complete picture…</div>
+                <div className="w-6 h-6 rounded-full bg-[var(--green-dark)] flex items-center justify-center text-[10px] font-bold text-[var(--gold)] font-serif shrink-0 mt-0.5">M</div>
+                <div className="bg-[var(--surface-0)] rounded-2xl rounded-tl-sm px-4 py-3 text-xs text-[var(--muted)]">Reasoning across your complete picture…</div>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 px-4 py-3 border-t border-black/10 bg-[#F5F4F0]">
+          <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border-default)] bg-[var(--surface-0)]">
             <input
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') sendChat(chatInput); }}
               placeholder="Ask your analyst anything about this…"
-              className="flex-1 bg-white border border-black/10 rounded-full px-4 py-2 text-xs outline-none focus:border-[#1D9E75]"
+              className="flex-1 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-full px-4 py-2 text-xs outline-none focus:border-[var(--green)]"
             />
             <button
               onClick={() => sendChat(chatInput)}
               disabled={synthLoading}
-              className="w-9 h-9 rounded-full bg-[#085041] text-white flex items-center justify-center disabled:opacity-50"
+              className="w-9 h-9 rounded-full bg-[var(--green-dark)] text-white flex items-center justify-center disabled:opacity-50"
             >
               ↑
             </button>
           </div>
-          <div className="text-[10px] text-[#898781] leading-relaxed px-5 py-3 bg-[#F5F4F0] border-t border-black/10">
+          <div className="text-[10px] text-[var(--muted)] leading-relaxed px-5 py-3 bg-[var(--surface-0)] border-t border-[var(--border-default)]">
             This analysis is generated from your stored ratios and is informational, not licensed financial advice.
           </div>
         </div>
       )}
 
       {/* vitals */}
-      <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-6 mb-6">
-        <div className="text-[11px] tracking-[0.12em] uppercase text-[#C9A84C] mb-4">Vital signs</div>
+      <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 mb-6">
+        <div className="text-[11px] tracking-[0.12em] uppercase text-[var(--gold)] mb-4">Vital signs</div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
           {vitals.map((r) => (
             <div key={r.id} className="bg-white/5 border border-white/10 rounded-xl p-3.5">
@@ -349,7 +349,7 @@ export default function RatiosPage() {
             key={c}
             onClick={() => setActiveCat(c)}
             className={`px-4 py-2 rounded-full text-xs font-medium border ${
-              activeCat === c ? 'bg-[#141414] text-white border-[#141414]' : 'bg-white text-[#3D3D3A] border-black/10'
+              activeCat === c ? 'bg-[var(--ink)] text-white border-[var(--ink)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)] border-[var(--border-default)]'
             }`}
           >
             {c}
@@ -372,10 +372,10 @@ export default function RatiosPage() {
         ))}
       </div>
 
-      <div className="flex gap-3 items-start bg-[#FAF6EA] border border-[#C9A84C] rounded-xl p-4">
-        <div className="w-7 h-7 rounded-full bg-[#C9A84C] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">M</div>
-        <div className="text-xs text-[#5A4A1A] leading-relaxed">
-          <strong className="text-[#3A2F0A]">These ratios update as your story grows.</strong> The more you log in
+      <div className="flex gap-3 items-start bg-[var(--gold-bg)] border border-[var(--gold)] rounded-xl p-4">
+        <div className="w-7 h-7 rounded-full bg-[var(--gold)] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">M</div>
+        <div className="text-xs text-[var(--gold-text-body)] leading-relaxed">
+          <strong className="text-[var(--gold-text-strong)]">These ratios update as your story grows.</strong> The more you log in
           Lifetime Income and Financial Positioning, and the more you fill in on your profile, the sharper these
           readings get.
         </div>
@@ -396,7 +396,7 @@ function NetWorthSpark({ points, positive }: { points: NetWorthRow[]; positive: 
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(' ');
-  const color = positive ? '#5DCAA5' : '#F0999A';
+  const color = positive ? 'var(--green-border)' : 'var(--red-soft-2)';
   const lastX = W - 2;
   const lastY = H - 4 - ((values[values.length - 1] - min) / range) * (H - 8);
   return (
@@ -419,10 +419,10 @@ function RatioCard({
 }) {
   if (!r.ready) {
     return (
-      <div className="bg-white border border-black/10 rounded-2xl p-5">
-        <div className="text-xs font-semibold text-[#141414] mb-2">{r.title}</div>
-        <div className="text-[11px] text-[#898781] leading-relaxed mb-3">{r.missingHint}</div>
-        <button onClick={onSetInProfile} className="text-[11px] font-medium text-[#085041] bg-[#E1F5EE] border border-[#5DCAA5] rounded-lg px-3 py-1.5">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
+        <div className="text-xs font-semibold text-[var(--ink)] mb-2">{r.title}</div>
+        <div className="text-[11px] text-[var(--muted)] leading-relaxed mb-3">{r.missingHint}</div>
+        <button onClick={onSetInProfile} className="text-[11px] font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5">
           Set in Edit Profile
         </button>
       </div>
@@ -430,59 +430,59 @@ function RatioCard({
   }
 
   const verdictClass =
-    r.verdict === 'good' ? 'bg-[#E1F5EE] text-[#085041]' : r.verdict === 'watch' ? 'bg-[#FBF1E0] text-[#8A6416]' : 'bg-[#FBE9EC] text-[#A32D2D]';
+    r.verdict === 'good' ? 'bg-[var(--green-bg)] text-[var(--green-dark)]' : r.verdict === 'watch' ? 'bg-[var(--gold-bg)] text-[var(--gold-text-alt)]' : 'bg-[var(--red-bg)] text-[var(--red-dark-text)]';
 
   const log = ratioLog(r.id, netWorthRows, incomeRows);
 
   return (
     <div
       onClick={onToggle}
-      className={`bg-white border border-black/10 rounded-2xl p-5 cursor-pointer hover:border-[#5DCAA5] transition-colors ${expanded ? 'sm:col-span-2 lg:col-span-3' : ''}`}
+      className={`bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 cursor-pointer hover:border-[var(--green-border)] transition-colors ${expanded ? 'sm:col-span-2 lg:col-span-3' : ''}`}
     >
       <div className="flex justify-between items-start gap-2 mb-1">
-        <div className="text-xs font-semibold text-[#141414] leading-snug">{r.title}</div>
+        <div className="text-xs font-semibold text-[var(--ink)] leading-snug">{r.title}</div>
         <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${verdictClass}`}>{verdictLabel(r.verdict!)}</span>
       </div>
       <div className="flex items-baseline gap-1.5 mb-3">
-        <span className="font-serif text-2xl font-bold text-[#141414]">
+        <span className="font-serif text-2xl font-bold text-[var(--ink)]">
           {r.unit?.startsWith('%') ? `${r.value}%` : r.unit === 'x' || r.unit === 'x annual income' ? `${r.value}x` : r.value}
         </span>
-        {!r.unit?.startsWith('%') && r.unit !== 'x' && <span className="text-[11px] text-[#898781]">{r.unit}</span>}
+        {!r.unit?.startsWith('%') && r.unit !== 'x' && <span className="text-[11px] text-[var(--muted)]">{r.unit}</span>}
       </div>
       <div className="h-24 mb-3"><RatioViz r={r} /></div>
-      <div className="text-[11px] text-[#3D3D3A] leading-relaxed pt-2.5 border-t border-black/5" dangerouslySetInnerHTML={{ __html: r.note ?? '' }} />
-      {!expanded && <div className="text-[10px] text-[#898781] mt-2 text-center">Tap for the calculation →</div>}
+      <div className="text-[11px] text-[var(--ink-2)] leading-relaxed pt-2.5 border-t border-[var(--border-faint)]" dangerouslySetInnerHTML={{ __html: r.note ?? '' }} />
+      {!expanded && <div className="text-[10px] text-[var(--muted)] mt-2 text-center">Tap for the calculation →</div>}
 
       {expanded && (
-        <div className="mt-4 pt-4 border-t border-black/10 grid sm:grid-cols-2 gap-5" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-4 pt-4 border-t border-[var(--border-default)] grid sm:grid-cols-2 gap-5" onClick={(e) => e.stopPropagation()}>
           <div>
-            <div className="text-[10px] tracking-[0.08em] uppercase text-[#898781] mb-2.5">How this is calculated</div>
-            <div className="bg-[#F5F4F0] rounded-lg px-3.5 py-3 mb-2.5">
-              <div className="text-xs text-[#3D3D3A] mb-1.5">{r.formula}</div>
-              <div className="font-serif text-sm font-semibold text-[#085041]">{r.calc}</div>
+            <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--muted)] mb-2.5">How this is calculated</div>
+            <div className="bg-[var(--surface-0)] rounded-lg px-3.5 py-3 mb-2.5">
+              <div className="text-xs text-[var(--ink-2)] mb-1.5">{r.formula}</div>
+              <div className="font-serif text-sm font-semibold text-[var(--green-dark)]">{r.calc}</div>
             </div>
             {r.inputs?.map((inp, i) => (
-              <div key={i} className="flex justify-between items-baseline py-2 border-t border-black/5 text-xs">
-                <div className="text-[#3D3D3A]">
+              <div key={i} className="flex justify-between items-baseline py-2 border-t border-[var(--border-faint)] text-xs">
+                <div className="text-[var(--ink-2)]">
                   {inp.label}
-                  <span className="block text-[10px] text-[#898781] mt-0.5">{inp.source}</span>
+                  <span className="block text-[10px] text-[var(--muted)] mt-0.5">{inp.source}</span>
                 </div>
-                <div className="font-serif font-semibold text-[#141414]">{inp.value}</div>
+                <div className="font-serif font-semibold text-[var(--ink)]">{inp.value}</div>
               </div>
             ))}
           </div>
           <div>
-            <div className="text-[10px] tracking-[0.08em] uppercase text-[#898781] mb-2.5">The entries behind this number</div>
+            <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--muted)] mb-2.5">The entries behind this number</div>
             {log.length > 0 ? (
               log.map((l, i) => (
-                <div key={i} className="flex justify-between items-center py-2 border-t border-black/5 text-xs">
-                  <span className="text-[#898781] w-14 shrink-0">{l.date}</span>
-                  <span className="text-[#3D3D3A] flex-1">{l.text}</span>
-                  <span className="font-serif text-[#141414]">{l.amt}</span>
+                <div key={i} className="flex justify-between items-center py-2 border-t border-[var(--border-faint)] text-xs">
+                  <span className="text-[var(--muted)] w-14 shrink-0">{l.date}</span>
+                  <span className="text-[var(--ink-2)] flex-1">{l.text}</span>
+                  <span className="font-serif text-[var(--ink)]">{l.amt}</span>
                 </div>
               ))
             ) : (
-              <div className="text-xs text-[#898781] leading-relaxed">
+              <div className="text-xs text-[var(--muted)] leading-relaxed">
                 This is a single self-reported figure, not a tracked history. Update it anytime from Edit Profile.
               </div>
             )}

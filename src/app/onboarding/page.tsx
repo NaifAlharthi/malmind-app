@@ -49,17 +49,17 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F4F0] flex items-center justify-center px-6 py-16">
+    <div className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6 py-16">
       <div className="max-w-3xl w-full text-center">
-        <div className="text-xs tracking-[0.15em] uppercase text-[#1D9E75] font-semibold mb-4">
+        <div className="text-xs tracking-[0.15em] uppercase text-[var(--green)] font-semibold mb-4">
           Welcome to MalMind
         </div>
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#141414] mb-4 leading-tight">
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[var(--ink)] mb-4 leading-tight">
           Before anything, just pick
           <br />
           someone who feels like you.
         </h1>
-        <p className="text-[#3D3D3A] mb-10 max-w-xl mx-auto leading-relaxed">
+        <p className="text-[var(--ink-2)] mb-10 max-w-xl mx-auto leading-relaxed">
           This gives you a real, editable starting point — nothing here is
           locked in. You can change every number in the pages that follow.
         </p>
@@ -69,18 +69,18 @@ export default function OnboardingPage() {
             <button
               key={persona.id}
               onClick={() => pickPersona(persona.id)}
-              className="text-left bg-white border border-black/10 rounded-2xl p-5 hover:border-[#1D9E75] hover:-translate-y-0.5 transition-all shadow-sm"
+              className="text-left bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 hover:border-[var(--green)] hover:-translate-y-0.5 transition-all shadow-sm"
             >
-              <div className="w-11 h-11 rounded-full bg-[#E1F5EE] flex items-center justify-center text-xl mb-3">
+              <div className="w-11 h-11 rounded-full bg-[var(--green-bg)] flex items-center justify-center text-xl mb-3">
                 {persona.avatarEmoji}
               </div>
-              <div className="font-serif text-lg font-semibold text-[#141414]">
+              <div className="font-serif text-lg font-semibold text-[var(--ink)]">
                 {persona.name}, {persona.profile.age}
               </div>
-              <div className="text-xs text-[#085041] font-medium mb-2">
+              <div className="text-xs text-[var(--green-dark)] font-medium mb-2">
                 {persona.role}
               </div>
-              <div className="text-xs text-[#3D3D3A] leading-relaxed">
+              <div className="text-xs text-[var(--ink-2)] leading-relaxed">
                 {persona.description}
               </div>
             </button>

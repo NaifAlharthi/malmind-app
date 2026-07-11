@@ -60,12 +60,12 @@ function Runway({ monthsFilled, monthsTotal, color, H, big }: { monthsFilled: nu
       const pw = bw * (monthsFilled % 1);
       bars.push(
         <g key={i}>
-          <rect x={x} y={trackY} width={bw} height={bh} rx={2} fill="#EFEDE8" />
+          <rect x={x} y={trackY} width={bw} height={bh} rx={2} fill="var(--surface-1)" />
           <rect x={x} y={trackY} width={pw} height={bh} rx={2} fill={color} />
         </g>
       );
     } else {
-      bars.push(<rect key={i} x={x} y={trackY} width={bw} height={bh} rx={2} fill="#EFEDE8" />);
+      bars.push(<rect key={i} x={x} y={trackY} width={bw} height={bh} rx={2} fill="var(--surface-1)" />);
     }
   }
   return (
@@ -73,8 +73,8 @@ function Runway({ monthsFilled, monthsTotal, color, H, big }: { monthsFilled: nu
       {bars}
       {!big && (
         <>
-          <text x={0} y={trackY + bh + 16} fontFamily="Inter" fontSize={9} fill="#898781">0 mo</text>
-          <text x={W} y={trackY + bh + 16} textAnchor="end" fontFamily="Inter" fontSize={9} fill="#898781">{n} mo runway</text>
+          <text x={0} y={trackY + bh + 16} fontFamily="Inter" fontSize={9} fill="var(--muted)">0 mo</text>
+          <text x={W} y={trackY + bh + 16} textAnchor="end" fontFamily="Inter" fontSize={9} fill="var(--muted)">{n} mo runway</text>
         </>
       )}
     </svg>
@@ -87,12 +87,12 @@ function SplitBar({ pct, color, H, big, leftLabel, rightLabel }: { pct: number; 
   const fillW = (pct / 100) * W;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%">
-      <rect x={0} y={barY} width={W} height={barH} rx={barH / 2} fill="#EFEDE8" />
+      <rect x={0} y={barY} width={W} height={barH} rx={barH / 2} fill="var(--surface-1)" />
       <rect x={0} y={barY} width={fillW} height={barH} rx={barH / 2} fill={color} />
       {!big && (
         <>
           <text x={8} y={barY + barH + 18} fontFamily="Inter" fontSize={9.5} fill={color} fontWeight={600}>{leftLabel} {Math.round(pct)}%</text>
-          <text x={W - 8} y={barY + barH + 18} textAnchor="end" fontFamily="Inter" fontSize={9.5} fill="#898781">{rightLabel} {Math.round(100 - pct)}%</text>
+          <text x={W - 8} y={barY + barH + 18} textAnchor="end" fontFamily="Inter" fontSize={9.5} fill="var(--muted)">{rightLabel} {Math.round(100 - pct)}%</text>
         </>
       )}
     </svg>
@@ -106,14 +106,14 @@ function CeilingBar({ pct, ceiling, color, H, big, label }: { pct: number; ceili
   const ceilX = (ceiling / 100) * W;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%">
-      <rect x={0} y={barY} width={W} height={barH} rx={6} fill="#EAF3DE" />
+      <rect x={0} y={barY} width={W} height={barH} rx={6} fill="var(--chart-track)" />
       <rect x={0} y={barY} width={fillW} height={barH} rx={6} fill={color} />
-      <line x1={ceilX} y1={barY - 4} x2={ceilX} y2={barY + barH + 4} stroke="#C0504D" strokeWidth={1.5} strokeDasharray="3 3" />
+      <line x1={ceilX} y1={barY - 4} x2={ceilX} y2={barY + barH + 4} stroke="var(--red)" strokeWidth={1.5} strokeDasharray="3 3" />
       {!big && (
         <>
-          <text x={ceilX} y={barY - 8} textAnchor="middle" fontFamily="Inter" fontSize={8.5} fill="#A32D2D">{ceiling}% ceiling</text>
+          <text x={ceilX} y={barY - 8} textAnchor="middle" fontFamily="Inter" fontSize={8.5} fill="var(--red-dark-text)">{ceiling}% ceiling</text>
           <text x={8} y={barY + barH + 18} fontFamily="Inter" fontSize={9.5} fill={color} fontWeight={600}>{label} {Math.round(pct)}%</text>
-          <text x={W - 8} y={barY + barH + 18} textAnchor="end" fontFamily="Inter" fontSize={9.5} fill="#898781">Free {Math.round(100 - pct)}%</text>
+          <text x={W - 8} y={barY + barH + 18} textAnchor="end" fontFamily="Inter" fontSize={9.5} fill="var(--muted)">Free {Math.round(100 - pct)}%</text>
         </>
       )}
     </svg>
@@ -131,14 +131,14 @@ function Ladder({ userAge, userMultiple, color, H, big }: { userAge: number; use
   const userStepH = big ? 6 + userMultiple * 3 : 10 + userMultiple * 7;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%">
-      <line x1={10} y1={baseY} x2={W - 10} y2={baseY} stroke="#D8D2C0" strokeWidth={1} />
+      <line x1={10} y1={baseY} x2={W - 10} y2={baseY} stroke="var(--chart-neutral-2)" strokeWidth={1} />
       {LADDER_MILESTONES.map(([age, mult]) => {
         const xx = xf(age);
         const stepH = big ? 6 + mult * 3 : 10 + mult * 7;
         return (
           <g key={age}>
-            <rect x={xx - 6} y={baseY - stepH} width={12} height={stepH} rx={2} fill="#EFEDE8" />
-            {!big && <text x={xx} y={baseY + 14} textAnchor="middle" fontFamily="Inter" fontSize={8} fill="#898781">{mult}x@{age}</text>}
+            <rect x={xx - 6} y={baseY - stepH} width={12} height={stepH} rx={2} fill="var(--surface-1)" />
+            {!big && <text x={xx} y={baseY + 14} textAnchor="middle" fontFamily="Inter" fontSize={8} fill="var(--muted)">{mult}x@{age}</text>}
           </g>
         );
       })}
@@ -159,17 +159,17 @@ function Scale({ assets, liabilities, color, H, big }: { assets: number; liabili
   const panR = big ? 10 : 16;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%">
-      <line x1={cx} y1={pivotY} x2={cx} y2={pivotY + (big ? 24 : 44)} stroke="#D8D2C0" strokeWidth={2} />
-      <line x1={leftX} y1={leftY} x2={rightX} y2={rightY} stroke="#3D3D3A" strokeWidth={2} />
-      <circle cx={cx} cy={pivotY} r={3} fill="#3D3D3A" />
-      <line x1={leftX} y1={leftY} x2={leftX} y2={leftY + 16} stroke="#B7DED0" strokeWidth={1} />
+      <line x1={cx} y1={pivotY} x2={cx} y2={pivotY + (big ? 24 : 44)} stroke="var(--chart-neutral-2)" strokeWidth={2} />
+      <line x1={leftX} y1={leftY} x2={rightX} y2={rightY} stroke="var(--ink-2)" strokeWidth={2} />
+      <circle cx={cx} cy={pivotY} r={3} fill="var(--ink-2)" />
+      <line x1={leftX} y1={leftY} x2={leftX} y2={leftY + 16} stroke="var(--chart-neutral-6)" strokeWidth={1} />
       <ellipse cx={leftX} cy={leftY + 18} rx={panR} ry={5} fill={color} opacity={0.85} />
-      <line x1={rightX} y1={rightY} x2={rightX} y2={rightY + 16} stroke="#F0C4C2" strokeWidth={1} />
-      <ellipse cx={rightX} cy={rightY + 18} rx={panR * 0.7} ry={4} fill="#C0504D" opacity={0.7} />
+      <line x1={rightX} y1={rightY} x2={rightX} y2={rightY + 16} stroke="var(--red-soft-bg)" strokeWidth={1} />
+      <ellipse cx={rightX} cy={rightY + 18} rx={panR * 0.7} ry={4} fill="var(--red)" opacity={0.7} />
       {!big && (
         <>
-          <text x={leftX} y={leftY + 40} textAnchor="middle" fontFamily="Inter" fontSize={9} fill="#3D3D3A">Assets</text>
-          <text x={rightX} y={rightY + 40} textAnchor="middle" fontFamily="Inter" fontSize={9} fill="#898781">Liabilities</text>
+          <text x={leftX} y={leftY + 40} textAnchor="middle" fontFamily="Inter" fontSize={9} fill="var(--ink-2)">Assets</text>
+          <text x={rightX} y={rightY + 40} textAnchor="middle" fontFamily="Inter" fontSize={9} fill="var(--muted)">Liabilities</text>
         </>
       )}
     </svg>
@@ -182,10 +182,10 @@ function VerticalFill({ pct, color, H, big, caption }: { pct: number; color: str
   const fillH = (pct / 100) * barH;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%">
-      <rect x={barX} y={barY} width={barW} height={barH} rx={6} fill="#EAF3DE" />
+      <rect x={barX} y={barY} width={barW} height={barH} rx={6} fill="var(--chart-track)" />
       <rect x={barX} y={barY + barH - fillH} width={barW} height={fillH} rx={6} fill={color} />
       {!big && (
-        <text x={W / 2} y={barY + barH + 16} textAnchor="middle" fontFamily="Inter" fontSize={9} fill="#898781">
+        <text x={W / 2} y={barY + barH + 16} textAnchor="middle" fontFamily="Inter" fontSize={9} fill="var(--muted)">
           {Math.round(pct)}% {caption}, {Math.round(100 - pct)}% owned outright
         </text>
       )}
@@ -208,11 +208,11 @@ function House({ pct, color, H, big }: { pct: number; color: string; H: number; 
           <rect x={cx - houseW / 2} y={baseY - houseH} width={houseW} height={houseH} />
         </clipPath>
       </defs>
-      <polygon points={`${cx - houseW / 2 - 4},${baseY - houseH} ${cx},${baseY - houseH - roofH} ${cx + houseW / 2 + 4},${baseY - houseH}`} fill="#D8D2C0" />
-      <rect x={cx - houseW / 2} y={baseY - houseH} width={houseW} height={houseH} fill="#EFEDE8" />
+      <polygon points={`${cx - houseW / 2 - 4},${baseY - houseH} ${cx},${baseY - houseH - roofH} ${cx + houseW / 2 + 4},${baseY - houseH}`} fill="var(--chart-neutral-2)" />
+      <rect x={cx - houseW / 2} y={baseY - houseH} width={houseW} height={houseH} fill="var(--surface-1)" />
       <rect x={cx - houseW / 2} y={baseY - fillH} width={houseW} height={fillH} fill={color} clipPath={`url(#${clipId})`} />
-      <rect x={cx - houseW / 2} y={baseY - houseH} width={houseW} height={houseH} fill="none" stroke="#B4B2A9" strokeWidth={1} />
-      {!big && <text x={cx} y={baseY + 16} textAnchor="middle" fontFamily="Inter" fontSize={9} fill="#898781">{Math.round(pct)}% of income to housing</text>}
+      <rect x={cx - houseW / 2} y={baseY - houseH} width={houseW} height={houseH} fill="none" stroke="var(--chart-neutral-4)" strokeWidth={1} />
+      {!big && <text x={cx} y={baseY + 16} textAnchor="middle" fontFamily="Inter" fontSize={9} fill="var(--muted)">{Math.round(pct)}% of income to housing</text>}
     </svg>
   );
 }
@@ -232,8 +232,8 @@ function YearBars({ years, values, color, H, big }: { years: number[]; values: n
         const isLast = i === n - 1;
         return (
           <g key={i}>
-            <rect x={x} y={baseY - h} width={bw} height={h} rx={2} fill={isLast ? color : '#C9C6B8'} />
-            {!big && <text x={x + bw / 2} y={baseY + 13} textAnchor="middle" fontFamily="Inter" fontSize={8} fill="#898781">{years[i]}</text>}
+            <rect x={x} y={baseY - h} width={bw} height={h} rx={2} fill={isLast ? color : 'var(--chart-neutral-3)'} />
+            {!big && <text x={x + bw / 2} y={baseY + 13} textAnchor="middle" fontFamily="Inter" fontSize={8} fill="var(--muted)">{years[i]}</text>}
           </g>
         );
       })}
@@ -248,7 +248,7 @@ function Donut({ pct, color, H, big }: { pct: number; color: string; H: number; 
   const dash = circumference * frac;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%">
-      <circle cx={cx} cy={cy} r={rad} fill="none" stroke="#EAF3DE" strokeWidth={thick} />
+      <circle cx={cx} cy={cy} r={rad} fill="none" stroke="var(--chart-track)" strokeWidth={thick} />
       <circle
         cx={cx} cy={cy} r={rad} fill="none" stroke={color} strokeWidth={thick}
         strokeDasharray={`${dash} ${circumference}`} transform={`rotate(-90 ${cx} ${cy})`} strokeLinecap="round"
@@ -257,7 +257,7 @@ function Donut({ pct, color, H, big }: { pct: number; color: string; H: number; 
         <>
           <text x={cx} y={cy + 4} textAnchor="middle" fontFamily="Lora" fontSize={13} fontWeight={700} fill={color}>{Math.round(pct)}%</text>
           <text x={cx + rad + 24} y={cy - 6} fontFamily="Inter" fontSize={9.5} fill={color} fontWeight={600}>Fixed {Math.round(pct)}%</text>
-          <text x={cx + rad + 24} y={cy + 10} fontFamily="Inter" fontSize={9.5} fill="#898781">Discretionary {Math.round(100 - pct)}%</text>
+          <text x={cx + rad + 24} y={cy + 10} fontFamily="Inter" fontSize={9.5} fill="var(--muted)">Discretionary {Math.round(100 - pct)}%</text>
         </>
       )}
     </svg>
@@ -272,13 +272,13 @@ function Candle({ pct, color, H, big }: { pct: number; color: string; H: number;
   const burnH = candleH * burnFrac;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%">
-      <rect x={cx - candleW / 2} y={topY} width={candleW} height={candleH} rx={4} fill="#EAF3DE" />
+      <rect x={cx - candleW / 2} y={topY} width={candleW} height={candleH} rx={4} fill="var(--chart-track)" />
       <rect x={cx - candleW / 2} y={topY} width={candleW} height={burnH} rx={4} fill={color} />
-      <rect x={cx - candleW / 2} y={topY} width={candleW} height={candleH} rx={4} fill="none" stroke="#B4B2A9" strokeWidth={0.5} />
+      <rect x={cx - candleW / 2} y={topY} width={candleW} height={candleH} rx={4} fill="none" stroke="var(--chart-neutral-4)" strokeWidth={0.5} />
       {!big && (
         <>
           <text x={cx + candleW / 2 + 16} y={topY + burnH - 4} fontFamily="Inter" fontSize={10} fontWeight={600} fill={color}>{Math.round(pct)}% spent</text>
-          <text x={cx + candleW / 2 + 16} y={topY + candleH - 2} fontFamily="Inter" fontSize={9.5} fill="#898781">{Math.round(100 - pct)}% remains</text>
+          <text x={cx + candleW / 2 + 16} y={topY + candleH - 2} fontFamily="Inter" fontSize={9.5} fill="var(--muted)">{Math.round(100 - pct)}% remains</text>
         </>
       )}
     </svg>
@@ -291,14 +291,14 @@ function Layers({ pct, H, big }: { pct: number; H: number; big?: boolean }) {
   const liquidH = (pct / 100) * barH;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%">
-      <rect x={barX} y={barY} width={barW} height={barH} rx={4} fill="#EFEDE8" />
-      <rect x={barX} y={barY} width={barW} height={liquidH} rx={4} fill="#4A78C4" opacity={0.75} />
-      <rect x={barX} y={barY + liquidH} width={barW} height={barH - liquidH} fill="#1D9E75" opacity={0.55} />
+      <rect x={barX} y={barY} width={barW} height={barH} rx={4} fill="var(--surface-1)" />
+      <rect x={barX} y={barY} width={barW} height={liquidH} rx={4} fill="var(--blue)" opacity={0.75} />
+      <rect x={barX} y={barY + liquidH} width={barW} height={barH - liquidH} fill="var(--green)" opacity={0.55} />
       <line x1={barX} y1={barY + liquidH} x2={barX + barW} y2={barY + liquidH} stroke="#fff" strokeWidth={1.5} />
       {!big && (
         <>
-          <text x={barX + barW + 10} y={barY + liquidH / 2} dominantBaseline="middle" fontFamily="Inter" fontSize={9} fill="#4A78C4" fontWeight={600}>Liquid {Math.round(pct)}%</text>
-          <text x={barX + barW + 10} y={barY + liquidH + (barH - liquidH) / 2} dominantBaseline="middle" fontFamily="Inter" fontSize={9} fill="#1D9E75" fontWeight={600}>Illiquid {Math.round(100 - pct)}%</text>
+          <text x={barX + barW + 10} y={barY + liquidH / 2} dominantBaseline="middle" fontFamily="Inter" fontSize={9} fill="var(--blue)" fontWeight={600}>Liquid {Math.round(pct)}%</text>
+          <text x={barX + barW + 10} y={barY + liquidH + (barH - liquidH) / 2} dominantBaseline="middle" fontFamily="Inter" fontSize={9} fill="var(--green)" fontWeight={600}>Illiquid {Math.round(100 - pct)}%</text>
         </>
       )}
     </svg>

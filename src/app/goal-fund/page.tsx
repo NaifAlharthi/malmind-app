@@ -45,10 +45,10 @@ const STATUS_LABEL: Record<FundStatus, string> = {
 };
 
 const STATUS_CLASS: Record<FundStatus, string> = {
-  'not-started': 'bg-[#E6F1FB] text-[#0C447C]',
-  ahead: 'bg-[#E1F5EE] text-[#085041]',
-  ontrack: 'bg-[#E6F1FB] text-[#0C447C]',
-  behind: 'bg-[#FBE9EC] text-[#A32D2D]',
+  'not-started': 'bg-[var(--blue-bg)] text-[var(--blue-dark-text)]',
+  ahead: 'bg-[var(--green-bg)] text-[var(--green-dark)]',
+  ontrack: 'bg-[var(--blue-bg)] text-[var(--blue-dark-text)]',
+  behind: 'bg-[var(--red-bg)] text-[var(--red-dark-text)]',
 };
 
 type Mode = 'monthly' | 'target';
@@ -204,18 +204,18 @@ export default function GoalFundPage() {
   const bonus = activeFund ? activeFund.target_amount - simpleSum : 0;
 
   if (loading) {
-    return <div className="text-sm text-[#898781]">Loading your goal funds…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading your goal funds…</div>;
   }
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.1em] uppercase text-[#1D9E75] font-semibold mb-1">
+      <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--green)] font-semibold mb-1">
         Decide
       </div>
-      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
         Goal Fund
       </h1>
-      <p className="text-sm text-[#3D3D3A] mb-6 max-w-xl">
+      <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
         A house down payment, your child&apos;s 18th birthday, Hajj, a wedding — any goal with a
         target and a date. Set it once, save monthly, and track exactly whether you&apos;re ahead,
         on pace, or behind.
@@ -229,8 +229,8 @@ export default function GoalFundPage() {
             onClick={() => setActiveFundId(f.id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border ${
               activeFundId === f.id
-                ? 'bg-[#141414] text-white border-[#141414]'
-                : 'bg-white text-[#3D3D3A] border-black/10'
+                ? 'bg-[var(--ink)] text-white border-[var(--ink)]'
+                : 'bg-[var(--surface-card)] text-[var(--ink-2)] border-[var(--border-default)]'
             }`}
           >
             <span>{f.icon}</span>
@@ -239,14 +239,14 @@ export default function GoalFundPage() {
         ))}
         <button
           onClick={() => setCreating(true)}
-          className="px-4 py-2 rounded-full text-sm font-medium bg-[#E1F5EE] text-[#085041] border border-[#5DCAA5]"
+          className="px-4 py-2 rounded-full text-sm font-medium bg-[var(--green-bg)] text-[var(--green-dark)] border border-[var(--green-border)]"
         >
           + New fund
         </button>
       </div>
 
       {creating && (
-        <div className="bg-white border border-black/10 rounded-2xl p-6 mb-6">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
           <div className="flex gap-2 flex-wrap mb-4">
             {PRESETS.map((p) => (
               <button
@@ -254,8 +254,8 @@ export default function GoalFundPage() {
                 onClick={() => applyPreset(p.id)}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border ${
                   selectedPreset === p.id
-                    ? 'bg-[#E1F5EE] border-[#1D9E75] text-[#085041]'
-                    : 'bg-white border-black/15 text-[#3D3D3A]'
+                    ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)]'
+                    : 'bg-[var(--surface-card)] border-[var(--border-medium)] text-[var(--ink-2)]'
                 }`}
               >
                 <span>{p.icon}</span>
@@ -265,26 +265,26 @@ export default function GoalFundPage() {
           </div>
 
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-[#E1F5EE] flex items-center justify-center text-lg shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[var(--green-bg)] flex items-center justify-center text-lg shrink-0">
               {icon}
             </div>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="flex-1 font-serif text-lg font-semibold text-[#141414] border-b-[1.5px] border-dashed border-black/15 focus:border-[#1D9E75] outline-none pb-1 bg-transparent"
+              className="flex-1 font-serif text-lg font-semibold text-[var(--ink)] border-b-[1.5px] border-dashed border-[var(--border-medium)] focus:border-[var(--green)] outline-none pb-1 bg-transparent"
             />
           </div>
 
-          <div className="inline-flex border border-black/10 rounded-lg overflow-hidden mb-4">
+          <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-4">
             <button
               onClick={() => setMode('monthly')}
-              className={`px-4 py-2 text-xs font-medium ${mode === 'monthly' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+              className={`px-4 py-2 text-xs font-medium ${mode === 'monthly' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               I know what I can save monthly
             </button>
             <button
               onClick={() => setMode('target')}
-              className={`px-4 py-2 text-xs font-medium ${mode === 'target' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+              className={`px-4 py-2 text-xs font-medium ${mode === 'target' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               I know my target amount
             </button>
@@ -293,37 +293,37 @@ export default function GoalFundPage() {
           <div className="grid sm:grid-cols-3 gap-4 mb-1">
             {mode === 'monthly' ? (
               <div>
-                <label className="text-xs text-[#898781] block mb-1">Monthly saving (SAR)</label>
+                <label className="text-xs text-[var(--muted)] block mb-1">Monthly saving (SAR)</label>
                 <input
                   value={monthly}
                   onChange={(e) => setMonthly(e.target.value)}
-                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
                 />
               </div>
             ) : (
               <div>
-                <label className="text-xs text-[#898781] block mb-1">Target amount at maturity (SAR)</label>
+                <label className="text-xs text-[var(--muted)] block mb-1">Target amount at maturity (SAR)</label>
                 <input
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
-                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
                 />
               </div>
             )}
             <div>
-              <label className="text-xs text-[#898781] block mb-1">Years to maturity</label>
+              <label className="text-xs text-[var(--muted)] block mb-1">Years to maturity</label>
               <input
                 value={years}
                 onChange={(e) => setYears(e.target.value)}
-                className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
               />
             </div>
             <div>
-              <label className="text-xs text-[#898781] block mb-1">Expected annual return (%)</label>
+              <label className="text-xs text-[var(--muted)] block mb-1">Expected annual return (%)</label>
               <input
                 value={roi}
                 onChange={(e) => setRoi(e.target.value)}
-                className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
               />
             </div>
           </div>
@@ -331,11 +331,11 @@ export default function GoalFundPage() {
           <div className="flex gap-2 mt-4">
             <button
               onClick={createFund}
-              className="text-sm bg-[#085041] text-white rounded-lg px-4 py-2 font-medium"
+              className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
             >
               Create fund
             </button>
-            <button onClick={() => setCreating(false)} className="text-sm text-[#898781] px-4 py-2">
+            <button onClick={() => setCreating(false)} className="text-sm text-[var(--muted)] px-4 py-2">
               Cancel
             </button>
           </div>
@@ -343,7 +343,7 @@ export default function GoalFundPage() {
       )}
 
       {!activeFund && !creating && (
-        <div className="bg-white border border-black/10 rounded-2xl p-8 text-center text-sm text-[#898781]">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
           Create your first goal fund to get started.
         </div>
       )}
@@ -352,8 +352,8 @@ export default function GoalFundPage() {
         <>
           {/* hero row */}
           <div className="grid sm:grid-cols-[1.3fr_1fr] gap-3.5 mb-5">
-            <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-6 text-white relative overflow-hidden">
-              <div className="text-xs tracking-[0.1em] uppercase text-[#C9A84C] mb-2">
+            <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 text-white relative overflow-hidden">
+              <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-2">
                 Target at maturity
               </div>
               <div className="font-serif text-3xl font-bold mb-1">SAR {fmt(activeFund.target_amount)}</div>
@@ -376,20 +376,20 @@ export default function GoalFundPage() {
               </div>
             </div>
 
-            <div className="bg-white border border-black/10 rounded-2xl p-6 flex flex-col items-center justify-center">
-              <div className="text-[11px] tracking-[0.08em] uppercase text-[#898781] mb-3">Current progress</div>
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 flex flex-col items-center justify-center">
+              <div className="text-[11px] tracking-[0.08em] uppercase text-[var(--muted)] mb-3">Current progress</div>
               <div className="relative w-36 h-36">
                 <svg viewBox="0 0 150 150" className="w-full h-full -rotate-90">
-                  <circle cx="75" cy="75" r="60" fill="none" stroke="#EFEDE8" strokeWidth="12" />
+                  <circle cx="75" cy="75" r="60" fill="none" stroke="var(--surface-1)" strokeWidth="12" />
                   <circle
-                    cx="75" cy="75" r="60" fill="none" stroke="#1D9E75" strokeWidth="12" strokeLinecap="round"
+                    cx="75" cy="75" r="60" fill="none" stroke="var(--green)" strokeWidth="12" strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 60}
                     strokeDashoffset={2 * Math.PI * 60 * (1 - Math.min(1, pctToGoal / 100))}
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="font-serif text-2xl font-bold text-[#085041]">{pctToGoal.toFixed(1)}%</div>
-                  <div className="text-[10px] text-[#898781]">of goal</div>
+                  <div className="font-serif text-2xl font-bold text-[var(--green-dark)]">{pctToGoal.toFixed(1)}%</div>
+                  <div className="text-[10px] text-[var(--muted)]">of goal</div>
                 </div>
               </div>
               <div className={`mt-3 text-xs font-medium px-3.5 py-1.5 rounded-full ${STATUS_CLASS[status]}`}>
@@ -398,7 +398,7 @@ export default function GoalFundPage() {
             </div>
           </div>
 
-          <div className="text-xs text-[#085041] font-medium mb-5 -mt-2">
+          <div className="text-xs text-[var(--green-dark)] font-medium mb-5 -mt-2">
             {activeFund.expected_return > 0 ? (
               <>
                 SAR {fmt(simpleSum)} from your own contributions, plus SAR {fmt(bonus)} from the{' '}
@@ -410,25 +410,25 @@ export default function GoalFundPage() {
           </div>
 
           {/* trajectory chart */}
-          <div className="bg-white border border-black/10 rounded-2xl p-6 mb-5">
-            <div className="text-sm font-medium text-[#141414]">Your fund over time</div>
-            <div className="text-xs text-[#898781] mb-1">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-5">
+            <div className="text-sm font-medium text-[var(--ink)]">Your fund over time</div>
+            <div className="text-xs text-[var(--muted)] mb-1">
               The dashed line is your plan. The solid line is what you&apos;ve actually saved.
             </div>
             <div className="h-72 mt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData}>
-                  <CartesianGrid stroke="#ececE6" />
-                  <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#898781' }} interval={Math.max(0, Math.floor(chartData.length / 8) - 1)} angle={-45} textAnchor="end" height={50} />
-                  <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => `SAR ${fmtCompact(Number(v))}`} />
+                  <CartesianGrid stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--muted)' }} interval={Math.max(0, Math.floor(chartData.length / 8) - 1)} angle={-45} textAnchor="end" height={50} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => `SAR ${fmtCompact(Number(v))}`} />
                   <Tooltip
                     formatter={(value, name) => {
                       if (value == null) return ['—', name];
                       return [`SAR ${fmt(Number(value))}`, name];
                     }}
                   />
-                  <Line type="monotone" dataKey="cumTarget" name="Target" stroke="#141414" strokeWidth={2} strokeDasharray="5 4" dot={false} />
-                  <Line type="monotone" dataKey="cumActual" name="Actual" stroke="#1D9E75" strokeWidth={2.5} dot={false} connectNulls />
+                  <Line type="monotone" dataKey="cumTarget" name="Target" stroke="var(--ink)" strokeWidth={2} strokeDasharray="5 4" dot={false} />
+                  <Line type="monotone" dataKey="cumActual" name="Actual" stroke="var(--green)" strokeWidth={2.5} dot={false} connectNulls />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -436,12 +436,12 @@ export default function GoalFundPage() {
 
           {/* monthly tracker */}
           <div className="mb-5">
-            <div className="font-serif text-lg font-medium text-[#141414] mb-1">Monthly tracker</div>
-            <div className="text-xs text-[#898781] mb-3">
+            <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">Monthly tracker</div>
+            <div className="text-xs text-[var(--muted)] mb-3">
               Log what you actually saved. MalMind tracks the difference automatically.
             </div>
-            <div className="bg-white border border-black/10 rounded-2xl overflow-hidden">
-              <div className="grid grid-cols-[36px_1fr_90px_90px_80px_80px] gap-2.5 px-4 py-2.5 bg-[#F5F4F0] text-[10px] font-semibold uppercase tracking-wide text-[#898781]">
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden">
+              <div className="grid grid-cols-[36px_1fr_90px_90px_80px_80px] gap-2.5 px-4 py-2.5 bg-[var(--surface-0)] text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
                 <span>#</span>
                 <span>Month</span>
                 <span>Target</span>
@@ -454,10 +454,10 @@ export default function GoalFundPage() {
                 const diff = hasActual ? s.actualLogged! - s.target : null;
                 const accumDiff = s.cumActual - s.cumTarget;
                 return (
-                  <div key={s.m} className="grid grid-cols-[36px_1fr_90px_90px_80px_80px] gap-2.5 px-4 py-2.5 items-center text-xs border-t border-black/5">
-                    <span className="text-[#898781]">{s.m}</span>
-                    <span className="text-[#141414] font-medium">{monthLabel(startDate, s.m - 1)}</span>
-                    <span className="text-[#3D3D3A]">SAR {fmt(s.target)}</span>
+                  <div key={s.m} className="grid grid-cols-[36px_1fr_90px_90px_80px_80px] gap-2.5 px-4 py-2.5 items-center text-xs border-t border-[var(--border-faint)]">
+                    <span className="text-[var(--muted)]">{s.m}</span>
+                    <span className="text-[var(--ink)] font-medium">{monthLabel(startDate, s.m - 1)}</span>
+                    <span className="text-[var(--ink-2)]">SAR {fmt(s.target)}</span>
                     <input
                       type="text"
                       defaultValue={hasActual ? fmt(s.actualLogged!) : ''}
@@ -466,12 +466,12 @@ export default function GoalFundPage() {
                         const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
                         if (!isNaN(val)) logActual(s.m, val);
                       }}
-                      className="w-full bg-[#F5F4F0] border border-black/10 rounded-md px-2 py-1 text-xs outline-none focus:border-[#1D9E75]"
+                      className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1 text-xs outline-none focus:border-[var(--green)]"
                     />
-                    <span className={`text-right font-semibold ${diff === null ? 'text-[#898781]' : diff >= 0 ? 'text-[#085041]' : 'text-[#C0504D]'}`}>
+                    <span className={`text-right font-semibold ${diff === null ? 'text-[var(--muted)]' : diff >= 0 ? 'text-[var(--green-dark)]' : 'text-[var(--red)]'}`}>
                       {diff === null ? '—' : `${diff >= 0 ? '+' : ''}${fmt(diff)}`}
                     </span>
-                    <span className={`text-right ${!hasActual ? 'text-[#898781]' : accumDiff >= 0 ? 'text-[#085041]' : 'text-[#C0504D]'}`}>
+                    <span className={`text-right ${!hasActual ? 'text-[var(--muted)]' : accumDiff >= 0 ? 'text-[var(--green-dark)]' : 'text-[var(--red)]'}`}>
                       {hasActual ? `${accumDiff >= 0 ? '+' : ''}${fmt(accumDiff)}` : '—'}
                     </span>
                   </div>
@@ -480,7 +480,7 @@ export default function GoalFundPage() {
               {visibleMonths < series.length && (
                 <button
                   onClick={() => setVisibleMonths((v) => v + 24)}
-                  className="w-full text-center py-3 text-xs font-medium text-[#085041] border-t border-black/5"
+                  className="w-full text-center py-3 text-xs font-medium text-[var(--green-dark)] border-t border-[var(--border-faint)]"
                 >
                   Show more months
                 </button>
@@ -489,18 +489,18 @@ export default function GoalFundPage() {
           </div>
 
           <div className="flex items-center justify-between mb-5">
-            <button onClick={() => deleteFund(activeFund.id)} className="text-xs text-[#A32D2D]">
+            <button onClick={() => deleteFund(activeFund.id)} className="text-xs text-[var(--red-dark-text)]">
               Delete this fund
             </button>
           </div>
 
           {/* nudge */}
-          <div className="flex gap-3 items-start bg-[#FAF6EA] border border-[#C9A84C] rounded-xl p-4">
-            <div className="w-7 h-7 rounded-full bg-[#C9A84C] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">
+          <div className="flex gap-3 items-start bg-[var(--gold-bg)] border border-[var(--gold)] rounded-xl p-4">
+            <div className="w-7 h-7 rounded-full bg-[var(--gold)] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">
               M
             </div>
-            <div className="text-xs text-[#5A4A1A] leading-relaxed">
-              <strong className="text-[#3A2F0A]">This fund is now part of your plan.</strong> MalMind tracks it
+            <div className="text-xs text-[var(--gold-text-body)] leading-relaxed">
+              <strong className="text-[var(--gold-text-strong)]">This fund is now part of your plan.</strong> MalMind tracks it
               alongside everything else — if a big decision would mean skipping a month here, I&apos;ll show you
               what that costs against this exact goal, in these exact terms.
             </div>

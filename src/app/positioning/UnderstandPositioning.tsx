@@ -155,18 +155,18 @@ export default function UnderstandPositioning() {
   const compareName = peer === 'upper' ? 'higher-earning peers' : 'the national average';
 
   if (loading) {
-    return <div className="text-sm text-[#898781]">Loading…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading…</div>;
   }
 
   if (!age) {
     return (
-      <div className="bg-white border border-black/10 rounded-2xl p-8 text-center">
-        <p className="text-sm text-[#3D3D3A] mb-4">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center">
+        <p className="text-sm text-[var(--ink-2)] mb-4">
           Set your age in your profile to see how your income and net worth compare by age.
         </p>
         <button
           onClick={openEditProfile}
-          className="text-sm bg-[#085041] text-white rounded-lg px-4 py-2 font-medium"
+          className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
         >
           Set your age →
         </button>
@@ -176,16 +176,16 @@ export default function UnderstandPositioning() {
 
   return (
     <div>
-      <div className="inline-flex border border-black/10 rounded-lg overflow-hidden mb-6">
+      <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-6">
         <button
           onClick={() => setSubView('stand')}
-          className={`px-4 py-2 text-xs font-medium ${subView === 'stand' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+          className={`px-4 py-2 text-xs font-medium ${subView === 'stand' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           Where you stand
         </button>
         <button
           onClick={() => setSubView('quad')}
-          className={`px-4 py-2 text-xs font-medium ${subView === 'quad' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+          className={`px-4 py-2 text-xs font-medium ${subView === 'quad' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           What to do about it
         </button>
@@ -194,15 +194,15 @@ export default function UnderstandPositioning() {
       {subView === 'stand' && (
         <div>
           <div className="flex items-center gap-2.5 mb-5 flex-wrap">
-            <span className="text-xs text-[#898781]">Compare yourself to:</span>
+            <span className="text-xs text-[var(--muted)]">Compare yourself to:</span>
             {(['similar', 'upper', 'lower'] as Peer[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeer(p)}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-medium border ${
                   peer === p
-                    ? 'bg-[#E1F5EE] border-[#1D9E75] text-[#085041]'
-                    : 'bg-white border-black/15 text-[#3D3D3A]'
+                    ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)]'
+                    : 'bg-[var(--surface-card)] border-[var(--border-medium)] text-[var(--ink-2)]'
                 }`}
               >
                 {p === 'similar' ? 'Similar peers' : p === 'upper' ? 'Higher earners' : 'National average'}
@@ -211,9 +211,9 @@ export default function UnderstandPositioning() {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 mb-6">
-            <div className="bg-white border border-black/10 rounded-2xl p-5">
-              <div className="text-sm font-medium text-[#141414]">Monthly income</div>
-              <div className="text-xs text-[#898781] mb-3">
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
+              <div className="text-sm font-medium text-[var(--ink)]">Monthly income</div>
+              <div className="text-xs text-[var(--muted)] mb-3">
                 {hasIncomeData
                   ? `Your earning trajectory, age ${minAge} to ${maxAge}`
                   : `Log income in Lifetime Income to see your own trajectory here`}
@@ -221,9 +221,9 @@ export default function UnderstandPositioning() {
               <div className="h-60">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={incomeChartData}>
-                    <CartesianGrid stroke="#ececE6" />
-                    <XAxis dataKey="age" tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => `${v}`} />
-                    <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => `${Math.round(v / 1000)}K`} />
+                    <CartesianGrid stroke="var(--chart-grid)" />
+                    <XAxis dataKey="age" tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => `${v}`} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => `${Math.round(v / 1000)}K`} />
                     <Tooltip
                       labelFormatter={(v) => `Age ${v}`}
                       formatter={(value, name) => {
@@ -232,23 +232,23 @@ export default function UnderstandPositioning() {
                       }}
                     />
                     <Area dataKey="base" stackId="fill" stroke="none" fill="transparent" legendType="none" />
-                    <Area dataKey="gapValue" stackId="fill" stroke="none" fill="#D4537E" fillOpacity={0.22} legendType="none" />
-                    <Area dataKey="gainValue" stackId="fill" stroke="none" fill="#97C459" fillOpacity={0.3} legendType="none" />
-                    <Line type="monotone" dataKey="national" name="National avg" stroke="#2a78d6" strokeWidth={2} dot={false} strokeDasharray="4 4" />
-                    <Line type="monotone" dataKey="higher" name="Higher peer" stroke="#141414" strokeWidth={2} dot={false} strokeDasharray="4 4" />
-                    <Line type="monotone" dataKey="you" name="You" stroke="#8a99a8" strokeWidth={3} dot={false} connectNulls={false} />
+                    <Area dataKey="gapValue" stackId="fill" stroke="none" fill="var(--pink)" fillOpacity={0.22} legendType="none" />
+                    <Area dataKey="gainValue" stackId="fill" stroke="none" fill="var(--chart-soft-green)" fillOpacity={0.3} legendType="none" />
+                    <Line type="monotone" dataKey="national" name="National avg" stroke="var(--blue-2)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+                    <Line type="monotone" dataKey="higher" name="Higher peer" stroke="var(--ink)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+                    <Line type="monotone" dataKey="you" name="You" stroke="var(--chart-neutral-1)" strokeWidth={3} dot={false} connectNulls={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex gap-3 flex-wrap justify-center text-[10px] text-[#3D3D3A] mt-2">
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#D4537E', opacity: 0.5 }} />Missed opportunity</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#97C459', opacity: 0.6 }} />Realized gain</span>
+              <div className="flex gap-3 flex-wrap justify-center text-[10px] text-[var(--ink-2)] mt-2">
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'var(--pink)', opacity: 0.5 }} />Missed opportunity</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'var(--chart-soft-green)', opacity: 0.6 }} />Realized gain</span>
               </div>
             </div>
 
-            <div className="bg-white border border-black/10 rounded-2xl p-5">
-              <div className="text-sm font-medium text-[#141414]">Net worth</div>
-              <div className="text-xs text-[#898781] mb-3">
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
+              <div className="text-sm font-medium text-[var(--ink)]">Net worth</div>
+              <div className="text-xs text-[var(--muted)] mb-3">
                 {hasNetWorthData
                   ? `What you've built, age ${minAge} to ${maxAge}`
                   : `Log a net worth snapshot to see your own trajectory here`}
@@ -256,52 +256,52 @@ export default function UnderstandPositioning() {
               <div className="h-60">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={networthChartData}>
-                    <CartesianGrid stroke="#ececE6" />
-                    <XAxis dataKey="age" tick={{ fontSize: 10, fill: '#898781' }} />
-                    <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : `${Math.round(v / 1000)}K`)} />
+                    <CartesianGrid stroke="var(--chart-grid)" />
+                    <XAxis dataKey="age" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : `${Math.round(v / 1000)}K`)} />
                     <Tooltip
                       labelFormatter={(v) => `Age ${v}`}
                       formatter={(value, name) => [`SAR ${fmt(Number(value))}`, name]}
                     />
-                    <Line type="monotone" dataKey="national" name="National avg" stroke="#2a78d6" strokeWidth={2} dot={false} strokeDasharray="4 4" />
-                    <Line type="monotone" dataKey="higher" name="Higher peer" stroke="#141414" strokeWidth={2} dot={false} strokeDasharray="4 4" />
-                    <Line type="monotone" dataKey="you" name="You" stroke="#8a99a8" strokeWidth={3} dot={false} connectNulls={false} />
+                    <Line type="monotone" dataKey="national" name="National avg" stroke="var(--blue-2)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+                    <Line type="monotone" dataKey="higher" name="Higher peer" stroke="var(--ink)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+                    <Line type="monotone" dataKey="you" name="You" stroke="var(--chart-neutral-1)" strokeWidth={3} dot={false} connectNulls={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </div>
 
-          <div className="bg-white border-[1.5px] border-[#D4537E] rounded-2xl p-6 mb-4">
-            <div className="text-[11px] tracking-[0.1em] uppercase text-[#D4537E] mb-3">The missed opportunity</div>
+          <div className="bg-[var(--surface-card)] border-[1.5px] border-[var(--pink)] rounded-2xl p-6 mb-4">
+            <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--pink)] mb-3">The missed opportunity</div>
             {hasIncomeData ? (
               <>
-                <div className="font-serif text-xl text-[#141414] leading-relaxed mb-2">
+                <div className="font-serif text-xl text-[var(--ink)] leading-relaxed mb-2">
                   {peer === 'upper' ? (
-                    <>Against higher earners, you left roughly <strong className="text-[#D4537E] font-semibold">SAR {fmt(missedTotal)}</strong> on the table so far.</>
+                    <>Against higher earners, you left roughly <strong className="text-[var(--pink)] font-semibold">SAR {fmt(missedTotal)}</strong> on the table so far.</>
                   ) : (
-                    <>You earned about <strong className="text-[#D4537E] font-semibold">SAR {fmt(missedTotal)}</strong> less than {compareName} during your slower-start years.</>
+                    <>You earned about <strong className="text-[var(--pink)] font-semibold">SAR {fmt(missedTotal)}</strong> less than {compareName} during your slower-start years.</>
                   )}
                 </div>
-                <div className="text-sm text-[#3D3D3A] leading-relaxed">
+                <div className="text-sm text-[var(--ink-2)] leading-relaxed">
                   This is the cumulative income difference versus {compareName}, using only the years you&apos;ve actually
                   logged. It&apos;s not a verdict — it&apos;s a measure of the distance, so you know exactly what you&apos;re
                   catching up to.
                 </div>
               </>
             ) : (
-              <div className="text-sm text-[#3D3D3A] leading-relaxed">
-                Log some income entries in <Link href="/lifetime-income" className="text-[#085041] font-medium">Lifetime Income</Link> to see how your earnings compare against {compareName}.
+              <div className="text-sm text-[var(--ink-2)] leading-relaxed">
+                Log some income entries in <Link href="/lifetime-income" className="text-[var(--green-dark)] font-medium">Lifetime Income</Link> to see how your earnings compare against {compareName}.
               </div>
             )}
           </div>
 
           {hasIncomeData && gainTotal > 0 && (
-            <div className="bg-[#E1F5EE] border border-[#5DCAA5] rounded-2xl p-5 mb-6 flex gap-4 items-start">
+            <div className="bg-[var(--green-bg)] border border-[var(--green-border)] rounded-2xl p-5 mb-6 flex gap-4 items-start">
               <div className="text-xl">📈</div>
               <div>
-                <div className="text-sm font-semibold text-[#085041] mb-1">But you&apos;ve started closing the gap</div>
-                <div className="text-sm text-[#2C5040] leading-relaxed">
+                <div className="text-sm font-semibold text-[var(--green-dark)] mb-1">But you&apos;ve started closing the gap</div>
+                <div className="text-sm text-[var(--green-dark)] leading-relaxed">
                   In the years you&apos;ve pulled above {compareName}, that recovery is worth about{' '}
                   <strong>SAR {fmt(gainTotal)}</strong> — proof the trajectory is yours to bend. The question now is how
                   fast you close the rest.
@@ -311,7 +311,7 @@ export default function UnderstandPositioning() {
           )}
 
           <div className="mb-6">
-            <div className="text-[11px] tracking-[0.1em] uppercase text-[#898781] mb-3">
+            <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">
               Why the gap opened — in a Saudi context
             </div>
             <div className="grid sm:grid-cols-2 gap-2.5">
@@ -323,8 +323,8 @@ export default function UnderstandPositioning() {
           </div>
 
           <div className="mb-6">
-            <div className="font-serif text-lg font-medium text-[#141414] mb-1">How to make up the gap</div>
-            <div className="text-sm text-[#3D3D3A] mb-4">
+            <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">How to make up the gap</div>
+            <div className="text-sm text-[var(--ink-2)] mb-4">
               These aren&apos;t generic tips — each one becomes part of your holistic plan that MalMind tracks and protects.
             </div>
             <div className="flex flex-col gap-2">
@@ -336,7 +336,7 @@ export default function UnderstandPositioning() {
           </div>
 
           <NudgeBanner>
-            <strong className="text-[#3A2F0A]">MalMind remembers this.</strong> Your gap and your catch-up plan are now
+            <strong className="text-[var(--gold-text-strong)]">MalMind remembers this.</strong> Your gap and your catch-up plan are now
             part of your holistic financial picture. Next time you&apos;re about to make a decision that widens the gap
             — a big discretionary purchase, a longer car loan, dipping into savings — I&apos;ll quietly remind you what
             it costs against this plan. Not to judge, just so the choice is yours with eyes open.
@@ -346,12 +346,12 @@ export default function UnderstandPositioning() {
 
       {subView === 'quad' && (
         <div>
-          <p className="text-sm text-[#3D3D3A] leading-relaxed mb-5 max-w-xl">
+          <p className="text-sm text-[var(--ink-2)] leading-relaxed mb-5 max-w-xl">
             Your trajectory tells you <em>where</em> you are. This tells you <em>what kind</em> of situation you&apos;re
             in — and the single most important move from here. Tap the quadrant that sounds like you.
           </p>
 
-          <div className="bg-white border border-black/10 rounded-2xl p-4 mb-6">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-4 mb-6">
             <div className="grid grid-cols-2 gap-2 relative">
               <QuadCard
                 q="stuck" active={selectedQuad === 'stuck'} onClick={() => setSelectedQuad('stuck')}
@@ -377,28 +377,28 @@ export default function UnderstandPositioning() {
           </div>
 
           {selectedQuad ? (
-            <div className="bg-white border-[1.5px] border-[#1D9E75] rounded-2xl p-6">
-              <div className="text-[11px] tracking-[0.1em] uppercase text-[#1D9E75] mb-3">Your situation</div>
-              <div className="font-serif text-lg text-[#141414] leading-relaxed mb-2">
+            <div className="bg-[var(--surface-card)] border-[1.5px] border-[var(--green)] rounded-2xl p-6">
+              <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--green)] mb-3">Your situation</div>
+              <div className="font-serif text-lg text-[var(--ink)] leading-relaxed mb-2">
                 <strong className="font-semibold">{QUAD_DATA[selectedQuad].title}.</strong> The move that matters most:{' '}
                 <strong className="font-semibold">{QUAD_DATA[selectedQuad].move.toLowerCase()}</strong>.
               </div>
-              <div className="text-sm text-[#3D3D3A] leading-relaxed mb-5">{QUAD_DATA[selectedQuad].detail}</div>
+              <div className="text-sm text-[var(--ink-2)] leading-relaxed mb-5">{QUAD_DATA[selectedQuad].detail}</div>
 
               <div className="flex items-center gap-2 mb-5 flex-wrap">
-                <span className="text-xs text-[#898781] mr-1">Maturity path:</span>
+                <span className="text-xs text-[var(--muted)] mr-1">Maturity path:</span>
                 {LADDER_STEPS.map((s, i) => (
                   <span key={s} className="flex items-center gap-2">
                     <span
                       className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border-[1.5px] ${
                         QUAD_DATA[selectedQuad].step === s
-                          ? 'bg-[#1D9E75] border-[#1D9E75] text-white'
-                          : 'bg-white border-black/15 text-[#898781]'
+                          ? 'bg-[var(--green)] border-[var(--green)] text-white'
+                          : 'bg-[var(--surface-card)] border-[var(--border-medium)] text-[var(--muted)]'
                       }`}
                     >
                       {s}
                     </span>
-                    {i < LADDER_STEPS.length - 1 && <span className="text-black/20 text-xs">→</span>}
+                    {i < LADDER_STEPS.length - 1 && <span className="text-[var(--border-strong)] text-xs">→</span>}
                   </span>
                 ))}
               </div>
@@ -410,7 +410,7 @@ export default function UnderstandPositioning() {
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-black/10 rounded-2xl p-8 text-center text-sm text-[#898781]">
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
               Tap the quadrant above that sounds like you.
             </div>
           )}
@@ -422,25 +422,25 @@ export default function UnderstandPositioning() {
 
 function WhyCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
   return (
-    <div className="bg-white border border-black/10 rounded-lg p-3.5">
+    <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-lg p-3.5">
       <div className="flex items-center gap-2 mb-1.5">
         <span className="text-base">{icon}</span>
-        <span className="text-sm font-medium text-[#141414]">{title}</span>
+        <span className="text-sm font-medium text-[var(--ink)]">{title}</span>
       </div>
-      <div className="text-xs text-[#3D3D3A] leading-relaxed">{desc}</div>
+      <div className="text-xs text-[var(--ink-2)] leading-relaxed">{desc}</div>
     </div>
   );
 }
 
 function LeverRow({ icon, title, desc, tag }: { icon: string; title: string; desc: string; tag: string }) {
   return (
-    <div className="flex items-center gap-3 bg-white border border-black/10 rounded-lg px-4 py-3 hover:border-[#1D9E75] transition-colors">
+    <div className="flex items-center gap-3 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-lg px-4 py-3 hover:border-[var(--green)] transition-colors">
       <span className="text-lg">{icon}</span>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-[#141414]">{title}</div>
-        <div className="text-xs text-[#898781]">{desc}</div>
+        <div className="text-sm font-medium text-[var(--ink)]">{title}</div>
+        <div className="text-xs text-[var(--muted)]">{desc}</div>
       </div>
-      <span className="text-[11px] font-semibold text-[#1D9E75] bg-[#E1F5EE] border border-[#5DCAA5] px-2.5 py-1 rounded-full whitespace-nowrap">
+      <span className="text-[11px] font-semibold text-[var(--green)] bg-[var(--green-bg)] border border-[var(--green-border)] px-2.5 py-1 rounded-full whitespace-nowrap">
         {tag}
       </span>
     </div>
@@ -449,11 +449,11 @@ function LeverRow({ icon, title, desc, tag }: { icon: string; title: string; des
 
 function NudgeBanner({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex gap-3 items-start bg-[#FAF6EA] border border-[#C9A84C] rounded-xl p-4">
-      <div className="w-7 h-7 rounded-full bg-[#C9A84C] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">
+    <div className="flex gap-3 items-start bg-[var(--gold-bg)] border border-[var(--gold)] rounded-xl p-4">
+      <div className="w-7 h-7 rounded-full bg-[var(--gold)] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">
         M
       </div>
-      <div className="text-xs text-[#5A4A1A] leading-relaxed">{children}</div>
+      <div className="text-xs text-[var(--gold-text-body)] leading-relaxed">{children}</div>
     </div>
   );
 }
@@ -468,26 +468,26 @@ function QuadCard({
     <button
       onClick={onClick}
       className={`text-left p-4 rounded-xl border transition-colors ${
-        active ? 'border-[#1D9E75] bg-[#E1F5EE]' : 'border-black/10 bg-white hover:bg-[#F5F4F0]'
+        active ? 'border-[var(--green)] bg-[var(--green-bg)]' : 'border-[var(--border-default)] bg-[var(--surface-card)] hover:bg-[var(--surface-0)]'
       }`}
     >
-      <div className="text-sm font-semibold text-[#141414] mb-1">{title}</div>
-      <div className="text-xs text-[#898781] italic mb-3">{mood}</div>
+      <div className="text-sm font-semibold text-[var(--ink)] mb-1">{title}</div>
+      <div className="text-xs text-[var(--muted)] italic mb-3">{mood}</div>
       <div
-        className={`text-xs font-medium text-[#085041] inline-block px-2.5 py-1 rounded-full border mb-3 ${
-          active ? 'bg-white border-[#5DCAA5]' : 'bg-[#E1F5EE] border-[#5DCAA5]'
+        className={`text-xs font-medium text-[var(--green-dark)] inline-block px-2.5 py-1 rounded-full border mb-3 ${
+          active ? 'bg-[var(--surface-card)] border-[var(--green-border)]' : 'bg-[var(--green-bg)] border-[var(--green-border)]'
         }`}
       >
         {move}
       </div>
       <div className="flex gap-4 items-end h-16">
         <div className="flex flex-col items-center gap-1">
-          <div className="w-8 rounded-t" style={{ height: incomeH, background: '#1D9E75' }} />
-          <div className="text-[9px] text-[#898781]">Income</div>
+          <div className="w-8 rounded-t" style={{ height: incomeH, background: 'var(--green)' }} />
+          <div className="text-[9px] text-[var(--muted)]">Income</div>
         </div>
         <div className="flex flex-col items-center gap-1">
-          <div className="w-8 rounded-t" style={{ height: outflowH, background: '#C0392B' }} />
-          <div className="text-[9px] text-[#898781]">Outflow</div>
+          <div className="w-8 rounded-t" style={{ height: outflowH, background: 'var(--red-2)' }} />
+          <div className="text-[9px] text-[var(--muted)]">Outflow</div>
         </div>
       </div>
     </button>

@@ -105,20 +105,20 @@ export default function EditProfileModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4"
+      className="fixed inset-0 z-50 bg-[var(--scrim-strong)] flex items-center justify-center px-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-[var(--surface-card)] rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-serif text-xl font-semibold text-[#141414]">
+          <h2 className="font-serif text-xl font-semibold text-[var(--ink)]">
             Edit profile
           </h2>
           <button
             onClick={onClose}
-            className="text-[#898781] hover:text-[#141414] text-sm"
+            className="text-[var(--muted)] hover:text-[var(--ink)] text-sm"
             aria-label="Close"
           >
             ✕
@@ -126,66 +126,66 @@ export default function EditProfileModal({
         </div>
 
         {loading ? (
-          <div className="text-sm text-[#898781] py-8 text-center">Loading…</div>
+          <div className="text-sm text-[var(--muted)] py-8 text-center">Loading…</div>
         ) : (
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-[#898781] block mb-1">First name</label>
+                <label className="text-xs text-[var(--muted)] block mb-1">First name</label>
                 <input
                   type="text"
                   required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
                 />
               </div>
               <div>
-                <label className="text-xs text-[#898781] block mb-1">Last name</label>
+                <label className="text-xs text-[var(--muted)] block mb-1">Last name</label>
                 <input
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-[#898781] block mb-1">Age</label>
+                <label className="text-xs text-[var(--muted)] block mb-1">Age</label>
                 <input
                   type="number"
                   min={0}
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
-                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
                 />
               </div>
               <div>
-                <label className="text-xs text-[#898781] block mb-1">City</label>
+                <label className="text-xs text-[var(--muted)] block mb-1">City</label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-[#898781] block mb-1">Employment</label>
+              <label className="text-xs text-[var(--muted)] block mb-1">Employment</label>
               <input
                 type="text"
                 value={employment}
                 onChange={(e) => setEmployment(e.target.value)}
                 placeholder="e.g. Private sector (banking)"
-                className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
               />
             </div>
 
             <div>
-              <label className="text-xs text-[#898781] block mb-1">
+              <label className="text-xs text-[var(--muted)] block mb-1">
                 Monthly income (SAR)
               </label>
               <input
@@ -193,12 +193,12 @@ export default function EditProfileModal({
                 min={0}
                 value={monthlyIncome}
                 onChange={(e) => setMonthlyIncome(e.target.value)}
-                className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1D9E75]"
+                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
               />
             </div>
 
             {error && (
-              <div className="text-xs text-[#A32D2D] bg-[#FBE9EC] border border-[#E5A0AC] rounded-lg px-3 py-2">
+              <div className="text-xs text-[var(--red-dark-text)] bg-[var(--red-bg)] border border-[var(--red-border)] rounded-lg px-3 py-2">
                 {error}
               </div>
             )}
@@ -207,14 +207,14 @@ export default function EditProfileModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 border border-black/10 text-[#3D3D3A] rounded-lg py-2.5 text-sm font-medium"
+                className="flex-1 border border-[var(--border-default)] text-[var(--ink-2)] rounded-lg py-2.5 text-sm font-medium"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 bg-[#085041] text-white rounded-lg py-2.5 text-sm font-medium disabled:opacity-50"
+                className="flex-1 bg-[var(--green-dark)] text-white rounded-lg py-2.5 text-sm font-medium disabled:opacity-50"
               >
                 {saving ? 'Saving…' : 'Save changes'}
               </button>

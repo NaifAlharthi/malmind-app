@@ -118,18 +118,18 @@ export default function VelocityPage() {
   const activeMortgages = SCENARIOS.filter((s) => s.key !== 'none' && activeScenarioKeys.includes(s.key));
 
   if (loading) {
-    return <div className="text-sm text-[#898781]">Loading…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading…</div>;
   }
 
   if (!salary) {
     return (
-      <div className="bg-white border border-black/10 rounded-2xl p-8 text-center">
-        <p className="text-sm text-[#3D3D3A] mb-4">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center">
+        <p className="text-sm text-[var(--ink-2)] mb-4">
           Set your monthly income in your profile to see your velocity of money.
         </p>
         <button
           onClick={openEditProfile}
-          className="text-sm bg-[#085041] text-white rounded-lg px-4 py-2 font-medium"
+          className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
         >
           Set your income →
         </button>
@@ -139,33 +139,33 @@ export default function VelocityPage() {
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.1em] uppercase text-[#4A78C4] font-semibold mb-1">
+      <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--blue)] font-semibold mb-1">
         Think
       </div>
-      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
         Velocity of Money
       </h1>
-      <p className="text-sm text-[#3D3D3A] mb-6 max-w-xl">
+      <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
         Wealth reframed as time — how long each milestone takes at your real pace of saving,
         and what changes when life adds a mortgage.
       </p>
 
       {/* inputs */}
-      <div className="bg-white border border-black/10 rounded-2xl p-5 mb-5">
-        <div className="text-[11px] tracking-[0.1em] uppercase text-[#898781] mb-4">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-5">
+        <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-4">
           Your monthly numbers
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="text-xs text-[#898781] block mb-1">Main salary</label>
-            <div className="border border-black/10 rounded-lg px-3 py-2 text-sm bg-[#F5F4F0] text-[#3D3D3A]">
+            <label className="text-xs text-[var(--muted)] block mb-1">Main salary</label>
+            <div className="border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm bg-[var(--surface-0)] text-[var(--ink-2)]">
               SAR {fmt(salary)}
             </div>
           </div>
           <div>
-            <label className="text-xs text-[#898781] block mb-1">Side income</label>
-            <div className="flex items-center border border-black/10 rounded-lg px-3 focus-within:border-[#1D9E75]">
-              <span className="text-xs text-[#898781] mr-1">SAR</span>
+            <label className="text-xs text-[var(--muted)] block mb-1">Side income</label>
+            <div className="flex items-center border border-[var(--border-default)] rounded-lg px-3 focus-within:border-[var(--green)]">
+              <span className="text-xs text-[var(--muted)] mr-1">SAR</span>
               <input
                 value={sideIncome}
                 onChange={(e) => setSideIncome(e.target.value)}
@@ -174,9 +174,9 @@ export default function VelocityPage() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-[#898781] block mb-1">Average monthly expense</label>
-            <div className="flex items-center border border-black/10 rounded-lg px-3 focus-within:border-[#1D9E75]">
-              <span className="text-xs text-[#898781] mr-1">SAR</span>
+            <label className="text-xs text-[var(--muted)] block mb-1">Average monthly expense</label>
+            <div className="flex items-center border border-[var(--border-default)] rounded-lg px-3 focus-within:border-[var(--green)]">
+              <span className="text-xs text-[var(--muted)] mr-1">SAR</span>
               <input
                 value={expense}
                 onChange={(e) => setExpense(e.target.value)}
@@ -185,19 +185,19 @@ export default function VelocityPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 flex-wrap pt-3 border-t border-black/10">
+        <div className="flex items-center gap-3 flex-wrap pt-3 border-t border-[var(--border-default)]">
           <button
             onClick={saveAssumptions}
             disabled={saving}
-            className="text-sm bg-[#085041] text-white rounded-lg px-4 py-2 font-medium disabled:opacity-50"
+            className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium disabled:opacity-50"
           >
             {saving ? 'Saving…' : 'Save assumptions'}
           </button>
-          {saved && <span className="text-xs text-[#1D9E75]">Saved to your profile.</span>}
-          <span className="text-sm text-[#3D3D3A]">
-            Disposable each month: <strong className="text-[#1D9E75] font-serif text-base">SAR {fmt(disposable)}</strong>
+          {saved && <span className="text-xs text-[var(--green)]">Saved to your profile.</span>}
+          <span className="text-sm text-[var(--ink-2)]">
+            Disposable each month: <strong className="text-[var(--green)] font-serif text-base">SAR {fmt(disposable)}</strong>
           </span>
-          <span className="text-xs text-[#898781]">
+          <span className="text-xs text-[var(--muted)]">
             Salary comes from your profile — edit it from the home page.
           </span>
         </div>
@@ -205,15 +205,15 @@ export default function VelocityPage() {
 
       {/* mortgage toggles */}
       <div className="flex items-center gap-2 flex-wrap mb-5">
-        <span className="text-xs text-[#3D3D3A] mr-1">Compare with a mortgage:</span>
+        <span className="text-xs text-[var(--ink-2)] mr-1">Compare with a mortgage:</span>
         {SCENARIOS.map((sc) => (
           <button
             key={sc.key}
             onClick={() => toggleScenario(sc.key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
               activeScenarioKeys.includes(sc.key)
-                ? 'bg-[#141414] border-[#141414] text-white'
-                : 'bg-white border-black/15 text-[#3D3D3A]'
+                ? 'bg-[var(--ink)] border-[var(--ink)] text-white'
+                : 'bg-[var(--surface-card)] border-[var(--border-medium)] text-[var(--ink-2)]'
             } ${sc.key === 'none' ? 'cursor-default' : ''}`}
           >
             <span className="w-2 h-2 rounded-sm" style={{ background: sc.color }} />
@@ -223,22 +223,22 @@ export default function VelocityPage() {
       </div>
 
       {/* chart */}
-      <div className="bg-white border border-black/10 rounded-2xl p-6 mb-5">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-5">
         <div className="flex justify-between items-start mb-1">
           <div>
-            <div className="text-sm font-medium text-[#141414]">Time to reach each milestone</div>
-            <div className="text-xs text-[#898781]">Each bar is how long that target takes at your pace</div>
+            <div className="text-sm font-medium text-[var(--ink)]">Time to reach each milestone</div>
+            <div className="text-xs text-[var(--muted)]">Each bar is how long that target takes at your pace</div>
           </div>
-          <div className="inline-flex border border-black/10 rounded-lg overflow-hidden shrink-0">
+          <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden shrink-0">
             <button
               onClick={() => setUnit('months')}
-              className={`px-3 py-1.5 text-xs font-medium ${unit === 'months' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+              className={`px-3 py-1.5 text-xs font-medium ${unit === 'months' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               Months
             </button>
             <button
               onClick={() => setUnit('years')}
-              className={`px-3 py-1.5 text-xs font-medium ${unit === 'years' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+              className={`px-3 py-1.5 text-xs font-medium ${unit === 'years' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
               Years
             </button>
@@ -247,11 +247,11 @@ export default function VelocityPage() {
         <div className="h-80 mt-3">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
-              <CartesianGrid stroke="#ececE6" />
-              <XAxis dataKey="milestone" tick={{ fontSize: 10, fill: '#898781' }} />
+              <CartesianGrid stroke="var(--chart-grid)" />
+              <XAxis dataKey="milestone" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
               <YAxis
-                tick={{ fontSize: 10, fill: '#898781' }}
-                label={{ value: unit === 'months' ? 'Months' : 'Years', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#898781' }}
+                tick={{ fontSize: 10, fill: 'var(--muted)' }}
+                label={{ value: unit === 'months' ? 'Months' : 'Years', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'var(--muted)' }}
               />
               <Tooltip
                 formatter={(value, name) => {
@@ -269,7 +269,7 @@ export default function VelocityPage() {
 
       {/* focus target */}
       <div className="flex items-center gap-3 flex-wrap mb-5">
-        <span className="text-sm text-[#3D3D3A]">Focus on a target:</span>
+        <span className="text-sm text-[var(--ink-2)]">Focus on a target:</span>
         <div className="flex gap-1.5 flex-wrap">
           {FOCUS_MILESTONES.map((m) => (
             <button
@@ -277,8 +277,8 @@ export default function VelocityPage() {
               onClick={() => { setFocusTarget(m); setReflection(null); }}
               className={`px-3 py-1.5 rounded-lg text-xs border ${
                 focusTarget === m
-                  ? 'bg-[#E1F5EE] border-[#1D9E75] text-[#085041] font-medium'
-                  : 'bg-white border-black/15 text-[#3D3D3A]'
+                  ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)] font-medium'
+                  : 'bg-[var(--surface-card)] border-[var(--border-medium)] text-[var(--ink-2)]'
               }`}
             >
               SAR {fmt(m)}
@@ -288,13 +288,13 @@ export default function VelocityPage() {
       </div>
 
       {/* verdict */}
-      <div className="bg-white border-[1.5px] border-[#1D9E75] rounded-2xl p-6">
-        <div className="text-[11px] tracking-[0.1em] uppercase text-[#1D9E75] mb-3">The reality check</div>
-        <div className="font-serif text-lg text-[#141414] leading-relaxed mb-2">
-          At your current pace, reaching <strong className="text-[#085041] font-semibold">SAR {fmt(focusTarget)}</strong>{' '}
-          takes <strong className="text-[#085041] font-semibold">{monthsToWords(baseMonths)}</strong>.
+      <div className="bg-[var(--surface-card)] border-[1.5px] border-[var(--green)] rounded-2xl p-6">
+        <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--green)] mb-3">The reality check</div>
+        <div className="font-serif text-lg text-[var(--ink)] leading-relaxed mb-2">
+          At your current pace, reaching <strong className="text-[var(--green-dark)] font-semibold">SAR {fmt(focusTarget)}</strong>{' '}
+          takes <strong className="text-[var(--green-dark)] font-semibold">{monthsToWords(baseMonths)}</strong>.
         </div>
-        <div className="text-sm text-[#3D3D3A] leading-relaxed mb-5">
+        <div className="text-sm text-[var(--ink-2)] leading-relaxed mb-5">
           {activeMortgages.length > 0 ? (
             <>
               Add a mortgage and the same goal stretches further:{' '}
@@ -302,7 +302,7 @@ export default function VelocityPage() {
                 const m = timeToTargetMonths(focusTarget, scenarioDisposable(disposable, sc));
                 return (
                   <span key={sc.key}>
-                    <span className="inline-block bg-[#F5F4F0] border border-black/10 rounded px-1.5 py-0.5 font-medium text-[#141414]">
+                    <span className="inline-block bg-[var(--surface-0)] border border-[var(--border-default)] rounded px-1.5 py-0.5 font-medium text-[var(--ink)]">
                       {sc.label}: {monthsToWords(m)}
                     </span>
                     {i < activeMortgages.length - 1 ? ' ' : ''}
@@ -320,30 +320,30 @@ export default function VelocityPage() {
           )}
         </div>
 
-        <div className="text-sm font-medium text-[#141414] mb-3">Is this what you expected?</div>
+        <div className="text-sm font-medium text-[var(--ink)] mb-3">Is this what you expected?</div>
         <div className="flex gap-2.5 flex-wrap mb-4">
           <button
             onClick={() => setReflection('yes')}
-            className="px-4 py-2.5 rounded-lg text-xs font-medium border border-black/15 hover:bg-[#E1F5EE] hover:border-[#1D9E75] hover:text-[#085041] transition-colors"
+            className="px-4 py-2.5 rounded-lg text-xs font-medium border border-[var(--border-medium)] hover:bg-[var(--green-bg)] hover:border-[var(--green)] hover:text-[var(--green-dark)] transition-colors"
           >
             Yes — I&apos;m on track
           </button>
           <button
             onClick={() => setReflection('no')}
-            className="px-4 py-2.5 rounded-lg text-xs font-medium border border-black/15 hover:bg-[#FAEEDA] hover:border-[#eda100] hover:text-[#633806] transition-colors"
+            className="px-4 py-2.5 rounded-lg text-xs font-medium border border-[var(--border-medium)] hover:bg-[var(--gold-bg)] hover:border-[var(--amber-2)] hover:text-[var(--gold-text-alt2)] transition-colors"
           >
             No — that&apos;s longer than I thought
           </button>
         </div>
 
         {reflection && (
-          <div className="pt-4 border-t border-black/10">
+          <div className="pt-4 border-t border-[var(--border-default)]">
             {reflection === 'yes' ? (
               <>
-                <div className="text-sm text-[#3D3D3A] leading-relaxed mb-4">
+                <div className="text-sm text-[var(--ink-2)] leading-relaxed mb-4">
                   Good — that means your expectations are grounded in reality, which already puts you ahead of most
                   people. Keep your pace steady and protect your disposable income. The main risk now isn&apos;t
-                  speed, it&apos;s <strong className="text-[#141414] font-medium">lifestyle creep</strong> — letting
+                  speed, it&apos;s <strong className="text-[var(--ink)] font-medium">lifestyle creep</strong> — letting
                   expenses rise as income does.
                 </div>
                 <div className="flex flex-col gap-2">
@@ -353,11 +353,11 @@ export default function VelocityPage() {
               </>
             ) : (
               <>
-                <div className="text-sm text-[#3D3D3A] leading-relaxed mb-4">
+                <div className="text-sm text-[var(--ink-2)] leading-relaxed mb-4">
                   That gap between what you expected and what&apos;s real is the most valuable thing this tool can
                   show you. The good news: the timeline isn&apos;t fixed — it bends fast when you pull the right
                   levers. Here&apos;s what would change your trajectory toward{' '}
-                  <strong className="text-[#141414] font-medium">SAR {fmt(focusTarget)}</strong>:
+                  <strong className="text-[var(--ink)] font-medium">SAR {fmt(focusTarget)}</strong>:
                 </div>
                 <div className="flex flex-col gap-2">
                   <LeverRow
@@ -379,13 +379,13 @@ export default function VelocityPage() {
 
 function LeverRow({ icon, title, desc, impact }: { icon: string; title: string; desc: string; impact: string }) {
   return (
-    <div className="flex items-center gap-3 bg-[#F5F4F0] border border-black/10 rounded-lg px-4 py-3 hover:border-[#1D9E75] transition-colors">
+    <div className="flex items-center gap-3 bg-[var(--surface-0)] border border-[var(--border-default)] rounded-lg px-4 py-3 hover:border-[var(--green)] transition-colors">
       <span className="text-lg">{icon}</span>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-[#141414]">{title}</div>
-        <div className="text-xs text-[#898781]">{desc}</div>
+        <div className="text-sm font-medium text-[var(--ink)]">{title}</div>
+        <div className="text-xs text-[var(--muted)]">{desc}</div>
       </div>
-      <span className="text-xs font-semibold text-[#1D9E75] whitespace-nowrap">{impact}</span>
+      <span className="text-xs font-semibold text-[var(--green)] whitespace-nowrap">{impact}</span>
     </div>
   );
 }

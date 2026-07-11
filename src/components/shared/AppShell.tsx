@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import EditProfileModal from './EditProfileModal';
+import { useTheme } from './ThemeProvider';
 
 interface ProfileContextValue {
   openEditProfile: () => void;
@@ -52,6 +53,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const { theme, toggleTheme } = useTheme();
   const [initials, setInitials] = useState('?');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -91,8 +93,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         onClick={() => setSidebarOpen(false)}
         className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
           active
-            ? 'bg-[#141414] text-white font-medium'
-            : 'text-[#3D3D3A] hover:bg-[#EFEDE8]'
+            ? 'bg-[var(--ink)] text-white font-medium'
+            : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
         }`}
       >
         <span className="text-sm w-4 text-center">{icon}</span>
@@ -105,19 +107,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <ProfileContext.Provider
       value={{ openEditProfile: () => setEditProfileOpen(true), profileVersion }}
     >
-      <div className="min-h-screen bg-[#F5F4F0] text-[#141414] flex">
+      <div className="min-h-screen bg-[var(--surface-0)] text-[var(--ink)] flex">
       {/* mobile top bar */}
-      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-white border-b border-black/10 flex items-center justify-between px-4">
+      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-[var(--surface-card)] border-b border-[var(--border-default)] flex items-center justify-between px-4">
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-xl">
           ☰
         </button>
         <Link href="/home" className="font-serif text-lg font-semibold">
-          Mal<span className="text-[#1D9E75]">Mind</span>
+          Mal<span className="text-[var(--green)]">Mind</span>
         </Link>
         <button
           onClick={() => setEditProfileOpen(true)}
           title="Edit profile"
-          className="w-7 h-7 rounded-full bg-[#E1F5EE] border border-[#5DCAA5] flex items-center justify-center text-[10px] font-semibold text-[#085041] hover:bg-[#c9ece0] transition-colors"
+          className="w-7 h-7 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-[10px] font-semibold text-[var(--green-dark)] hover:bg-[var(--green-hover-bg)] transition-colors"
         >
           {initials}
         </button>
@@ -125,18 +127,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* sidebar */}
       <aside
-        className={`fixed sm:sticky top-0 sm:top-0 left-0 h-screen w-64 bg-white border-r border-black/10 flex flex-col z-30 transition-transform sm:translate-x-0 ${
+        className={`fixed sm:sticky top-0 sm:top-0 left-0 h-screen w-64 bg-[var(--surface-card)] border-r border-[var(--border-default)] flex flex-col z-30 transition-transform sm:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } pt-14 sm:pt-0`}
       >
-        <div className="hidden sm:flex items-center justify-between px-5 h-14 border-b border-black/10">
+        <div className="hidden sm:flex items-center justify-between px-5 h-14 border-b border-[var(--border-default)]">
           <Link href="/home" className="font-serif text-xl font-semibold tracking-tight">
-            Mal<span className="text-[#1D9E75]">Mind</span>
+            Mal<span className="text-[var(--green)]">Mind</span>
           </Link>
           <button
             onClick={() => setEditProfileOpen(true)}
             title="Edit profile"
-            className="w-7 h-7 rounded-full bg-[#E1F5EE] border border-[#5DCAA5] flex items-center justify-center text-[10px] font-semibold text-[#085041] hover:bg-[#c9ece0] transition-colors"
+            className="w-7 h-7 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-[10px] font-semibold text-[var(--green-dark)] hover:bg-[var(--green-hover-bg)] transition-colors"
           >
             {initials}
           </button>
@@ -150,7 +152,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div>
-            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[#4A78C4]">
+            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--blue)]">
               Think
             </div>
             <div className="space-y-0.5">
@@ -161,7 +163,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div>
-            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[#1D9E75]">
+            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--green)]">
               Decide
             </div>
             <div className="space-y-0.5">
@@ -172,17 +174,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div>
-            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[#898781]">
+            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--muted)]">
               Always on
             </div>
             <NavLink href="/advisor" label="AI advisor" icon="💬" />
           </div>
         </div>
 
-        <div className="p-3 border-t border-black/10">
+        <div className="p-3 border-t border-[var(--border-default)] space-y-0.5">
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg text-xs text-[var(--ink-2)] hover:bg-[var(--surface-1)]"
+          >
+            <span className="text-sm w-4 text-center">{theme === 'dark' ? '☀' : '☾'}</span>
+            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
           <button
             onClick={handleSignOut}
-            className="w-full text-left px-3 py-2 rounded-lg text-xs text-[#898781] hover:bg-[#EFEDE8]"
+            className="w-full text-left px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:bg-[var(--surface-1)]"
           >
             Sign out
           </button>
@@ -191,7 +200,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {sidebarOpen && (
         <div
-          className="sm:hidden fixed inset-0 bg-black/30 z-20"
+          className="sm:hidden fixed inset-0 bg-[var(--scrim)] z-20"
           onClick={() => setSidebarOpen(false)}
         />
       )}

@@ -90,23 +90,23 @@ export default function AdvisorPage() {
   ];
 
   if (loadingHistory) {
-    return <div className="text-sm text-[#898781]">Loading your conversation…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading your conversation…</div>;
   }
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
         Your advisor
       </h1>
-      <p className="text-sm text-[#3D3D3A] mb-4">
+      <p className="text-sm text-[var(--ink-2)] mb-4">
         {name ? `Already knows ${name}'s` : 'Already knows your'} profile and
         story — ask anything. This conversation is saved to your account.
       </p>
 
-      <div className="flex-1 bg-white border border-black/10 rounded-2xl flex flex-col overflow-hidden">
+      <div className="flex-1 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {messages.length === 0 && (
-            <div className="text-sm text-[#898781] italic">
+            <div className="text-sm text-[var(--muted)] italic">
               Say hello, or tap a suggestion below to get started.
             </div>
           )}
@@ -118,8 +118,8 @@ export default function AdvisorPage() {
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                   m.role === 'user'
-                    ? 'bg-[#085041] text-white rounded-br-sm'
-                    : 'bg-[#F5F4F0] text-[#3D3D3A] rounded-bl-sm'
+                    ? 'bg-[var(--green-dark)] text-white rounded-br-sm'
+                    : 'bg-[var(--surface-0)] text-[var(--ink-2)] rounded-bl-sm'
                 }`}
               >
                 {m.content}
@@ -128,10 +128,10 @@ export default function AdvisorPage() {
           ))}
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-[#F5F4F0] rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#898781] animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#898781] animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#898781] animate-bounce" />
+              <div className="bg-[var(--surface-0)] rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)] animate-bounce" />
               </div>
             </div>
           )}
@@ -144,7 +144,7 @@ export default function AdvisorPage() {
               <button
                 key={s}
                 onClick={() => sendMessage(s)}
-                className="text-xs bg-white border border-black/10 rounded-full px-3 py-1.5 hover:border-[#1D9E75]"
+                className="text-xs bg-[var(--surface-card)] border border-[var(--border-default)] rounded-full px-3 py-1.5 hover:border-[var(--green)]"
               >
                 {s}
               </button>
@@ -152,18 +152,18 @@ export default function AdvisorPage() {
           </div>
         )}
 
-        <div className="border-t border-black/10 p-3 flex gap-2">
+        <div className="border-t border-[var(--border-default)] p-3 flex gap-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
             placeholder="Ask your advisor anything..."
-            className="flex-1 bg-[#F5F4F0] border border-black/10 rounded-full px-4 py-2 text-sm outline-none focus:border-[#1D9E75]"
+            className="flex-1 bg-[var(--surface-0)] border border-[var(--border-default)] rounded-full px-4 py-2 text-sm outline-none focus:border-[var(--green)]"
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={loading}
-            className="w-9 h-9 rounded-full bg-[#085041] text-white flex items-center justify-center disabled:opacity-50"
+            className="w-9 h-9 rounded-full bg-[var(--green-dark)] text-white flex items-center justify-center disabled:opacity-50"
           >
             ↑
           </button>

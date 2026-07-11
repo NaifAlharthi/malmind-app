@@ -104,32 +104,32 @@ export default function LifetimeIncomePage() {
   );
 
   if (loading) {
-    return <div className="text-sm text-[#898781]">Loading your income history…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading your income history…</div>;
   }
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.1em] uppercase text-[#4A78C4] font-semibold mb-1">
+      <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--blue)] font-semibold mb-1">
         Think
       </div>
-      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
         Lifetime Income
       </h1>
-      <p className="text-sm text-[#3D3D3A] mb-6 max-w-xl">
+      <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
         Every riyal you&apos;ve earned, logged month by month, and how much
         actually stayed with you.
       </p>
 
-      <div className="inline-flex border border-black/10 rounded-lg overflow-hidden mb-6">
+      <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-6">
         <button
           onClick={() => setMode('log')}
-          className={`px-4 py-2 text-xs font-medium ${mode === 'log' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+          className={`px-4 py-2 text-xs font-medium ${mode === 'log' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           Log your real income
         </button>
         <button
           onClick={() => setMode('understand')}
-          className={`px-4 py-2 text-xs font-medium ${mode === 'understand' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+          className={`px-4 py-2 text-xs font-medium ${mode === 'understand' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
           Understand your lifetime income
         </button>
@@ -140,22 +140,22 @@ export default function LifetimeIncomePage() {
       {mode === 'log' && (
       <>
       {/* log entry */}
-      <div className="bg-white border border-black/10 rounded-2xl p-5 mb-6 flex flex-wrap gap-3 items-end">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6 flex flex-wrap gap-3 items-end">
         <div>
-          <label className="text-xs text-[#898781] block mb-1">Year</label>
+          <label className="text-xs text-[var(--muted)] block mb-1">Year</label>
           <input
             type="number"
             value={year}
             onChange={(e) => setYear(parseInt(e.target.value) || year)}
-            className="w-24 border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+            className="w-24 border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
           />
         </div>
         <div>
-          <label className="text-xs text-[#898781] block mb-1">Month</label>
+          <label className="text-xs text-[var(--muted)] block mb-1">Month</label>
           <select
             value={month}
             onChange={(e) => setMonth(parseInt(e.target.value))}
-            className="border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+            className="border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
           >
             {MONTH_NAMES.map((m, i) => (
               <option key={m} value={i + 1}>{m}</option>
@@ -163,80 +163,80 @@ export default function LifetimeIncomePage() {
           </select>
         </div>
         <div>
-          <label className="text-xs text-[#898781] block mb-1">Income (SAR)</label>
+          <label className="text-xs text-[var(--muted)] block mb-1">Income (SAR)</label>
           <input
             value={income}
             onChange={(e) => setIncome(e.target.value)}
             placeholder="e.g. 12,000"
-            className="w-36 border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+            className="w-36 border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
           />
         </div>
         <div>
-          <label className="text-xs text-[#898781] block mb-1">Spending (SAR)</label>
+          <label className="text-xs text-[var(--muted)] block mb-1">Spending (SAR)</label>
           <input
             value={spending}
             onChange={(e) => setSpending(e.target.value)}
             placeholder="e.g. 8,500"
-            className="w-36 border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
+            className="w-36 border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
           />
         </div>
         <button
           onClick={addEntry}
-          className="text-sm bg-[#085041] text-white rounded-lg px-4 py-2 font-medium"
+          className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
         >
           Log this month
         </button>
       </div>
 
       {entries.length === 0 ? (
-        <div className="bg-white border border-black/10 rounded-2xl p-8 text-center text-sm text-[#898781]">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
           Log your first month above to see your lifetime income build up.
         </div>
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-xl p-4 text-white">
-              <div className="text-[10px] text-[#C9A84C] mb-1">Total earned</div>
+            <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-xl p-4 text-white">
+              <div className="text-[10px] text-[var(--gold)] mb-1">Total earned</div>
               <div className="font-serif text-lg font-bold">SAR {fmt(totalIncome)}</div>
             </div>
-            <div className="bg-white border border-black/10 rounded-xl p-4">
-              <div className="text-[10px] text-[#898781] mb-1">Total kept</div>
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-4">
+              <div className="text-[10px] text-[var(--muted)] mb-1">Total kept</div>
               <div className="font-serif text-lg font-bold">SAR {fmt(totalKept)}</div>
             </div>
-            <div className="bg-white border border-black/10 rounded-xl p-4">
-              <div className="text-[10px] text-[#898781] mb-1">Kept rate</div>
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-4">
+              <div className="text-[10px] text-[var(--muted)] mb-1">Kept rate</div>
               <div className="font-serif text-lg font-bold">{keptPct.toFixed(1)}%</div>
             </div>
           </div>
 
-          <div className="bg-white border border-black/10 rounded-2xl p-6 mb-6">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
             <div className="text-sm font-medium mb-1">Cumulative income vs kept</div>
-            <div className="text-xs text-[#898781] mb-4">Real, logged data over time</div>
+            <div className="text-xs text-[var(--muted)] mb-4">Real, logged data over time</div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
-                  <CartesianGrid stroke="#ececE6" />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#898781' }} />
-                  <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => `${Math.round(v/1000)}K`} />
+                  <CartesianGrid stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => `${Math.round(v/1000)}K`} />
                   <Tooltip formatter={(v) => `SAR ${Number(v).toLocaleString()}`} />
-                  <Line type="monotone" dataKey="cumulativeIncome" name="Cumulative income" stroke="#8a99a8" strokeWidth={3} dot={false} />
-                  <Line type="monotone" dataKey="cumulativeKept" name="Cumulative kept" stroke="#1D9E75" strokeWidth={3} dot={false} />
+                  <Line type="monotone" dataKey="cumulativeIncome" name="Cumulative income" stroke="var(--chart-neutral-1)" strokeWidth={3} dot={false} />
+                  <Line type="monotone" dataKey="cumulativeKept" name="Cumulative kept" stroke="var(--green)" strokeWidth={3} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="bg-white border border-black/10 rounded-2xl p-6">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
             <div className="text-sm font-medium mb-1">By year</div>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={yearTotals}>
-                  <CartesianGrid stroke="#ececE6" />
-                  <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#898781' }} />
-                  <YAxis tick={{ fontSize: 10, fill: '#898781' }} tickFormatter={(v) => `${Math.round(v/1000)}K`} />
+                  <CartesianGrid stroke="var(--chart-grid)" />
+                  <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'var(--muted)' }} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => `${Math.round(v/1000)}K`} />
                   <Tooltip formatter={(v) => `SAR ${Number(v).toLocaleString()}`} />
-                  <Bar dataKey="income" name="Income" fill="#8a99a8" radius={[4,4,0,0]} />
-                  <Bar dataKey="spending" name="Spending" fill="#D89A3E" radius={[4,4,0,0]} />
+                  <Bar dataKey="income" name="Income" fill="var(--chart-neutral-1)" radius={[4,4,0,0]} />
+                  <Bar dataKey="spending" name="Spending" fill="var(--gold-2)" radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

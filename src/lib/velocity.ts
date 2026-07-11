@@ -17,10 +17,10 @@ export interface MortgageScenario {
 // 66% / 50% / 34% of income - not the user's real numbers, just example
 // scenarios so they can see how a mortgage bends the timeline.
 export const SCENARIOS: MortgageScenario[] = [
-  { key: 'none', label: 'No mortgage', install: 0, color: '#2a78d6' },
-  { key: 'sixtysix', label: '66% mortgage', install: 9846.21, color: '#141414' },
-  { key: 'fifty', label: '50% mortgage', install: 7459.25, color: '#8a99a8' },
-  { key: 'thirtyfour', label: '34% mortgage', install: 5072.29, color: '#eda100' },
+  { key: 'none', label: 'No mortgage', install: 0, color: 'var(--blue-2)' },
+  { key: 'sixtysix', label: '66% mortgage', install: 9846.21, color: 'var(--ink)' },
+  { key: 'fifty', label: '50% mortgage', install: 7459.25, color: 'var(--chart-neutral-1)' },
+  { key: 'thirtyfour', label: '34% mortgage', install: 5072.29, color: 'var(--amber-2)' },
 ];
 
 export function computeDisposable(salary: number, sideIncome: number, expense: number): number {

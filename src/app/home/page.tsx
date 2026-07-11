@@ -67,19 +67,19 @@ export default function HomePage() {
   }
 
   if (loading) {
-    return <div className="text-sm text-[#898781]">Loading…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading…</div>;
   }
 
   if (!profile || !profile.employment) {
     // Signed in, but hasn't completed onboarding yet.
     return (
       <div className="text-center py-12">
-        <p className="text-sm text-[#3D3D3A] mb-4">
+        <p className="text-sm text-[var(--ink-2)] mb-4">
           Let&apos;s get your profile set up first.
         </p>
         <Link
           href="/onboarding"
-          className="text-sm bg-[#085041] text-white rounded-lg px-4 py-2 font-medium"
+          className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
         >
           Continue onboarding →
         </Link>
@@ -91,26 +91,26 @@ export default function HomePage() {
     <div>
       <div className="flex justify-between items-start mb-2">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-[#141414]">
+          <h1 className="font-serif text-2xl font-semibold text-[var(--ink)]">
             Good to see you, {firstNameOf(profile.name)}
           </h1>
-          <p className="text-sm text-[#3D3D3A]">
+          <p className="text-sm text-[var(--ink-2)]">
             This is your real, saved account — not a demo.
           </p>
         </div>
-        <button onClick={handleSignOut} className="text-xs text-[#898781]">
+        <button onClick={handleSignOut} className="text-xs text-[var(--muted)]">
           Sign out
         </button>
       </div>
 
-      <div className="bg-gradient-to-br from-[#0F2A1E] to-[#0A1A12] rounded-2xl p-6 my-6 text-white relative">
+      <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
           onClick={openEditProfile}
           className="absolute top-6 right-6 text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors"
         >
           Edit
         </button>
-        <div className="text-xs tracking-[0.1em] uppercase text-[#C9A84C] mb-1">
+        <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-1">
           Your profile
         </div>
         <div className="font-serif text-xl font-semibold">{firstNameOf(profile.name)}</div>
@@ -136,7 +136,7 @@ export default function HomePage() {
       </div>
 
       <div className="mb-2">
-        <div className="text-[10px] tracking-[0.08em] uppercase text-[#4A78C4] font-semibold mb-2">
+        <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--blue)] font-semibold mb-2">
           Think
         </div>
         <div className="grid sm:grid-cols-3 gap-3 mb-6">
@@ -150,7 +150,7 @@ export default function HomePage() {
       </div>
 
       <div className="mb-2">
-        <div className="text-[10px] tracking-[0.08em] uppercase text-[#1D9E75] font-semibold mb-2">
+        <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--green)] font-semibold mb-2">
           Decide
         </div>
         <div className="grid sm:grid-cols-3 gap-3 mb-6">
@@ -180,11 +180,11 @@ function ToolCard({
   return (
     <Link
       href={href}
-      className="bg-white border border-black/10 rounded-2xl p-5 hover:border-[#1D9E75] transition-colors"
+      className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 hover:border-[var(--green)] transition-colors"
     >
       <div className="text-lg mb-2">{icon}</div>
-      <div className="font-medium text-sm text-[#141414] mb-1">{title}</div>
-      <div className="text-xs text-[#898781] leading-relaxed">{desc}</div>
+      <div className="font-medium text-sm text-[var(--ink)] mb-1">{title}</div>
+      <div className="text-xs text-[var(--muted)] leading-relaxed">{desc}</div>
     </Link>
   );
 }

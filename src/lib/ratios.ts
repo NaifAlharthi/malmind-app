@@ -311,5 +311,5 @@ export function verdictLabel(v: Verdict): string {
 }
 
 export function zoneColor(v: Verdict): string {
-  return v === 'good' ? '#1D9E75' : v === 'watch' ? '#D89A3E' : '#C0504D';
+  return v === 'good' ? 'var(--green)' : v === 'watch' ? 'var(--gold-2)' : 'var(--red)';
 }

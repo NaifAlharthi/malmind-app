@@ -29,15 +29,15 @@ interface ActualRow {
 
 const STATUS_LABEL = { 'not-logged': 'Not logged', ahead: 'Ahead', ontrack: 'On track', behind: 'Behind' };
 const STATUS_CLASS = {
-  'not-logged': 'bg-[#EFEDE8] text-[#898781] border-black/10',
-  ahead: 'bg-[#E1F5EE] text-[#085041] border-[#5DCAA5]',
-  ontrack: 'bg-[#E6F1FB] text-[#0C447C] border-[#9BC4ED]',
-  behind: 'bg-[#FCEBEB] text-[#A32D2D] border-[#F09595]',
+  'not-logged': 'bg-[var(--surface-1)] text-[var(--muted)] border-[var(--border-default)]',
+  ahead: 'bg-[var(--green-bg)] text-[var(--green-dark)] border-[var(--green-border)]',
+  ontrack: 'bg-[var(--blue-bg)] text-[var(--blue-dark-text)] border-[var(--blue-border)]',
+  behind: 'bg-[var(--red-bg)] text-[var(--red-dark-text)] border-[var(--red-soft)]',
 };
 
 export default function StandardOfLivingPage() {
   return (
-    <Suspense fallback={<div className="text-sm text-[#898781]">Loading…</div>}>
+    <Suspense fallback={<div className="text-sm text-[var(--muted)]">Loading…</div>}>
       <StandardOfLivingInner />
     </Suspense>
   );
@@ -156,29 +156,29 @@ function StandardOfLivingInner() {
   }
 
   if (loading) {
-    return <div className="text-sm text-[#898781]">Loading your life design…</div>;
+    return <div className="text-sm text-[var(--muted)]">Loading your life design…</div>;
   }
 
   return (
     <div>
-      <div className="mb-1 text-[10px] tracking-[0.1em] uppercase text-[#4A78C4] font-semibold">
+      <div className="mb-1 text-[10px] tracking-[0.1em] uppercase text-[var(--blue)] font-semibold">
         {mode === 'plan' ? 'Decide' : 'Think'}
       </div>
-      <h1 className="font-serif text-2xl font-semibold text-[#141414] mb-1">Standard of Living</h1>
-      <p className="text-sm text-[#3D3D3A] mb-5 max-w-2xl">
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">Standard of Living</h1>
+      <p className="text-sm text-[var(--ink-2)] mb-5 max-w-2xl">
         Your standard of living isn&apos;t luck. It&apos;s a series of stepping stones you can plan. Set the phases of
         your life ahead, and see what each level means in real Saudi terms — and what it takes to climb to the next.
       </p>
 
       {/* baseline — reflective only, no effect on the chart */}
       <div className="flex items-center gap-2.5 flex-wrap mb-4">
-        <span className="text-sm text-[#3D3D3A]">Right now, I&apos;d say I&apos;m:</span>
+        <span className="text-sm text-[var(--ink-2)]">Right now, I&apos;d say I&apos;m:</span>
         {(['below', 'at', 'above'] as const).map((b) => (
           <button
             key={b}
             onClick={() => setBaseline(b)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-medium border ${
-              baseline === b ? 'bg-[#E1F5EE] border-[#1D9E75] text-[#085041]' : 'bg-white border-black/15 text-[#3D3D3A]'
+              baseline === b ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)]' : 'bg-[var(--surface-card)] border-[var(--border-medium)] text-[var(--ink-2)]'
             }`}
           >
             {b === 'below' ? 'Below national average' : b === 'at' ? 'Around national average' : 'Slightly above average'}
@@ -187,41 +187,41 @@ function StandardOfLivingInner() {
       </div>
 
       {/* mode toggle */}
-      <div className="inline-flex border border-black/10 rounded-lg overflow-hidden mb-5">
+      <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-5">
         <button
           onClick={() => switchMode('plan')}
-          className={`px-4 py-2 text-xs font-medium flex items-center gap-2 ${mode === 'plan' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+          className={`px-4 py-2 text-xs font-medium flex items-center gap-2 ${mode === 'plan' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
-          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${mode === 'plan' ? 'bg-white/25 text-white' : 'bg-[#E1F5EE] text-[#085041]'}`}>Decide</span>
+          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${mode === 'plan' ? 'bg-white/25 text-white' : 'bg-[var(--green-bg)] text-[var(--green-dark)]'}`}>Decide</span>
           Design my plan
         </button>
         <button
           onClick={() => switchMode('track')}
-          className={`px-4 py-2 text-xs font-medium flex items-center gap-2 ${mode === 'track' ? 'bg-[#141414] text-white' : 'bg-white text-[#3D3D3A]'}`}
+          className={`px-4 py-2 text-xs font-medium flex items-center gap-2 ${mode === 'track' ? 'bg-[var(--ink)] text-white' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
-          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${mode === 'track' ? 'bg-white/25 text-white' : 'bg-[#E6F1FB] text-[#0C447C]'}`}>Think</span>
+          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${mode === 'track' ? 'bg-white/25 text-white' : 'bg-[var(--blue-bg)] text-[var(--blue-dark-text)]'}`}>Think</span>
           Track actual vs plan
         </button>
       </div>
 
       {/* chart */}
       {chartData.length > 0 ? (
-        <div className="bg-white border border-black/10 rounded-2xl p-6 mb-6">
-          <div className="text-sm font-medium text-[#141414]">Your standard of living over the years</div>
-          <div className="text-xs text-[#898781] mb-1">The staircase is your plan. The blue line is what you logged.</div>
-          <div className="flex gap-4 text-[11px] text-[#3D3D3A] mb-2">
-            <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-[#141414] inline-block" />Target (your plan)</span>
-            <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-[#4A78C4] inline-block" />Actual (logged)</span>
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
+          <div className="text-sm font-medium text-[var(--ink)]">Your standard of living over the years</div>
+          <div className="text-xs text-[var(--muted)] mb-1">The staircase is your plan. The blue line is what you logged.</div>
+          <div className="flex gap-4 text-[11px] text-[var(--ink-2)] mb-2">
+            <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-[var(--ink)] inline-block" />Target (your plan)</span>
+            <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-[var(--blue)] inline-block" />Actual (logged)</span>
           </div>
           <div className="h-80 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData}>
-                <CartesianGrid stroke="#ececE6" />
-                <XAxis dataKey="year" tick={{ fontSize: 10, fill: '#898781' }} />
+                <CartesianGrid stroke="var(--chart-grid)" />
+                <XAxis dataKey="year" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
                 <YAxis
                   domain={[0, 3]}
                   ticks={[0, 1, 2, 3]}
-                  tick={{ fontSize: 10, fill: '#3D3D3A' }}
+                  tick={{ fontSize: 10, fill: 'var(--ink-2)' }}
                   tickFormatter={(v) => TIER_LABEL[TIERS[v]] ?? ''}
                   width={100}
                 />
@@ -231,28 +231,28 @@ function StandardOfLivingInner() {
                     return [TIER_LABEL[TIERS[Math.round(Number(value))]], name];
                   }}
                 />
-                <Line type="stepAfter" dataKey="target" name="Target" stroke="#141414" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="actual" name="Actual" stroke="#4A78C4" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+                <Line type="stepAfter" dataKey="target" name="Target" stroke="var(--ink)" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="actual" name="Actual" stroke="var(--blue)" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
           <div className="flex gap-2 flex-wrap mt-3">
             {phasesForSeries.map((p) => (
-              <span key={p.id} className="text-[11px] text-[#C0504D] border border-[#C0504D]/30 bg-[#FBE9EC] rounded-full px-3 py-1">
+              <span key={p.id} className="text-[11px] text-[var(--red)] border border-[var(--red)]/30 bg-[var(--red-bg)] rounded-full px-3 py-1">
                 {p.phase_name}: {p.start_year}–{p.end_year} · {p.end_year - p.start_year} years
               </span>
             ))}
           </div>
         </div>
       ) : (
-        <div className="bg-white border border-black/10 rounded-2xl p-8 text-center text-sm text-[#898781] mb-6">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)] mb-6">
           Add a life phase below (with an end year) to see the staircase chart.
         </div>
       )}
 
       {mode === 'plan' && (
         <div className="mb-6">
-          <div className="text-[11px] tracking-[0.1em] uppercase text-[#898781] mb-3">
+          <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">
             The phases of your life — set a target for each
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -272,7 +272,7 @@ function StandardOfLivingInner() {
           </div>
           <button
             onClick={addPhase}
-            className="mt-3.5 text-sm text-[#085041] bg-[#E1F5EE] border border-[#5DCAA5] rounded-lg px-4 py-2 font-medium"
+            className="mt-3.5 text-sm text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-4 py-2 font-medium"
           >
             + Add a life phase
           </button>
@@ -281,32 +281,32 @@ function StandardOfLivingInner() {
 
       {mode === 'track' && (
         <div className="mb-6">
-          <div className="font-serif text-lg font-medium text-[#141414] mb-1">How are you doing against your own plan?</div>
-          <div className="text-sm text-[#3D3D3A] mb-3">
+          <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">How are you doing against your own plan?</div>
+          <div className="text-sm text-[var(--ink-2)] mb-3">
             Each year, record the standard of living you actually reached. MalMind tells you if you&apos;re ahead, on
             track, or falling behind.
           </div>
           {series.length === 0 ? (
-            <div className="bg-white border border-black/10 rounded-2xl p-8 text-center text-sm text-[#898781]">
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
               Design your life phases first, in Design my plan, so there is a plan to track against.
             </div>
           ) : (
-            <div className="bg-white border border-black/10 rounded-2xl overflow-hidden">
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden">
               {series.map((s) => {
                 const status = solStatus(s.actual, s.target);
                 return (
-                  <div key={s.year} className="flex items-center justify-between px-5 py-3.5 border-t border-black/5 first:border-t-0">
+                  <div key={s.year} className="flex items-center justify-between px-5 py-3.5 border-t border-[var(--border-faint)] first:border-t-0">
                     <div>
-                      <div className="text-sm font-medium text-[#141414]">{s.year}</div>
-                      <div className="text-xs text-[#898781]">
-                        Target: <strong className="text-[#3D3D3A] font-medium">{TIER_LABEL[TIERS[s.target]]}</strong>
+                      <div className="text-sm font-medium text-[var(--ink)]">{s.year}</div>
+                      <div className="text-xs text-[var(--muted)]">
+                        Target: <strong className="text-[var(--ink-2)] font-medium">{TIER_LABEL[TIERS[s.target]]}</strong>
                       </div>
                     </div>
                     <div className="flex items-center gap-3.5">
                       <select
                         value={s.actual != null ? TIERS[s.actual] : ''}
                         onChange={(e) => setActual(s.year, e.target.value)}
-                        className="bg-[#F5F4F0] border border-black/10 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#1D9E75]"
+                        className="bg-[var(--surface-0)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-xs outline-none focus:border-[var(--green)]"
                       >
                         <option value="">Log actual…</option>
                         {TIERS.map((t) => (
@@ -327,8 +327,8 @@ function StandardOfLivingInner() {
 
       {/* lifestyle reference */}
       <div className="mb-6">
-        <div className="font-serif text-lg font-medium text-[#141414] mb-1">What each level actually means in Saudi life</div>
-        <div className="text-sm text-[#3D3D3A] mb-3">
+        <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">What each level actually means in Saudi life</div>
+        <div className="text-sm text-[var(--ink-2)] mb-3">
           Standards of living aren&apos;t abstract. Here&apos;s what each tier buys you, day to day.
         </div>
         <div className="flex gap-2 flex-wrap mb-3.5">
@@ -337,24 +337,24 @@ function StandardOfLivingInner() {
               key={t}
               onClick={() => setLsTier(t)}
               className={`px-4 py-2 rounded-lg text-xs font-medium border ${
-                lsTier === t ? 'bg-[#141414] text-white border-[#141414]' : 'bg-white text-[#3D3D3A] border-black/10'
+                lsTier === t ? 'bg-[var(--ink)] text-white border-[var(--ink)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)] border-[var(--border-default)]'
               }`}
             >
               {TIER_LABEL[t]}
             </button>
           ))}
         </div>
-        <div className="bg-white border border-black/10 rounded-2xl p-6">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
           <div className="flex items-baseline gap-3 mb-4">
-            <div className="font-serif text-xl font-semibold text-[#141414]">{TIER_LABEL[lsTier]}</div>
-            <div className="text-xs text-[#898781]">typically {LIFESTYLE[lsTier].income}</div>
+            <div className="font-serif text-xl font-semibold text-[var(--ink)]">{TIER_LABEL[lsTier]}</div>
+            <div className="text-xs text-[var(--muted)]">typically {LIFESTYLE[lsTier].income}</div>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {LIFESTYLE[lsTier].items.map((it, i) => (
               <div key={i} className="flex gap-2.5 items-start">
                 <span className="text-lg shrink-0">{it.icon}</span>
-                <div className="text-xs text-[#3D3D3A] leading-relaxed">
-                  <strong className="text-[#141414] font-medium block">{it.label}</strong>
+                <div className="text-xs text-[var(--ink-2)] leading-relaxed">
+                  <strong className="text-[var(--ink)] font-medium block">{it.label}</strong>
                   {it.desc}
                 </div>
               </div>
@@ -363,10 +363,10 @@ function StandardOfLivingInner() {
         </div>
       </div>
 
-      <div className="flex gap-3 items-start bg-[#FAF6EA] border border-[#C9A84C] rounded-xl p-4">
-        <div className="w-7 h-7 rounded-full bg-[#C9A84C] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">M</div>
-        <div className="text-xs text-[#5A4A1A] leading-relaxed">
-          <strong className="text-[#3A2F0A]">This becomes your life&apos;s blueprint.</strong> Once you set these
+      <div className="flex gap-3 items-start bg-[var(--gold-bg)] border border-[var(--gold)] rounded-xl p-4">
+        <div className="w-7 h-7 rounded-full bg-[var(--gold)] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">M</div>
+        <div className="text-xs text-[var(--gold-text-body)] leading-relaxed">
+          <strong className="text-[var(--gold-text-strong)]">This becomes your life&apos;s blueprint.</strong> Once you set these
           stepping stones, MalMind holds them for you. When a decision would knock you off the path to your next
           level, I&apos;ll show you the trade-off against the life you said you wanted.
         </div>
@@ -391,46 +391,46 @@ function PhaseCard({
   const todoText = buffer?.todo ?? (phase.todo ?? []).join('\n');
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl p-5">
+    <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
       <div className="flex items-center gap-2.5 mb-3.5">
         <input
           value={phase.phase_name}
           onChange={(e) => onUpdate({ phase_name: e.target.value })}
-          className="font-serif text-base font-semibold text-[#141414] border-b border-dashed border-black/15 focus:border-[#1D9E75] outline-none bg-transparent flex-1 min-w-0"
+          className="font-serif text-base font-semibold text-[var(--ink)] border-b border-dashed border-[var(--border-medium)] focus:border-[var(--green)] outline-none bg-transparent flex-1 min-w-0"
         />
-        <button onClick={onDelete} className="text-[10px] text-[#A32D2D] shrink-0">Delete</button>
+        <button onClick={onDelete} className="text-[10px] text-[var(--red-dark-text)] shrink-0">Delete</button>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-3.5">
         <div>
-          <label className="text-[10px] text-[#898781] block mb-1">Start year</label>
+          <label className="text-[10px] text-[var(--muted)] block mb-1">Start year</label>
           <input
             type="number"
             value={phase.start_year}
             onChange={(e) => onUpdate({ start_year: parseInt(e.target.value) || phase.start_year })}
-            className="w-full bg-[#F5F4F0] border border-black/10 rounded-md px-2 py-1.5 text-xs"
+            className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5 text-xs"
           />
         </div>
         <div>
-          <label className="text-[10px] text-[#898781] block mb-1">End year</label>
+          <label className="text-[10px] text-[var(--muted)] block mb-1">End year</label>
           <input
             type="number"
             value={phase.end_year ?? ''}
             onChange={(e) => onUpdate({ end_year: parseInt(e.target.value) || null })}
-            className="w-full bg-[#F5F4F0] border border-black/10 rounded-md px-2 py-1.5 text-xs"
+            className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5 text-xs"
           />
         </div>
       </div>
 
       <div className="mb-3.5">
-        <label className="text-[10px] text-[#898781] block mb-1.5">Target standard for this phase</label>
+        <label className="text-[10px] text-[var(--muted)] block mb-1.5">Target standard for this phase</label>
         <div className="flex gap-1">
           {TIERS.map((t) => (
             <button
               key={t}
               onClick={() => onUpdate({ target_tier: t })}
               className={`flex-1 px-1 py-1.5 rounded-md text-[10px] text-center font-medium ${
-                phase.target_tier === t ? 'bg-[#1D9E75] text-white' : 'bg-white border border-black/15 text-[#898781]'
+                phase.target_tier === t ? 'bg-[var(--green)] text-white' : 'bg-[var(--surface-card)] border border-[var(--border-medium)] text-[var(--muted)]'
               }`}
             >
               {TIER_SHORT_LABEL[t]}
@@ -440,36 +440,36 @@ function PhaseCard({
       </div>
 
       <div className="mb-3">
-        <label className="text-[10px] tracking-[0.06em] uppercase text-[#C9A84C] block mb-1.5">Theme &amp; major events</label>
+        <label className="text-[10px] tracking-[0.06em] uppercase text-[var(--gold)] block mb-1.5">Theme &amp; major events</label>
         <textarea
           value={themeText}
           onChange={(e) => onLocalTheme(e.target.value)}
           onBlur={onCommitTheme}
           rows={3}
           placeholder="One per line — e.g. Starting my career"
-          className="w-full bg-[#F5F4F0] border border-black/10 rounded-md px-2.5 py-2 text-xs leading-relaxed outline-none focus:border-[#1D9E75] resize-none"
+          className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2.5 py-2 text-xs leading-relaxed outline-none focus:border-[var(--green)] resize-none"
         />
       </div>
 
       <div className="mb-3.5">
-        <label className="text-[10px] tracking-[0.06em] uppercase text-[#C9A84C] block mb-1.5">What needs to be done</label>
+        <label className="text-[10px] tracking-[0.06em] uppercase text-[var(--gold)] block mb-1.5">What needs to be done</label>
         <textarea
           value={todoText}
           onChange={(e) => onLocalTodo(e.target.value)}
           onBlur={onCommitTodo}
           rows={3}
           placeholder="One per line — e.g. Build an emergency fund"
-          className="w-full bg-[#F5F4F0] border border-black/10 rounded-md px-2.5 py-2 text-xs leading-relaxed outline-none focus:border-[#1D9E75] resize-none"
+          className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2.5 py-2 text-xs leading-relaxed outline-none focus:border-[var(--green)] resize-none"
         />
       </div>
 
-      <div className="bg-[#F5F4F0] rounded-lg px-3 py-2.5">
-        <label className="text-[10px] text-[#898781] block mb-1">Quantifying growth (your own words)</label>
+      <div className="bg-[var(--surface-0)] rounded-lg px-3 py-2.5">
+        <label className="text-[10px] text-[var(--muted)] block mb-1">Quantifying growth (your own words)</label>
         <input
           defaultValue={phase.net_worth_goal ?? ''}
           onBlur={(e) => onUpdate({ net_worth_goal: e.target.value || null })}
           placeholder="e.g. Build your first SAR 500K"
-          className="w-full bg-transparent text-sm font-serif font-semibold text-[#085041] outline-none"
+          className="w-full bg-transparent text-sm font-serif font-semibold text-[var(--green-dark)] outline-none"
         />
       </div>
     </div>
