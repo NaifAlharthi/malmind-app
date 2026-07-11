@@ -7,15 +7,16 @@ import { createClient } from '@/lib/supabase/client';
 
 const AGE_START = 18;
 const AGE_END = 100;
-const BLOCK_SPACING = 2.2;
-const BLOCK_SIZE = 1.6;
+const YEAR_DEPTH = 2.2; // z-distance per year
+const PLATFORM_WIDTH = 4.4;
 
 type AssetType = 'cash' | 'car' | 'house';
 
-interface Asset {
+interface DerivedAsset {
   id: string;
   type: AssetType;
-  amount: string;
+  label: string;
+  amount: number;
   age: number;
 }
 
@@ -25,63 +26,138 @@ const ASSET_COLORS: Record<AssetType, string> = {
   house: '#8a5a3c',
 };
 
-const ASSET_LABEL: Record<AssetType, string> = {
-  cash: 'Cash',
-  car: 'Car',
-  house: 'House',
-};
-
 function zForAge(age: number) {
-  return (age - AGE_START) * BLOCK_SPACING;
+  return (age - AGE_START) * YEAR_DEPTH;
 }
 
+function inferAssetType(fundName: string): AssetType {
+  const n = fundName.toLowerCase();
+  if (/(home|house|villa|apartment|flat)/.test(n)) return 'house';
+  if (/(car|vehicle|auto)/.test(n)) return 'car';
+  return 'cash';
+}
+
+// ── Avatar: a simple, blocky human figure — torso, head with a basic
+// face, arms with hands, legs with feet. No rigging or animation.
 function Avatar({ age }: { age: number }) {
   const z = zForAge(age);
+  const skin = '#1D9E75';
+  const dark = '#085041';
   return (
     <group position={[0, 0, z]}>
-      <mesh position={[0, 0.9, 0]} castShadow>
-        <capsuleGeometry args={[0.35, 0.9, 6, 12]} />
-        <meshStandardMaterial color="#1D9E75" />
+      {/* legs */}
+      <mesh position={[-0.15, 0.4, 0]} castShadow>
+        <cylinderGeometry args={[0.11, 0.11, 0.6, 10]} />
+        <meshStandardMaterial color={dark} />
       </mesh>
-      <mesh position={[0, 1.75, 0]} castShadow>
-        <sphereGeometry args={[0.3, 16, 16]} />
-        <meshStandardMaterial color="#085041" />
+      <mesh position={[0.15, 0.4, 0]} castShadow>
+        <cylinderGeometry args={[0.11, 0.11, 0.6, 10]} />
+        <meshStandardMaterial color={dark} />
+      </mesh>
+      {/* feet */}
+      <mesh position={[-0.15, 0.07, 0.06]} castShadow>
+        <boxGeometry args={[0.18, 0.12, 0.34]} />
+        <meshStandardMaterial color="#141414" />
+      </mesh>
+      <mesh position={[0.15, 0.07, 0.06]} castShadow>
+        <boxGeometry args={[0.18, 0.12, 0.34]} />
+        <meshStandardMaterial color="#141414" />
+      </mesh>
+      {/* torso */}
+      <mesh position={[0, 1.05, 0]} castShadow>
+        <capsuleGeometry args={[0.32, 0.65, 6, 12]} />
+        <meshStandardMaterial color={skin} />
+      </mesh>
+      {/* arms */}
+      <mesh position={[-0.46, 0.95, 0]} rotation={[0, 0, 0.25]} castShadow>
+        <cylinderGeometry args={[0.09, 0.09, 0.62, 10]} />
+        <meshStandardMaterial color={skin} />
+      </mesh>
+      <mesh position={[0.46, 0.95, 0]} rotation={[0, 0, -0.25]} castShadow>
+        <cylinderGeometry args={[0.09, 0.09, 0.62, 10]} />
+        <meshStandardMaterial color={skin} />
+      </mesh>
+      {/* hands */}
+      <mesh position={[-0.58, 0.66, 0]} castShadow>
+        <sphereGeometry args={[0.12, 12, 12]} />
+        <meshStandardMaterial color={dark} />
+      </mesh>
+      <mesh position={[0.58, 0.66, 0]} castShadow>
+        <sphereGeometry args={[0.12, 12, 12]} />
+        <meshStandardMaterial color={dark} />
+      </mesh>
+      {/* head */}
+      <mesh position={[0, 1.68, 0]} castShadow>
+        <sphereGeometry args={[0.3, 20, 20]} />
+        <meshStandardMaterial color={dark} />
+      </mesh>
+      {/* face: two eyes + a simple mouth, facing +z */}
+      <mesh position={[-0.11, 1.72, 0.26]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <meshStandardMaterial color="#141414" />
+      </mesh>
+      <mesh position={[0.11, 1.72, 0.26]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <meshStandardMaterial color="#141414" />
+      </mesh>
+      <mesh position={[0, 1.58, 0.27]}>
+        <boxGeometry args={[0.16, 0.03, 0.02]} />
+        <meshStandardMaterial color="#141414" />
       </mesh>
     </group>
   );
 }
 
-function TimelineBlocks() {
-  const blocks = [];
-  for (let age = AGE_START; age <= AGE_END; age++) {
+// ── One continuous platform (not separate tiles) spanning the whole
+// timeline, with a flush marker line + "age · year" label every 5 years.
+function Timeline({ currentYear, currentAge }: { currentYear: number; currentAge: number }) {
+  const totalDepth = zForAge(AGE_END) - zForAge(AGE_START);
+  const centerZ = zForAge(AGE_START) + totalDepth / 2;
+
+  const markers = [];
+  for (let age = AGE_START; age <= AGE_END; age += 5) {
     const z = zForAge(age);
-    const labeled = age % 5 === 0;
-    blocks.push(
-      <group key={age} position={[0, 0, z]}>
-        <mesh receiveShadow position={[0, -0.05, 0]}>
-          <boxGeometry args={[BLOCK_SIZE, 0.1, BLOCK_SIZE]} />
-          <meshStandardMaterial color={labeled ? '#3D3D3A' : '#EFEDE8'} />
+    const year = currentYear + (age - currentAge);
+    markers.push(
+      <group key={age} position={[0, 0.001, z]}>
+        <mesh receiveShadow>
+          <boxGeometry args={[PLATFORM_WIDTH, 0.01, 0.05]} />
+          <meshStandardMaterial color="#3D3D3A" />
         </mesh>
-        {labeled && (
-          <Text position={[-1.3, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.35} color="#898781" anchorX="right" anchorY="middle">
-            {age}
-          </Text>
-        )}
+        <Text
+          position={[-PLATFORM_WIDTH / 2 - 0.15, 0.02, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.3}
+          color="#898781"
+          anchorX="right"
+          anchorY="middle"
+        >
+          {`Age ${age} · ${year}`}
+        </Text>
       </group>
     );
   }
-  return <>{blocks}</>;
+
+  return (
+    <>
+      <mesh receiveShadow position={[0, -0.05, centerZ]}>
+        <boxGeometry args={[PLATFORM_WIDTH, 0.1, totalDepth + 0.4]} />
+        <meshStandardMaterial color="#EFEDE8" />
+      </mesh>
+      {markers}
+    </>
+  );
 }
 
-function AssetObject({ asset }: { asset: Asset }) {
+function AssetObject({ asset }: { asset: DerivedAsset }) {
   const z = zForAge(asset.age);
   const color = ASSET_COLORS[asset.type];
-  const label = `${ASSET_LABEL[asset.type]} — SAR ${Number(asset.amount).toLocaleString()}`;
+  const label = `${asset.label} — SAR ${Math.round(asset.amount).toLocaleString()}`;
 
   let shape = null;
   if (asset.type === 'cash') {
     shape = (
-      <group position={[0.9, 0, 0]}>
+      <group position={[1.1, 0, 0]}>
         <mesh position={[0, 0.1, 0]} castShadow><boxGeometry args={[0.5, 0.2, 0.35]} /><meshStandardMaterial color={color} /></mesh>
         <mesh position={[0, 0.32, 0]} castShadow><boxGeometry args={[0.45, 0.2, 0.32]} /><meshStandardMaterial color={color} /></mesh>
         <mesh position={[0, 0.54, 0]} castShadow><boxGeometry args={[0.4, 0.2, 0.28]} /><meshStandardMaterial color={color} /></mesh>
@@ -89,14 +165,14 @@ function AssetObject({ asset }: { asset: Asset }) {
     );
   } else if (asset.type === 'car') {
     shape = (
-      <group position={[0.9, 0, 0]}>
+      <group position={[1.1, 0, 0]}>
         <mesh position={[0, 0.25, 0]} castShadow><boxGeometry args={[0.9, 0.35, 0.5]} /><meshStandardMaterial color={color} /></mesh>
         <mesh position={[0, 0.5, 0]} castShadow><boxGeometry args={[0.55, 0.25, 0.45]} /><meshStandardMaterial color={color} /></mesh>
       </group>
     );
   } else {
     shape = (
-      <group position={[0.9, 0, 0]}>
+      <group position={[1.1, 0, 0]}>
         <mesh position={[0, 0.35, 0]} castShadow><boxGeometry args={[0.7, 0.7, 0.7]} /><meshStandardMaterial color={color} /></mesh>
         <mesh position={[0, 0.85, 0]} rotation={[0, Math.PI / 4, 0]} castShadow><coneGeometry args={[0.58, 0.5, 4]} /><meshStandardMaterial color="#5c3a24" /></mesh>
       </group>
@@ -106,7 +182,7 @@ function AssetObject({ asset }: { asset: Asset }) {
   return (
     <group position={[0, 0, z]}>
       {shape}
-      <Text position={[0.9, 1.15, 0]} fontSize={0.22} color="#141414" anchorX="center" anchorY="middle" outlineWidth={0.01} outlineColor="#F5F4F0">
+      <Text position={[1.1, 1.15, 0]} fontSize={0.2} color="#141414" anchorX="center" anchorY="middle" outlineWidth={0.01} outlineColor="#F5F4F0">
         {label}
       </Text>
     </group>
@@ -116,11 +192,10 @@ function AssetObject({ asset }: { asset: Asset }) {
 export default function Metaverse3D() {
   const supabase = createClient();
   const [currentAge, setCurrentAge] = useState(25);
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [liquidSavings, setLiquidSavings] = useState<number | null>(null);
+  const [goalFunds, setGoalFunds] = useState<{ name: string; target_amount: number; maturity_years: number; start_date: string }[]>([]);
 
-  const [type, setType] = useState<AssetType>('cash');
-  const [amount, setAmount] = useState('100000');
-  const [placeAge, setPlaceAge] = useState('25');
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     (async () => {
@@ -128,45 +203,54 @@ export default function Metaverse3D() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from('profiles').select('age').eq('id', user.id).single();
-      if (data?.age) {
-        setCurrentAge(data.age);
-        setPlaceAge(String(data.age));
-      }
+
+      const [{ data: profile }, { data: funds }] = await Promise.all([
+        supabase.from('profiles').select('age, liquid_savings').eq('id', user.id).single(),
+        supabase.from('goal_funds').select('name, target_amount, maturity_years, start_date').eq('user_id', user.id),
+      ]);
+
+      if (profile?.age) setCurrentAge(profile.age);
+      if (profile?.liquid_savings != null) setLiquidSavings(Number(profile.liquid_savings));
+      if (funds) setGoalFunds(funds);
     })();
   }, [supabase]);
 
+  const assets = useMemo<DerivedAsset[]>(() => {
+    const list: DerivedAsset[] = [];
+    if (liquidSavings && liquidSavings > 0) {
+      list.push({ id: 'cash', type: 'cash', label: 'Cash', amount: liquidSavings, age: currentAge });
+    }
+    goalFunds.forEach((f, i) => {
+      const startYear = new Date(f.start_date).getFullYear();
+      const maturityYear = startYear + Math.round(f.maturity_years);
+      const age = Math.max(AGE_START, Math.min(AGE_END, currentAge + (maturityYear - currentYear)));
+      list.push({
+        id: `fund-${i}`,
+        type: inferAssetType(f.name),
+        label: f.name,
+        amount: f.target_amount,
+        age,
+      });
+    });
+    return list;
+  }, [liquidSavings, goalFunds, currentAge, currentYear]);
+
   const cameraTarget = useMemo<[number, number, number]>(() => [0, 0.5, zForAge(currentAge)], [currentAge]);
-
-  function addAsset() {
-    const ageNum = Math.max(AGE_START, Math.min(AGE_END, parseInt(placeAge) || currentAge));
-    const amountNum = parseFloat(amount.replace(/[^0-9.]/g, ''));
-    if (!amountNum) return;
-    setAssets((prev) => [...prev, { id: crypto.randomUUID(), type, amount: String(amountNum), age: ageNum }]);
-  }
-
-  function removeAsset(id: string) {
-    setAssets((prev) => prev.filter((a) => a.id !== id));
-  }
 
   return (
     <div className="bg-white border border-black/10 rounded-2xl p-5 mb-6">
-      <div className="flex items-center justify-between mb-1">
-        <div>
-          <div className="text-[10px] tracking-[0.1em] uppercase text-[#C9A84C] font-semibold mb-1">Prototype</div>
-          <h2 className="font-serif text-lg font-semibold text-[#141414]">Your life, in space</h2>
-        </div>
-      </div>
+      <div className="text-[10px] tracking-[0.1em] uppercase text-[#C9A84C] font-semibold mb-1">Prototype</div>
+      <h2 className="font-serif text-lg font-semibold text-[#141414] mb-1">Your life, in space</h2>
       <p className="text-xs text-[#898781] mb-4 max-w-lg">
-        You&apos;re standing on the block for age {currentAge}. Add an asset to any year on the timeline to see it
-        take shape. Drag to look around.
+        You&apos;re standing at age {currentAge}, {currentYear}. Your cash and goal funds appear automatically,
+        placed where they matter on the timeline. Drag to look around.
       </p>
 
       <div className="h-[380px] rounded-xl overflow-hidden bg-[#F5F4F0] border border-black/5">
-        <Canvas shadows camera={{ position: [4.5, 3.2, zForAge(currentAge) + 6], fov: 45 }}>
+        <Canvas shadows camera={{ position: [5.5, 3.4, zForAge(currentAge) + 7], fov: 45 }}>
           <ambientLight intensity={0.7} />
           <directionalLight position={[5, 8, 5]} intensity={1} castShadow />
-          <TimelineBlocks />
+          <Timeline currentYear={currentYear} currentAge={currentAge} />
           <Avatar age={currentAge} />
           {assets.map((a) => (
             <AssetObject key={a.id} asset={a} />
@@ -175,52 +259,11 @@ export default function Metaverse3D() {
         </Canvas>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3 mt-4">
-        <div>
-          <label className="text-xs text-[#898781] block mb-1">Asset</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as AssetType)}
-            className="border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
-          >
-            <option value="cash">Cash</option>
-            <option value="car">Car</option>
-            <option value="house">House</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-[#898781] block mb-1">Amount (SAR)</label>
-          <input
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-32 border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-[#898781] block mb-1">At age</label>
-          <input
-            type="number"
-            min={AGE_START}
-            max={AGE_END}
-            value={placeAge}
-            onChange={(e) => setPlaceAge(e.target.value)}
-            className="w-20 border border-black/10 rounded-lg px-3 py-2 text-sm outline-none"
-          />
-        </div>
-        <button
-          onClick={addAsset}
-          className="text-sm bg-[#085041] text-white rounded-lg px-4 py-2 font-medium"
-        >
-          Add to timeline
-        </button>
-      </div>
-
       {assets.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-3">
           {assets.map((a) => (
-            <span key={a.id} className="flex items-center gap-2 text-xs bg-[#F5F4F0] border border-black/10 rounded-full px-3 py-1.5">
-              {ASSET_LABEL[a.type]} · SAR {Number(a.amount).toLocaleString()} · age {a.age}
-              <button onClick={() => removeAsset(a.id)} className="text-[#898781] hover:text-[#A32D2D]">✕</button>
+            <span key={a.id} className="text-xs bg-[#F5F4F0] border border-black/10 rounded-full px-3 py-1.5">
+              {a.label} · SAR {Math.round(a.amount).toLocaleString()} · age {a.age}
             </span>
           ))}
         </div>
