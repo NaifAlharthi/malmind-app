@@ -3,9 +3,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
 import { firstNameOf } from '@/lib/name';
+
+const Metaverse3D = dynamic(() => import('./Metaverse3D'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[380px] rounded-2xl bg-[var(--surface-1)] border border-[var(--border-default)] flex items-center justify-center text-sm text-[var(--muted)] mb-6">
+      Loading your world…
+    </div>
+  ),
+});
 
 interface Profile {
   name: string;
@@ -102,6 +112,8 @@ export default function HomePage() {
           Sign out
         </button>
       </div>
+
+      <Metaverse3D />
 
       <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
