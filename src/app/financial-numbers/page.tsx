@@ -6,6 +6,7 @@ import {
   ComposedChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import GoogleSheetSync from './GoogleSheetSync';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -357,6 +358,9 @@ export default function FinancialNumbersPage() {
           </div>
         </>
       )}
+
+      {/* Google Sheets two-way sync */}
+      <GoogleSheetSync onSynced={() => userId && load(userId)} />
 
       {/* CSV import */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
