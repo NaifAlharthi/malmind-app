@@ -28,6 +28,8 @@ export function useProfileContext() {
 const START_ITEMS = [
   { href: '/home', label: 'Home', icon: '⌂' },
   { href: '/story', label: 'My Financial Story', icon: '📖' },
+  { href: '/holdings', label: 'Assets & liabilities', icon: '💼' },
+  { href: '/commitments', label: 'Bills & commitments', icon: '🧾' },
 ];
 
 const THINK_ITEMS = [
