@@ -30,6 +30,7 @@ const START_ITEMS = [
   { href: '/story', label: 'My Financial Story', icon: '📖' },
   { href: '/holdings', label: 'Assets & liabilities', icon: '💼' },
   { href: '/commitments', label: 'Bills & commitments', icon: '🧾' },
+  { href: '/financial-numbers', label: 'My financial numbers', icon: '📒' },
 ];
 
 const THINK_ITEMS = [
