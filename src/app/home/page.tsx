@@ -17,11 +17,28 @@ const Metaverse3D = dynamic(() => import('./Metaverse3D'), {
   ),
 });
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 interface Profile {
   name: string;
   city: string | null;
   employment: string | null;
   monthly_income: number;
+}
+
+interface Financials {
+  netWorth: number;
+  cash: number;
+  investments: number;
+  assets: number;
+  liabilities: number;
+  income: number;
+  expenses: number;
+  asOf: string;
+}
+
+function fmt(n: number) {
+  return Math.round(n).toLocaleString();
 }
 
 export default function HomePage() {
@@ -31,6 +48,7 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [chapterCount, setChapterCount] = useState(0);
   const [span, setSpan] = useState(0);
+  const [fin, setFin] = useState<Financials | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -62,6 +80,32 @@ export default function HomePage() {
       setSpan(
         chapters[chapters.length - 1].end_year - chapters[0].start_year
       );
+    }
+
+    // Latest month from My Financial Numbers = the user's current balances.
+    const { data: snaps } = await supabase
+      .from('financial_snapshots')
+      .select('year, month, cash, stocks, real_estate, equity, other_assets, liabilities, income, expenses')
+      .eq('user_id', user.id)
+      .order('year', { ascending: true })
+      .order('month', { ascending: true });
+
+    if (snaps && snaps.length > 0) {
+      const s = snaps[snaps.length - 1];
+      const assets =
+        Number(s.cash) + Number(s.stocks) + Number(s.real_estate) + Number(s.equity) + Number(s.other_assets);
+      setFin({
+        cash: Number(s.cash),
+        investments: Number(s.stocks) + Number(s.equity),
+        assets,
+        liabilities: Number(s.liabilities),
+        netWorth: assets - Number(s.liabilities),
+        income: Number(s.income),
+        expenses: Number(s.expenses),
+        asOf: `${MONTHS[s.month - 1]} ${s.year}`,
+      });
+    } else {
+      setFin(null);
     }
 
     setLoading(false);
@@ -129,22 +173,47 @@ export default function HomePage() {
         <div className="text-xs text-white/50 mb-4">
           {profile.employment} · {profile.city}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t border-white/10">
-          <div>
-            <div className="text-[10px] text-white/45 mb-1">Monthly income</div>
-            <div className="text-sm font-medium">
-              SAR {Number(profile.monthly_income).toLocaleString()}
+
+        {fin ? (
+          <div className="pt-4 border-t border-white/10">
+            <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+              <div>
+                <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--gold)] mb-1">
+                  Net worth · as of {fin.asOf}
+                </div>
+                <div className="font-serif text-3xl font-bold">SAR {fmt(fin.netWorth)}</div>
+              </div>
+              <Link href="/financial-numbers" className="text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors">
+                Update numbers →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Balance label="Cash" value={fin.cash} dot="#2a78d6" />
+              <Balance label="Investments" value={fin.investments} dot="#17B8C9" />
+              <Balance label="Total assets" value={fin.assets} dot="#E0559E" />
+              <Balance label="Liabilities" value={fin.liabilities} dot="#E0922A" />
+            </div>
+            <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/10">
+              <MiniStat label="Monthly income" value={`SAR ${fmt(profile.monthly_income)}`} />
+              <MiniStat label="Story span" value={`${span} years`} />
+              <MiniStat label="Chapters" value={`${chapterCount} recorded`} />
             </div>
           </div>
-          <div>
-            <div className="text-[10px] text-white/45 mb-1">Story span</div>
-            <div className="text-sm font-medium">{span} years</div>
+        ) : (
+          <div className="pt-4 border-t border-white/10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+              <MiniStat label="Monthly income" value={`SAR ${fmt(profile.monthly_income)}`} />
+              <MiniStat label="Story span" value={`${span} years`} />
+              <MiniStat label="Chapters" value={`${chapterCount} recorded`} />
+            </div>
+            <Link
+              href="/financial-numbers"
+              className="inline-block text-xs font-medium bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg px-3 py-2 transition-colors"
+            >
+              Log your balances in My Financial Numbers to see your net worth, cash, investments and liabilities here →
+            </Link>
           </div>
-          <div>
-            <div className="text-[10px] text-white/45 mb-1">Chapters</div>
-            <div className="text-sm font-medium">{chapterCount} recorded</div>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="mb-2">
@@ -174,6 +243,27 @@ export default function HomePage() {
           <ToolCard href="/advisor" icon="💬" title="AI Advisor" desc="Ask anything, in full context." />
         </div>
       </div>
+    </div>
+  );
+}
+
+function Balance({ label, value, dot }: { label: string; value: number; dot: string }) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="w-2 h-2 rounded-full" style={{ background: dot }} />
+        <span className="text-[10px] text-white/45">{label}</span>
+      </div>
+      <div className="text-sm font-medium">SAR {fmt(value)}</div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] text-white/45 mb-1">{label}</div>
+      <div className="text-sm font-medium">{value}</div>
     </div>
   );
 }
