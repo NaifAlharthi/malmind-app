@@ -57,6 +57,7 @@ export function buildDemoDb(): Record<string, Row[]> {
         total_debt: 92000,
         monthly_housing_payment: 6500,
         monthly_investment_contribution: 4500,
+        has_health_insurance: false,
       },
     ],
 
@@ -130,19 +131,21 @@ export function buildDemoDb(): Record<string, Row[]> {
     ]),
 
     liabilities: rows([
-      { name: 'Owed to my brother (car down payment)', kind: 'family', balance: 15000, monthly_payment: 500 },
+      { name: 'Owed to my brother (car down payment)', kind: 'family', balance: 15000, monthly_payment: 500, original_amount: 24000 },
     ]),
 
     subscriptions: rows([
-      { name: 'Netflix', amount: 56, billing_cycle: 'monthly' },
-      { name: 'Spotify', amount: 22, billing_cycle: 'monthly' },
-      { name: 'iCloud 200GB', amount: 12, billing_cycle: 'monthly' },
-      { name: 'Amazon Prime', amount: 140, billing_cycle: 'annual' },
+      { name: 'Netflix', amount: 56, billing_cycle: 'monthly', started_on: '2021-03-01', category: 'Entertainment' },
+      { name: 'Spotify', amount: 22, billing_cycle: 'monthly', started_on: '2022-01-01', category: 'Entertainment' },
+      { name: 'iCloud 200GB', amount: 12, billing_cycle: 'monthly', started_on: '2020-06-01', category: 'Services & tools' },
+      { name: 'Amazon Prime', amount: 140, billing_cycle: 'annual', started_on: '2023-11-01', category: 'Services & tools' },
+      { name: 'ChatGPT Plus', amount: 75, billing_cycle: 'monthly', started_on: '2024-02-01', category: 'Services & tools' },
+      { name: 'Gym membership', amount: 250, billing_cycle: 'monthly', started_on: '2023-01-01', category: 'Health' },
     ]),
 
     loans: rows([
-      { name: 'Car loan (Camry)', loan_type: 'loan', balance: 42000, monthly_payment: 1900, interest_rate: 4.5 },
-      { name: 'Apartment mortgage (final stretch)', loan_type: 'mortgage', balance: 35000, monthly_payment: 1000, interest_rate: 3.2 },
+      { name: 'Car loan (Camry)', loan_type: 'loan', balance: 42000, monthly_payment: 1900, interest_rate: 4.5, original_amount: 68000 },
+      { name: 'Apartment mortgage (final stretch)', loan_type: 'mortgage', balance: 35000, monthly_payment: 1000, interest_rate: 3.2, original_amount: 350000 },
     ]),
 
     credit_cards: rows([

@@ -69,11 +69,15 @@ Two accounts, both free to start:
 12. Open `supabase/schema_part10.sql`, copy its contents, paste in, and
    click **Run** — this creates `financial_snapshots` for the "My
    financial numbers" time-series page.
-13. Last one. Open `supabase/schema_part11.sql`, copy its contents, paste
-   in, and click **Run** — this creates `google_sheet_connections` for the
-   Google Sheets two-way sync (only needed if you set up that integration;
-   see "Google Sheets integration" below).
-14. That's it — together these files create every table MalMind needs:
+13. Open `supabase/schema_part11.sql`, copy its contents, paste in, and
+   click **Run** — this creates `google_sheet_connections` for the Google
+   Sheets two-way sync (only needed if you set up that integration; see
+   "Google Sheets integration" below).
+14. Last one. Open `supabase/schema_part12.sql`, copy its contents, paste
+   in, and click **Run** — this adds loan/liability original amounts (for
+   payoff tracking), subscription start dates and categories (for the
+   subscription stack), and a health-insurance flag (for the Risks page).
+15. That's it — together these files create every table MalMind needs:
    profiles, story chapters, net worth snapshots, goal funds, advisor
    messages, budget items, life phases, year plans, income entries,
    investment settings, assets, expenses, liabilities, subscriptions,
@@ -82,7 +86,7 @@ Two accounts, both free to start:
 
 If you already ran earlier schema files before (from an earlier version
 of this app), you only need to run whichever of `schema_part3.sql` …
-`schema_part10.sql` you haven't yet — they only add new tables/columns and
+`schema_part12.sql` you haven't yet — they only add new tables/columns and
 won't touch what already exists.
 
 ## Getting your Supabase credentials

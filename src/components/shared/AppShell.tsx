@@ -40,6 +40,7 @@ const THINK_ITEMS = [
   { href: '/velocity', label: 'Velocity of money', icon: '⏱' },
   { href: '/doubling-path', label: 'Doubling path', icon: '📈' },
   { href: '/ratios', label: 'Ratios & stats', icon: '🩺' },
+  { href: '/risks', label: 'Risks', icon: '🛡' },
   { href: '/standard-of-living?mode=track', label: 'Standard of living — tracked', icon: '🪜' },
 ];
 

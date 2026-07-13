@@ -28,6 +28,9 @@ interface Props {
   // How to render each saved row in the list.
   summary: (row: Row) => string;
   addLabel?: string;
+  // Notify the parent after any successful add/remove (so sibling
+  // visualizations reading the same table can refetch).
+  onChanged?: () => void;
 }
 
 function initialValues(fields: FieldDef[]): Record<string, string> {
@@ -39,7 +42,7 @@ function initialValues(fields: FieldDef[]): Record<string, string> {
 }
 
 export default function CaptureSection({
-  icon, title, description, table, selectCols, fields, deriveInsert, summary, addLabel = 'Add',
+  icon, title, description, table, selectCols, fields, deriveInsert, summary, addLabel = 'Add', onChanged,
 }: Props) {
   const supabase = createClient();
   const [userId, setUserId] = useState<string | null>(null);
@@ -94,6 +97,7 @@ export default function CaptureSection({
     if (!error) {
       setValues(initialValues(fields));
       load(userId);
+      onChanged?.();
     }
   }
 
@@ -101,6 +105,7 @@ export default function CaptureSection({
     if (!userId) return;
     await supabase.from(table).delete().eq('id', id);
     load(userId);
+    onChanged?.();
   }
 
   return (

@@ -54,6 +54,7 @@ const liabilityFields: FieldDef[] = [
       { value: 'other', label: 'Other' },
     ],
   },
+  { key: 'original_amount', label: 'Original (SAR)', kind: 'number', placeholder: '24,000', optional: true },
   { key: 'balance', label: 'Balance (SAR)', kind: 'number', placeholder: '10,000' },
   { key: 'monthly_payment', label: 'Monthly (SAR)', kind: 'number', placeholder: '500', optional: true },
 ];
@@ -101,7 +102,7 @@ export default function HoldingsPage() {
         title="Liabilities"
         description="General things you owe that aren't a bank loan or credit card (those live in Bills & commitments)."
         table="liabilities"
-        selectCols="id, name, kind, balance, monthly_payment"
+        selectCols="id, name, kind, original_amount, balance, monthly_payment"
         fields={liabilityFields}
         addLabel="Add liability"
         summary={(r) =>
