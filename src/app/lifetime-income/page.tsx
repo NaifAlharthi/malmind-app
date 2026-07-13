@@ -7,8 +7,9 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import UnderstandView from './UnderstandView';
+import IncomeAhead from './IncomeAhead';
 
-type PageMode = 'log' | 'understand';
+type PageMode = 'log' | 'understand' | 'ahead';
 
 interface IncomeEntry {
   id: string;
@@ -133,9 +134,17 @@ export default function LifetimeIncomePage() {
         >
           Understand your lifetime income
         </button>
+        <button
+          onClick={() => setMode('ahead')}
+          className={`px-4 py-2 text-xs font-medium ${mode === 'ahead' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
+        >
+          Money on the way
+        </button>
       </div>
 
       {mode === 'understand' && <UnderstandView />}
+
+      {mode === 'ahead' && <IncomeAhead />}
 
       {mode === 'log' && (
       <>

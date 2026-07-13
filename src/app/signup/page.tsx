@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { joinName } from '@/lib/name';
 import { enterDemo } from '@/lib/demoSupabase';
+import Splash from './Splash';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -39,7 +40,9 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6">
+    <div>
+      <Splash />
+      <div id="signup-form" className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6 py-16">
       <div className="max-w-sm w-full bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8">
         <div className="font-serif text-xl font-semibold mb-1">
           Mal<span className="text-[var(--green)]">Mind</span>
@@ -139,6 +142,7 @@ export default function SignupPage() {
             </p>
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

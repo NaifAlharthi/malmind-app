@@ -169,7 +169,7 @@ export default function DemoTour() {
     const realFetch = window.fetch.bind(window);
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-      if (url.includes('/api/advisor') || url.includes('/api/ratios-synthesis')) {
+      if (url.includes('/api/advisor') || url.includes('/api/ratios-synthesis') || url.includes('/api/what-if-analysis')) {
         await new Promise((r) => setTimeout(r, 900));
         return new Response(JSON.stringify({ reply: DEMO_AI_REPLY }), {
           status: 200,

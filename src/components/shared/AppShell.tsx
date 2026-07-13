@@ -41,6 +41,7 @@ const THINK_ITEMS = [
   { href: '/doubling-path', label: 'Doubling path', icon: '📈' },
   { href: '/ratios', label: 'Ratios & stats', icon: '🩺' },
   { href: '/risks', label: 'Risks', icon: '🛡' },
+  { href: '/what-if', label: 'What if', icon: '🔮' },
   { href: '/standard-of-living?mode=track', label: 'Standard of living — tracked', icon: '🪜' },
 ];
 

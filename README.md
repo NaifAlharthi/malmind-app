@@ -73,11 +73,14 @@ Two accounts, both free to start:
    click **Run** — this creates `google_sheet_connections` for the Google
    Sheets two-way sync (only needed if you set up that integration; see
    "Google Sheets integration" below).
-14. Last one. Open `supabase/schema_part12.sql`, copy its contents, paste
-   in, and click **Run** — this adds loan/liability original amounts (for
-   payoff tracking), subscription start dates and categories (for the
+14. Open `supabase/schema_part12.sql`, copy its contents, paste in, and
+   click **Run** — this adds loan/liability original amounts (for payoff
+   tracking), subscription start dates and categories (for the
    subscription stack), and a health-insurance flag (for the Risks page).
-15. That's it — together these files create every table MalMind needs:
+15. Last one. Open `supabase/schema_part13.sql`, copy its contents, paste
+   in, and click **Run** — this creates `what_if_scenarios` for the
+   "What if" sandbox.
+16. That's it — together these files create every table MalMind needs:
    profiles, story chapters, net worth snapshots, goal funds, advisor
    messages, budget items, life phases, year plans, income entries,
    investment settings, assets, expenses, liabilities, subscriptions,
