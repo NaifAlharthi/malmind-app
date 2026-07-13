@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { joinName } from '@/lib/name';
+import { enterDemo } from '@/lib/demoSupabase';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -114,6 +115,29 @@ export default function SignupPage() {
           <a href="/login" className="text-[var(--green-dark)] font-medium">
             Log in
           </a>
+        </div>
+
+        {/* guest demo entry */}
+        <div className="mt-6 pt-5 border-t border-[var(--border-default)]">
+          <button
+            type="button"
+            onClick={() => {
+              enterDemo();
+              router.push('/home');
+            }}
+            className="w-full text-left bg-[var(--green-bg)] border border-[var(--green-border)] rounded-xl p-4 hover:border-[var(--green)] transition-colors group"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-semibold text-[var(--green-dark)]">
+                ✦ Just looking? Take the tour
+              </span>
+              <span className="text-[var(--green-dark)] group-hover:translate-x-0.5 transition-transform">→</span>
+            </div>
+            <p className="text-xs text-[var(--ink-2)] leading-relaxed">
+              Explore the full product as Sara — a guided, two-minute walkthrough of every
+              feature with real-feeling data. No account, nothing saved.
+            </p>
+          </button>
         </div>
       </div>
     </div>

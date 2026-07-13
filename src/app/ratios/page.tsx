@@ -255,6 +255,7 @@ export default function RatiosPage() {
       {/* talk to your analyst CTA */}
       {!synthOpen ? (
         <button
+          data-tour="ratios-blend"
           onClick={startSynthesis}
           className="w-full bg-[var(--surface-card)] border-[1.5px] border-dashed border-[var(--green-border)] rounded-2xl p-6 mb-5 text-center hover:border-[var(--green)] hover:bg-[var(--green-bg)] transition-colors"
         >
@@ -321,7 +322,7 @@ export default function RatiosPage() {
       )}
 
       {/* vitals */}
-      <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 mb-6">
+      <div data-tour="ratios-vitals" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 mb-6">
         <div className="text-[11px] tracking-[0.12em] uppercase text-[var(--gold)] mb-4">Vital signs</div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
           {vitals.map((r) => (

@@ -268,6 +268,7 @@ export default function FinancialNumbersPage() {
         </div>
       ) : (
         <>
+          <div data-tour="fn-charts">
           {/* net worth / assets / liabilities */}
           <ChartCard title="Net worth, assets & liabilities over time">
             <ResponsiveContainer width="100%" height="100%">
@@ -314,9 +315,10 @@ export default function FinancialNumbersPage() {
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
+          </div>
 
           {/* the spreadsheet */}
-          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6">
+          <div data-tour="fn-sheet" className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)]">The spreadsheet</div>
               <button onClick={exportCsv} className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5">

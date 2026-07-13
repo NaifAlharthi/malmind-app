@@ -159,7 +159,7 @@ export default function HomePage() {
 
       <Metaverse3D />
 
-      <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
+      <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
           onClick={openEditProfile}
           className="absolute top-6 right-6 text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors"
@@ -216,7 +216,7 @@ export default function HomePage() {
         )}
       </div>
 
-      <div className="mb-2">
+      <div data-tour="think-grid" className="mb-2">
         <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--blue)] font-semibold mb-2">
           Think
         </div>
@@ -230,7 +230,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="mb-2">
+      <div data-tour="decide-grid" className="mb-2">
         <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--green)] font-semibold mb-2">
           Decide
         </div>

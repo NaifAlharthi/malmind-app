@@ -340,7 +340,7 @@ export default function Metaverse3D() {
   const viewYear = currentYear + (viewAge - currentAge);
 
   return (
-    <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6">
+    <div data-tour="world" className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6">
       <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--gold)] font-semibold mb-1">Prototype</div>
       <h2 className="font-serif text-lg font-semibold text-[var(--ink)] mb-1">Your life, in space</h2>
       <p className="text-xs text-[var(--muted)] mb-4 max-w-lg">

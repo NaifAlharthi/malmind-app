@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import EditProfileModal from './EditProfileModal';
+import DemoTour from './DemoTour';
 import { useTheme } from './ThemeProvider';
 
 interface ProfileContextValue {
@@ -220,6 +221,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           setProfileVersion((v) => v + 1);
         }}
       />
+      <DemoTour />
       </div>
     </ProfileContext.Provider>
   );
