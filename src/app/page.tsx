@@ -13,7 +13,9 @@ export default function RootPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      router.replace(user ? '/home' : '/login');
+      // Signed-out visitors land on the signup page, which opens with the
+      // animated product-story splash (login is one link away from there).
+      router.replace(user ? '/home' : '/signup');
     })();
   }, [router, supabase]);
 
