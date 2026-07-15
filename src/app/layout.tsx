@@ -3,6 +3,7 @@ import Script from 'next/script';
 import './globals.css';
 import AppShell from '@/components/shared/AppShell';
 import ThemeProvider from '@/components/shared/ThemeProvider';
+import LocaleProvider from '@/lib/i18n/LocaleProvider';
 
 export const metadata: Metadata = {
   title: 'MalMind — Your money, finally understood.',
@@ -24,6 +25,20 @@ const THEME_INIT_SCRIPT = `
 })();
 `;
 
+// Set the correct language + direction before hydration so an Arabic user
+// sees a right-to-left page on the first frame, with no LTR flash.
+const LOCALE_INIT_SCRIPT = `
+(function() {
+  try {
+    var stored = localStorage.getItem('malmind-locale');
+    var locale = stored === 'ar' || stored === 'en' ? stored : 'en';
+    var el = document.documentElement;
+    el.setAttribute('lang', locale);
+    el.setAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,8 +50,13 @@ export default function RootLayout({
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_INIT_SCRIPT}
         </Script>
+        <Script id="locale-init" strategy="beforeInteractive">
+          {LOCALE_INIT_SCRIPT}
+        </Script>
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
+          <LocaleProvider>
+            <AppShell>{children}</AppShell>
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

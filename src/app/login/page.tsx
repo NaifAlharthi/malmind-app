@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n/LocaleProvider';
+import LanguageToggle from '@/components/shared/LanguageToggle';
 
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -31,19 +34,22 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6">
       <div className="max-w-sm w-full bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8">
-        <div className="font-serif text-xl font-semibold mb-1">
-          Mal<span className="text-[var(--green)]">Mind</span>
+        <div className="flex items-center justify-between mb-1">
+          <div className="font-serif text-xl font-semibold">
+            Mal<span className="text-[var(--green)]">Mind</span>
+          </div>
+          <LanguageToggle />
         </div>
         <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
-          Welcome back
+          {t('auth.login.title')}
         </h1>
         <p className="text-sm text-[var(--ink-2)] mb-6">
-          Log in to pick up right where you left off.
+          {t('auth.login.subtitle')}
         </p>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Email</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">{t('auth.email')}</label>
             <input
               type="email"
               required
@@ -53,7 +59,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Password</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">{t('auth.password')}</label>
             <input
               type="password"
               required
@@ -74,14 +80,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-[var(--green-dark)] text-white rounded-lg py-2.5 text-sm font-medium disabled:opacity-50"
           >
-            {loading ? 'Logging in…' : 'Log in'}
+            {loading ? t('auth.signingIn') : t('auth.signIn')}
           </button>
         </form>
 
         <div className="text-xs text-[var(--muted)] mt-5 text-center">
-          New to MalMind?{' '}
+          {t('auth.noAccount')}{' '}
           <a href="/signup" className="text-[var(--green-dark)] font-medium">
-            Create an account
+            {t('auth.signUpLink')}
           </a>
         </div>
       </div>

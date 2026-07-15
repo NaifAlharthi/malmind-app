@@ -173,3 +173,52 @@ body {
 .font-serif {
   font-family: var(--font-serif-stack);
 }
+
+/* ───────────────────────────────────────────────────────────────
+   Arabic / RTL. The <html dir> + <html lang> are set before hydration
+   by the locale-init script. Desktop sidebar placement flips for free
+   because the shell is a flex row (row reverses under dir=rtl); only
+   the fixed mobile drawer, borders, and the floating Brain need help.
+   ─────────────────────────────────────────────────────────────── */
+[lang="ar"] {
+  /* System Arabic faces that ship on Windows/macOS/Android — no web font,
+     so nothing to load and no CSP concerns. */
+  --font-sans-stack: 'Segoe UI', 'Tahoma', 'Geeza Pro', 'SF Arabic',
+    'Noto Sans Arabic', 'Noto Naskh Arabic', sans-serif;
+  /* Georgia/Times carry no Arabic glyphs; use a Naskh-style serif instead
+     so headings keep a distinct, bookish voice in Arabic too. */
+  --font-serif-stack: 'Noto Naskh Arabic', 'Amiri', 'Traditional Arabic',
+    'Segoe UI', 'Tahoma', serif;
+}
+
+/* the flex row already puts the sidebar on the right at desktop; just move
+   its divider to the inner (left) edge */
+[dir="rtl"] .mm-sidebar {
+  border-right: 0;
+  border-left: 1px solid var(--border-default);
+}
+
+/* mobile drawer slides in from the right in RTL */
+@media (max-width: 639px) {
+  [dir="rtl"] .mm-sidebar {
+    left: auto;
+    right: 0;
+  }
+  [dir="rtl"] .mm-sidebar[data-open="false"] {
+    transform: translateX(100%);
+  }
+  [dir="rtl"] .mm-sidebar[data-open="true"] {
+    transform: translateX(0);
+  }
+}
+
+/* the floating Brain and its panel live in the bottom-left corner in RTL */
+[dir="rtl"] .mm-brain,
+[dir="rtl"] .mm-brain-panel {
+  right: auto;
+  left: 1.25rem;
+}
+[dir="rtl"] .mm-brain-badge {
+  right: auto;
+  left: -0.25rem;
+}

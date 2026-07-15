@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
 import { firstNameOf } from '@/lib/name';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 const Metaverse3D = dynamic(() => import('./Metaverse3D'), {
   ssr: false,
@@ -45,6 +46,10 @@ export default function HomePage() {
   const router = useRouter();
   const supabase = createClient();
   const { openEditProfile, profileVersion } = useProfileContext();
+  const { t, locale } = useLocale();
+  const sar = t('common.sar');
+  // Currency reads "SAR 1,000" in English but "1,000 ريال" in Arabic.
+  const money = (n: number) => (locale === 'ar' ? `${fmt(n)} ${sar}` : `${sar} ${fmt(n)}`);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [chapterCount, setChapterCount] = useState(0);
   const [span, setSpan] = useState(0);
@@ -121,7 +126,7 @@ export default function HomePage() {
   }
 
   if (loading) {
-    return <div className="text-sm text-[var(--muted)]">Loading…</div>;
+    return <div className="text-sm text-[var(--muted)]">{t('common.loading')}</div>;
   }
 
   if (!profile || !profile.employment) {
@@ -129,13 +134,13 @@ export default function HomePage() {
     return (
       <div className="text-center py-12">
         <p className="text-sm text-[var(--ink-2)] mb-4">
-          Let&apos;s get your profile set up first.
+          {t('home.onboard.prompt')}
         </p>
         <Link
           href="/onboarding"
           className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
         >
-          Continue onboarding →
+          {t('home.onboard.cta')}
         </Link>
       </div>
     );
@@ -146,14 +151,14 @@ export default function HomePage() {
       <div className="flex justify-between items-start mb-2">
         <div>
           <h1 className="font-serif text-2xl font-semibold text-[var(--ink)]">
-            Good to see you, {firstNameOf(profile.name)}
+            {t('home.greeting', { name: firstNameOf(profile.name) })}
           </h1>
           <p className="text-sm text-[var(--ink-2)]">
-            This is your real, saved account — not a demo.
+            {t('home.subtitle')}
           </p>
         </div>
         <button onClick={handleSignOut} className="text-xs text-[var(--muted)]">
-          Sign out
+          {t('common.signOut')}
         </button>
       </div>
 
@@ -162,12 +167,12 @@ export default function HomePage() {
       <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
           onClick={openEditProfile}
-          className="absolute top-6 right-6 text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors"
+          className="absolute top-6 end-6 text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors"
         >
-          Edit
+          {t('common.edit')}
         </button>
         <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-1">
-          Your profile
+          {t('home.profile.eyebrow')}
         </div>
         <div className="font-serif text-xl font-semibold">{firstNameOf(profile.name)}</div>
         <div className="text-xs text-white/50 mb-4">
@@ -179,38 +184,38 @@ export default function HomePage() {
             <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
               <div>
                 <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--gold)] mb-1">
-                  Net worth · as of {fin.asOf}
+                  {t('home.netWorthAsOf', { date: fin.asOf })}
                 </div>
-                <div className="font-serif text-3xl font-bold">SAR {fmt(fin.netWorth)}</div>
+                <div className="font-serif text-3xl font-bold">{money(fin.netWorth)}</div>
               </div>
               <Link href="/financial-numbers" className="text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors">
-                Update numbers →
+                {t('home.updateNumbers')}
               </Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <Balance label="Cash" value={fin.cash} dot="#2a78d6" />
-              <Balance label="Investments" value={fin.investments} dot="#17B8C9" />
-              <Balance label="Total assets" value={fin.assets} dot="#E0559E" />
-              <Balance label="Liabilities" value={fin.liabilities} dot="#E0922A" />
+              <Balance label={t('home.balance.cash')} value={money(fin.cash)} dot="#2a78d6" />
+              <Balance label={t('home.balance.investments')} value={money(fin.investments)} dot="#17B8C9" />
+              <Balance label={t('home.balance.assets')} value={money(fin.assets)} dot="#E0559E" />
+              <Balance label={t('home.balance.liabilities')} value={money(fin.liabilities)} dot="#E0922A" />
             </div>
             <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/10">
-              <MiniStat label="Monthly income" value={`SAR ${fmt(profile.monthly_income)}`} />
-              <MiniStat label="Story span" value={`${span} years`} />
-              <MiniStat label="Chapters" value={`${chapterCount} recorded`} />
+              <MiniStat label={t('home.stat.monthlyIncome')} value={money(profile.monthly_income)} />
+              <MiniStat label={t('home.stat.storySpan')} value={t('home.stat.yearsValue', { n: span })} />
+              <MiniStat label={t('home.stat.chapters')} value={t('home.stat.chaptersValue', { n: chapterCount })} />
             </div>
           </div>
         ) : (
           <div className="pt-4 border-t border-white/10">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-              <MiniStat label="Monthly income" value={`SAR ${fmt(profile.monthly_income)}`} />
-              <MiniStat label="Story span" value={`${span} years`} />
-              <MiniStat label="Chapters" value={`${chapterCount} recorded`} />
+              <MiniStat label={t('home.stat.monthlyIncome')} value={money(profile.monthly_income)} />
+              <MiniStat label={t('home.stat.storySpan')} value={t('home.stat.yearsValue', { n: span })} />
+              <MiniStat label={t('home.stat.chapters')} value={t('home.stat.chaptersValue', { n: chapterCount })} />
             </div>
             <Link
               href="/financial-numbers"
               className="inline-block text-xs font-medium bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg px-3 py-2 transition-colors"
             >
-              Log your balances in My Financial Numbers to see your net worth, cash, investments and liabilities here →
+              {t('home.logPrompt')}
             </Link>
           </div>
         )}
@@ -218,43 +223,43 @@ export default function HomePage() {
 
       <div data-tour="think-grid" className="mb-2">
         <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--blue)] font-semibold mb-2">
-          Think
+          {t('nav.section.think')}
         </div>
         <div className="grid sm:grid-cols-3 gap-3 mb-6">
-          <ToolCard href="/story" icon="📖" title="My Financial Story" desc="Add chapters, build the archive." />
-          <ToolCard href="/lifetime-income" icon="💰" title="Lifetime Income" desc="Every riyal earned and kept." />
-          <ToolCard href="/positioning" icon="📊" title="Financial Positioning" desc="Log net worth, see your trajectory." />
-          <ToolCard href="/velocity" icon="⏱" title="Velocity of Money" desc="Months to each milestone." />
-          <ToolCard href="/doubling-path" icon="📈" title="Doubling Path" desc="When your portfolio doubles." />
-          <ToolCard href="/ratios" icon="🩺" title="Ratios & Stats" desc="Your financial health, measured." />
+          <ToolCard href="/story" icon="📖" title={t('home.card.story.title')} desc={t('home.card.story.desc')} />
+          <ToolCard href="/lifetime-income" icon="💰" title={t('home.card.lifetimeIncome.title')} desc={t('home.card.lifetimeIncome.desc')} />
+          <ToolCard href="/positioning" icon="📊" title={t('home.card.positioning.title')} desc={t('home.card.positioning.desc')} />
+          <ToolCard href="/velocity" icon="⏱" title={t('home.card.velocity.title')} desc={t('home.card.velocity.desc')} />
+          <ToolCard href="/doubling-path" icon="📈" title={t('home.card.doubling.title')} desc={t('home.card.doubling.desc')} />
+          <ToolCard href="/ratios" icon="🩺" title={t('home.card.ratios.title')} desc={t('home.card.ratios.desc')} />
         </div>
       </div>
 
       <div data-tour="decide-grid" className="mb-2">
         <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--green)] font-semibold mb-2">
-          Decide
+          {t('nav.section.decide')}
         </div>
         <div className="grid sm:grid-cols-3 gap-3 mb-6">
-          <ToolCard href="/standard-of-living?mode=plan" icon="🪜" title="Standard of Living" desc="Design your life's stepping stones." />
-          <ToolCard href="/year-plan" icon="🗓" title="Year Master Plan" desc="This year's opening to target." />
-          <ToolCard href="/waterfall" icon="💧" title="Money Waterfall" desc="Your plan, as a visual flow." />
-          <ToolCard href="/goal-fund" icon="🎯" title="Goal Fund" desc="Save for one specific thing." />
-          <ToolCard href="/budgeting" icon="🛋" title="Dynamic Budgeting" desc="What to buy, and when." />
-          <ToolCard href="/advisor" icon="💬" title="AI Advisor" desc="Ask anything, in full context." />
+          <ToolCard href="/standard-of-living?mode=plan" icon="🪜" title={t('home.card.sol.title')} desc={t('home.card.sol.desc')} />
+          <ToolCard href="/year-plan" icon="🗓" title={t('home.card.yearPlan.title')} desc={t('home.card.yearPlan.desc')} />
+          <ToolCard href="/waterfall" icon="💧" title={t('home.card.waterfall.title')} desc={t('home.card.waterfall.desc')} />
+          <ToolCard href="/goal-fund" icon="🎯" title={t('home.card.goalFund.title')} desc={t('home.card.goalFund.desc')} />
+          <ToolCard href="/budgeting" icon="🛋" title={t('home.card.budgeting.title')} desc={t('home.card.budgeting.desc')} />
+          <ToolCard href="/advisor" icon="💬" title={t('home.card.advisor.title')} desc={t('home.card.advisor.desc')} />
         </div>
       </div>
     </div>
   );
 }
 
-function Balance({ label, value, dot }: { label: string; value: number; dot: string }) {
+function Balance({ label, value, dot }: { label: string; value: string; dot: string }) {
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1">
         <span className="w-2 h-2 rounded-full" style={{ background: dot }} />
         <span className="text-[10px] text-white/45">{label}</span>
       </div>
-      <div className="text-sm font-medium">SAR {fmt(value)}</div>
+      <div className="text-sm font-medium">{value}</div>
     </div>
   );
 }

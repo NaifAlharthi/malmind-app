@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { firstNameOf } from '@/lib/name';
+import { useT } from '@/lib/i18n/LocaleProvider';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -13,6 +14,7 @@ interface Message {
 export default function AdvisorPage() {
   const router = useRouter();
   const supabase = createClient();
+  const t = useT();
   const [messages, setMessages] = useState<Message[]>([]);
   const [name, setName] = useState('');
   const [input, setInput] = useState('');
@@ -75,7 +77,7 @@ export default function AdvisorPage() {
         ...prev,
         {
           role: 'assistant',
-          content: 'Something went wrong reaching the advisor. Please try again.',
+          content: t('advisor.error'),
         },
       ]);
     } finally {
@@ -84,30 +86,29 @@ export default function AdvisorPage() {
   }
 
   const suggestions = [
-    `What should I prioritize this year?`,
-    'Am I on track for my age and income?',
-    'What does my story tell you about my habits?',
+    t('advisor.suggest.1'),
+    t('advisor.suggest.2'),
+    t('advisor.suggest.3'),
   ];
 
   if (loadingHistory) {
-    return <div className="text-sm text-[var(--muted)]">Loading your conversation…</div>;
+    return <div className="text-sm text-[var(--muted)]">{t('advisor.loadingConversation')}</div>;
   }
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
-        Your advisor
+        {t('brain.title')} 🧠
       </h1>
       <p className="text-sm text-[var(--ink-2)] mb-4">
-        {name ? `Already knows ${name}'s` : 'Already knows your'} profile and
-        story — ask anything. This conversation is saved to your account.
+        {name ? t('advisor.subtitleNamed', { name }) : t('advisor.subtitle')}
       </p>
 
       <div className="flex-1 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {messages.length === 0 && (
             <div className="text-sm text-[var(--muted)] italic">
-              Say hello, or tap a suggestion below to get started.
+              {t('advisor.empty')}
             </div>
           )}
           {messages.map((m, i) => (
@@ -157,7 +158,7 @@ export default function AdvisorPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
-            placeholder="Ask your advisor anything..."
+            placeholder={t('advisor.placeholder')}
             className="flex-1 bg-[var(--surface-0)] border border-[var(--border-default)] rounded-full px-4 py-2 text-sm outline-none focus:border-[var(--green)]"
           />
           <button
