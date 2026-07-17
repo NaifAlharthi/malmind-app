@@ -35,14 +35,14 @@ const STEPS: TourStep[] = [
     body: 'Net worth SAR 1,005,000 — not typed in, but derived live from her latest logged month: cash + investments + apartment, minus what she owes. When Sara updates a single number anywhere, this card, the 3D world, and a dozen tools downstream all update together.',
   },
   {
-    path: '/home', selector: '[data-tour="think-grid"]',
-    title: 'Think — understand your money',
-    body: "Six tools for seeing clearly: everything she's ever earned, how her net worth compares by age, how fast money reaches her goals, when her portfolio doubles, and twelve health ratios. None of them ask her to be a finance person — each one turns a concept into a picture.",
+    path: '/home', selector: '[data-tour="views-grid"]',
+    title: 'Three views of one financial life',
+    body: "MalMind arranges everything around time. The Past holds Sara's archive and story. Today shows her live position. The Future carries her plans, projections and what-ifs. Each view opens with a summary, a bar where she talks to the Brain, and a toolbox she opens only when she needs it.",
   },
   {
-    path: '/home', selector: '[data-tour="decide-grid"]',
-    title: 'Decide — design what comes next',
-    body: "And six tools for acting: a life designed in phases, a master plan for the year, goal funds for the things that matter, dynamic budgeting, and an AI advisor who knows her whole story. Let's open them one by one.",
+    path: '/today', selector: 'main h1',
+    title: 'Today — the present, summarised',
+    body: "One glance: net worth, cash, investments, liabilities, and this month's flow — computed live from Sara's numbers. She can ask the Brain anything from the bar in the middle, or open the toolbox below for the seven analysis tools that live in this view. Let's open the tools themselves.",
   },
   {
     path: '/financial-numbers', selector: 'main h1',

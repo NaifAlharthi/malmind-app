@@ -15,7 +15,8 @@ import type { Group } from 'three';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
-  BRAIN_SOURCES, BRAIN_VOXELS, brainAppearance, computeBrainStats, type BrainStats,
+  BRAIN_SOURCES, BRAIN_VOXELS, brainAppearance, cacheBrainLevel, cachedBrainLevel,
+  computeBrainStats, type BrainStats,
 } from '@/lib/brain';
 
 const V = 0.17; // voxel size
@@ -105,7 +106,9 @@ export default function BrainCompanion() {
       .eq('id', user.id)
       .single();
 
-    setStats(computeBrainStats(counts, profile ?? null));
+    const computed = computeBrainStats(counts, profile ?? null);
+    cacheBrainLevel(computed.level.level); // for lightweight renders elsewhere
+    setStats(computed);
   }, [supabase]);
 
   useEffect(() => {
@@ -209,5 +212,27 @@ export default function BrainCompanion() {
         </div>
       )}
     </>
+  );
+}
+
+// A small inline Brain for embedding next to UI (e.g. the hub pages' prompt
+// bar). Purely presentational: renders at the last computed level (the
+// floating companion keeps the cache warm) and links to the advisor.
+export function MiniBrain({ className = '' }: { className?: string }) {
+  const idleRef = useRef(0);
+  const { t } = useLocale();
+  return (
+    <Link
+      href="/advisor"
+      title={t('brain.title')}
+      aria-label={t('brain.open')}
+      className={`block w-16 h-16 shrink-0 ${className}`}
+    >
+      <Canvas camera={{ position: [0, 0.2, 2.3], fov: 40 }} dpr={[1, 1.5]} gl={{ alpha: true }} style={{ pointerEvents: 'none' }}>
+        <ambientLight intensity={0.85} />
+        <directionalLight position={[3, 4, 5]} intensity={1.1} />
+        <BrainFigure level={cachedBrainLevel()} excitementRef={idleRef} />
+      </Canvas>
+    </Link>
   );
 }

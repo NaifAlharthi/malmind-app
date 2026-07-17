@@ -57,6 +57,19 @@ export default function AdvisorPage() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  // A hub page's prompt bar hands its question over via sessionStorage —
+  // send it automatically once history is in.
+  useEffect(() => {
+    if (loadingHistory) return;
+    let handoff: string | null = null;
+    try {
+      handoff = window.sessionStorage.getItem('mm-ask');
+      if (handoff) window.sessionStorage.removeItem('mm-ask');
+    } catch {}
+    if (handoff) sendMessage(handoff);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingHistory]);
+
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
     const userMessage: Message = { role: 'user', content: text };

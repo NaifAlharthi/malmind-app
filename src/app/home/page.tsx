@@ -223,31 +223,14 @@ export default function HomePage() {
         )}
       </div>
 
-      <div data-tour="think-grid" className="mb-2">
-        <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--blue)] font-semibold mb-2">
-          {t('nav.section.think')}
+      <div data-tour="views-grid" className="mb-2">
+        <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--gold)] font-semibold mb-2">
+          {t('home.views.heading')}
         </div>
         <div className="grid sm:grid-cols-3 gap-3 mb-6">
-          <ToolCard href="/story" icon="📖" title={t('home.card.story.title')} desc={t('home.card.story.desc')} />
-          <ToolCard href="/lifetime-income" icon="💰" title={t('home.card.lifetimeIncome.title')} desc={t('home.card.lifetimeIncome.desc')} />
-          <ToolCard href="/positioning" icon="📊" title={t('home.card.positioning.title')} desc={t('home.card.positioning.desc')} />
-          <ToolCard href="/velocity" icon="⏱" title={t('home.card.velocity.title')} desc={t('home.card.velocity.desc')} />
-          <ToolCard href="/doubling-path" icon="📈" title={t('home.card.doubling.title')} desc={t('home.card.doubling.desc')} />
-          <ToolCard href="/ratios" icon="🩺" title={t('home.card.ratios.title')} desc={t('home.card.ratios.desc')} />
-        </div>
-      </div>
-
-      <div data-tour="decide-grid" className="mb-2">
-        <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--green)] font-semibold mb-2">
-          {t('nav.section.decide')}
-        </div>
-        <div className="grid sm:grid-cols-3 gap-3 mb-6">
-          <ToolCard href="/standard-of-living?mode=plan" icon="🪜" title={t('home.card.sol.title')} desc={t('home.card.sol.desc')} />
-          <ToolCard href="/year-plan" icon="🗓" title={t('home.card.yearPlan.title')} desc={t('home.card.yearPlan.desc')} />
-          <ToolCard href="/waterfall" icon="💧" title={t('home.card.waterfall.title')} desc={t('home.card.waterfall.desc')} />
-          <ToolCard href="/goal-fund" icon="🎯" title={t('home.card.goalFund.title')} desc={t('home.card.goalFund.desc')} />
-          <ToolCard href="/budgeting" icon="🛋" title={t('home.card.budgeting.title')} desc={t('home.card.budgeting.desc')} />
-          <ToolCard href="/advisor" icon="💬" title={t('home.card.advisor.title')} desc={t('home.card.advisor.desc')} />
+          <ViewCard href="/past" icon="🕰" title={t('home.card.past.title')} desc={t('home.card.past.desc')} />
+          <ViewCard href="/today" icon="☀" title={t('home.card.today.title')} desc={t('home.card.today.desc')} />
+          <ViewCard href="/future" icon="🔭" title={t('home.card.future.title')} desc={t('home.card.future.desc')} />
         </div>
       </div>
     </div>
@@ -275,7 +258,9 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ToolCard({
+// The three time views are the product's front doors, so their cards carry
+// more presence than ordinary tool cards.
+function ViewCard({
   href,
   icon,
   title,
@@ -289,10 +274,12 @@ function ToolCard({
   return (
     <Link
       href={href}
-      className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 hover:border-[var(--green)] transition-colors"
+      className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 hover:border-[var(--green)] transition-colors group"
     >
-      <div className="text-lg mb-2">{icon}</div>
-      <div className="font-medium text-sm text-[var(--ink)] mb-1">{title}</div>
+      <div className="text-2xl mb-3">{icon}</div>
+      <div className="font-serif text-lg font-semibold text-[var(--ink)] mb-1 group-hover:text-[var(--green-dark)]">
+        {title}
+      </div>
       <div className="text-xs text-[var(--muted)] leading-relaxed">{desc}</div>
     </Link>
   );

@@ -115,6 +115,21 @@ export function computeBrainStats(
   return { xp, maxXp, level, nextLevel, progressToNext, suggestions };
 }
 
+// ── Level cache ──────────────────────────────────────────────────────
+// The floating BrainCompanion computes real stats (several queries) once per
+// mount. Lightweight decorative renders elsewhere (the hub pages' inline
+// Brain) read the last computed level instead of re-querying.
+
+let lastBrainLevel = 2;
+
+export function cacheBrainLevel(level: number) {
+  lastBrainLevel = level;
+}
+
+export function cachedBrainLevel(): number {
+  return lastBrainLevel;
+}
+
 // ── The voxel body ───────────────────────────────────────────────────
 // A deterministic blocky brain: an ellipsoid of unit voxels with a
 // central fissure, sorted core-out so lower levels render a smaller,

@@ -35,31 +35,13 @@ export function useProfileContext() {
   return ctx;
 }
 
-const START_ITEMS = [
-  { href: '/home', labelKey: 'nav.home', icon: '⌂' },
-  { href: '/story', labelKey: 'nav.story', icon: '📖' },
-  { href: '/holdings', labelKey: 'nav.holdings', icon: '💼' },
-  { href: '/commitments', labelKey: 'nav.commitments', icon: '🧾' },
-  { href: '/financial-numbers', labelKey: 'nav.financialNumbers', icon: '📒' },
-];
-
-const THINK_ITEMS = [
-  { href: '/lifetime-income', labelKey: 'nav.lifetimeIncome', icon: '💰' },
-  { href: '/positioning', labelKey: 'nav.positioning', icon: '📊' },
-  { href: '/velocity', labelKey: 'nav.velocity', icon: '⏱' },
-  { href: '/doubling-path', labelKey: 'nav.doublingPath', icon: '📈' },
-  { href: '/ratios', labelKey: 'nav.ratios', icon: '🩺' },
-  { href: '/risks', labelKey: 'nav.risks', icon: '🛡' },
-  { href: '/what-if', labelKey: 'nav.whatIf', icon: '🔮' },
-  { href: '/standard-of-living?mode=track', labelKey: 'nav.solTracked', icon: '🪜' },
-];
-
-const DECIDE_ITEMS = [
-  { href: '/standard-of-living?mode=plan', labelKey: 'nav.solDesign', icon: '🪜' },
-  { href: '/year-plan', labelKey: 'nav.yearPlan', icon: '🗓' },
-  { href: '/waterfall', labelKey: 'nav.waterfall', icon: '💧' },
-  { href: '/goal-fund', labelKey: 'nav.goalFund', icon: '🎯' },
-  { href: '/budgeting', labelKey: 'nav.budgeting', icon: '🛋' },
+// The whole product hangs off three time views (each hub page carries its
+// own toolbox drawer of feature pages), so the sidebar stays calm: Home,
+// the three views, and the Brain.
+const VIEW_ITEMS = [
+  { href: '/past', labelKey: 'nav.past', icon: '🕰' },
+  { href: '/today', labelKey: 'nav.today', icon: '☀' },
+  { href: '/future', labelKey: 'nav.future', icon: '🔭' },
 ];
 
 const FULL_BLEED_PATHS = ['/', '/onboarding', '/login', '/signup'];
@@ -164,28 +146,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           <div>
-            {START_ITEMS.map((item) => (
-              <NavLink key={item.href} {...item} />
-            ))}
+            <NavLink href="/home" labelKey="nav.home" icon="⌂" />
           </div>
 
           <div>
-            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--blue)]">
-              {t('nav.section.think')}
+            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--gold)]">
+              {t('nav.section.views')}
             </div>
             <div className="space-y-0.5">
-              {THINK_ITEMS.map((item) => (
-                <NavLink key={item.labelKey} {...item} />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--green)]">
-              {t('nav.section.decide')}
-            </div>
-            <div className="space-y-0.5">
-              {DECIDE_ITEMS.map((item) => (
+              {VIEW_ITEMS.map((item) => (
                 <NavLink key={item.labelKey} {...item} />
               ))}
             </div>
