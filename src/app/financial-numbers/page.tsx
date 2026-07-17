@@ -9,7 +9,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import GoogleSheetSync from './GoogleSheetSync';
 import {
-  buildSeries, metricStat, RANGE_VIEWS, DEFAULT_RANGE_VIEW,
+  bucketSeries, granularityOf, windowBucketsOf, metricStat, RANGE_VIEWS, DEFAULT_RANGE_VIEW,
   type RangeView, type SeriesPoint, type NumericKey,
 } from '@/lib/financialSeries';
 
@@ -119,7 +119,29 @@ export default function FinancialNumbersPage() {
     })();
   }, [supabase, router, load]);
 
-  const chartData = useMemo(() => buildSeries(rows, view), [rows, view]);
+  // ── Windowed view: resolution (view) sets the width, a sliding window sets
+  // which slice of history is shown; arrows + the scrubber pan it. ──────────
+  const gran = granularityOf(view);
+  const fullSeries = useMemo(() => bucketSeries(rows, gran), [rows, gran]);
+  const windowWidth = (() => {
+    const w = windowBucketsOf(view);
+    const n = Math.max(1, fullSeries.length);
+    return Number.isFinite(w) ? Math.min(w, n) : n;
+  })();
+  const maxStart = Math.max(0, fullSeries.length - windowWidth);
+  const [winStart, setWinStart] = useState(0);
+  // Anchor to the most recent window whenever the resolution or data changes.
+  useEffect(() => {
+    setWinStart(Math.max(0, fullSeries.length - windowWidth));
+  }, [view, rows, fullSeries.length, windowWidth]);
+  const clampedStart = Math.min(Math.max(0, winStart), maxStart);
+  const canPan = maxStart > 0;
+  const panStep = Math.max(1, Math.round(windowWidth / 3));
+
+  const chartData = useMemo(
+    () => fullSeries.slice(clampedStart, clampedStart + windowWidth),
+    [fullSeries, clampedStart, windowWidth]
+  );
 
   // ── Drag-to-select a sub-range on the charts ──────────────────────────
   // All three charts share the same x categories (chartData labels), so one
@@ -141,12 +163,12 @@ export default function FinancialNumbersPage() {
     [chartData]
   );
 
-  // Reset any stale selection when the underlying series changes (e.g. the
-  // range view switches and the labels no longer exist).
+  // Reset any stale selection when the underlying series or window changes
+  // (labels may no longer exist, or fall outside the visible window).
   useEffect(() => {
     setSel(null);
     setDrag(null);
-  }, [view, rows]);
+  }, [view, rows, clampedStart]);
 
   const selIdx = bandIndices(sel);
   const statPoints = selIdx ? chartData.slice(selIdx[0], selIdx[1] + 1) : chartData;
@@ -364,6 +386,47 @@ export default function FinancialNumbersPage() {
             <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)]">Chart view</div>
             <RangeSelector value={view} onChange={setView} />
           </div>
+
+          {/* pan the visible window through history: arrows + range scrubber */}
+          {canPan && (
+            <div className="flex items-center gap-3 mb-3">
+              <button
+                onClick={() => setWinStart(Math.max(0, clampedStart - panStep))}
+                disabled={clampedStart <= 0}
+                title="Earlier"
+                className="w-7 h-7 rounded-lg border border-[var(--border-default)] text-[var(--ink-2)] hover:bg-[var(--surface-1)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                ‹
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={maxStart}
+                value={clampedStart}
+                onChange={(e) => setWinStart(Number(e.target.value))}
+                className="flex-1 accent-[var(--green)] cursor-pointer"
+                aria-label="Scroll date range"
+              />
+              <button
+                onClick={() => setWinStart(Math.min(maxStart, clampedStart + panStep))}
+                disabled={clampedStart >= maxStart}
+                title="Later"
+                className="w-7 h-7 rounded-lg border border-[var(--border-default)] text-[var(--ink-2)] hover:bg-[var(--surface-1)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                ›
+              </button>
+              <span className="text-xs text-[var(--muted)] whitespace-nowrap min-w-[7rem] text-right">
+                {chartData[0]?.label} → {chartData[chartData.length - 1]?.label}
+              </span>
+              <button
+                onClick={() => setWinStart(maxStart)}
+                disabled={clampedStart >= maxStart}
+                className="text-xs text-[var(--green-dark)] font-medium disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                Latest ⇥
+              </button>
+            </div>
+          )}
 
           {/* selection state / hint for the drag-to-analyse interaction */}
           <div className="flex items-center gap-2 mb-3 text-xs">

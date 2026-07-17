@@ -54,23 +54,30 @@ export interface SeriesPoint {
   netWorth: number;
 }
 
-function granularityOf(view: RangeView): 'month' | 'quarter' | 'year' {
+export type Granularity = 'month' | 'quarter' | 'year';
+
+export function granularityOf(view: RangeView): Granularity {
   if (view === 'quarters') return 'quarter';
   if (view === 'annual') return 'year';
   return 'month';
 }
 
-// How many trailing months a monthly view keeps (∞ = keep everything).
-function windowMonthsOf(view: RangeView): number {
+// How many buckets a view shows at once (∞ = the whole history). This is the
+// window *width*; its position can then be panned across the full series.
+export function windowBucketsOf(view: RangeView): number {
   switch (view) {
     case 'months':
       return 12;
+    case 'quarters':
+      return 8; // two years of quarters
+    case 'annual':
+      return 6;
     case '3y':
       return 36;
     case '5y':
       return 60;
     default:
-      return Infinity; // 'all' (and the quarter/year views, which ignore this)
+      return Infinity; // 'all'
   }
 }
 
@@ -79,12 +86,11 @@ function assetsOf(s: SnapshotLike): number {
 }
 
 /**
- * Build chart points from snapshots (must be sorted ascending by year, month).
+ * Bucket snapshots (sorted ascending by year, month) into the full, unwindowed
+ * series at the given resolution. Callers apply their own window/pan on top.
  */
-export function buildSeries(rows: SnapshotLike[], view: RangeView): SeriesPoint[] {
+export function bucketSeries(rows: SnapshotLike[], gran: Granularity): SeriesPoint[] {
   if (rows.length === 0) return [];
-
-  const gran = granularityOf(view);
 
   // Group into buckets, preserving chronological order.
   const buckets = new Map<string, SnapshotLike[]>();
@@ -103,7 +109,7 @@ export function buildSeries(rows: SnapshotLike[], view: RangeView): SeriesPoint[
     buckets.get(key)!.push(r);
   }
 
-  let points: SeriesPoint[] = order.map((key) => {
+  const points: SeriesPoint[] = order.map((key) => {
     const items = buckets.get(key)!; // ascending within the bucket
     const last = items[items.length - 1]; // period-end balances
     const income = items.reduce((sum, x) => sum + x.income, 0);
@@ -132,13 +138,18 @@ export function buildSeries(rows: SnapshotLike[], view: RangeView): SeriesPoint[
     };
   });
 
-  // Trailing-window views only apply at monthly resolution.
-  const windowMonths = windowMonthsOf(view);
-  if (gran === 'month' && Number.isFinite(windowMonths) && points.length > windowMonths) {
-    points = points.slice(points.length - windowMonths);
-  }
-
   return points;
+}
+
+/**
+ * Full series for a view at its resolution, trimmed to the trailing window
+ * width (position anchored to the most recent data). Callers that need to pan
+ * should use bucketSeries + windowBucketsOf directly.
+ */
+export function buildSeries(rows: SnapshotLike[], view: RangeView): SeriesPoint[] {
+  const full = bucketSeries(rows, granularityOf(view));
+  const width = windowBucketsOf(view);
+  return Number.isFinite(width) && full.length > width ? full.slice(full.length - width) : full;
 }
 
 // ── Statistical analysis ────────────────────────────────────────────────
