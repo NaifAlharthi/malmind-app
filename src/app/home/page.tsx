@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
 import { firstNameOf } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { clearEphemeral } from '@/lib/authPrefs';
 
 const Metaverse3D = dynamic(() => import('./Metaverse3D'), {
   ssr: false,
@@ -121,6 +122,7 @@ export default function HomePage() {
   }, [load, profileVersion]);
 
   async function handleSignOut() {
+    clearEphemeral();
     await supabase.auth.signOut();
     router.push('/login');
   }

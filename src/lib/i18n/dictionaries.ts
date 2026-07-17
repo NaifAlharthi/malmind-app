@@ -176,6 +176,18 @@ const en: Dict = {
   'auth.loginLink': 'Log in',
   'auth.demo.title': '✦ Just looking? Take the tour',
   'auth.demo.desc': 'Explore the full product as Sara — a guided, two-minute walkthrough of every feature with real-feeling data. No account, nothing saved.',
+
+  'auth.tab.password': 'Password',
+  'auth.tab.link': 'Email link',
+  'auth.rememberMe': 'Keep me signed in',
+  'auth.magic.hint': 'We’ll email you a secure sign-in link — click it and you’re in. No password to remember.',
+  'auth.magic.send': 'Email me a sign-in link',
+  'auth.magic.sending': 'Sending…',
+  'auth.magic.sentTitle': 'Check your email',
+  'auth.magic.sentBody': 'If an account exists for {email}, a sign-in link is on its way. It expires in an hour.',
+  'auth.magic.resend': 'Resend link',
+  'auth.magic.useDifferent': 'Use a different email',
+  'auth.magic.error': 'Couldn’t send the link. Please try again in a moment.',
 };
 
 const ar: Dict = {
@@ -344,6 +356,18 @@ const ar: Dict = {
   'auth.loginLink': 'تسجيل الدخول',
   'auth.demo.title': '✦ مجرد تصفّح؟ جرّب الجولة',
   'auth.demo.desc': 'استكشف المنتج كاملاً بصفتك سارة — جولة إرشادية من دقيقتين عبر كل ميزة ببياناتٍ واقعية. دون حساب، ودون حفظ أي شيء.',
+
+  'auth.tab.password': 'كلمة المرور',
+  'auth.tab.link': 'رابط بالبريد',
+  'auth.rememberMe': 'أبقِني مسجّلاً للدخول',
+  'auth.magic.hint': 'سنرسل إليك رابط دخولٍ آمناً عبر بريدك — اضغطه وستدخل مباشرة. دون كلمة مرور تحفظها.',
+  'auth.magic.send': 'أرسِل رابط الدخول إلى بريدي',
+  'auth.magic.sending': 'جارٍ الإرسال…',
+  'auth.magic.sentTitle': 'تفقّد بريدك',
+  'auth.magic.sentBody': 'إن كان هناك حساب مرتبط بـ {email}، فرابط الدخول في طريقه إليك. تنتهي صلاحيته خلال ساعة.',
+  'auth.magic.resend': 'إعادة إرسال الرابط',
+  'auth.magic.useDifferent': 'استخدم بريداً آخر',
+  'auth.magic.error': 'تعذّر إرسال الرابط. حاول مرة أخرى بعد قليل.',
 };
 
 export const DICTIONARIES: Record<Locale, Dict> = { en, ar };

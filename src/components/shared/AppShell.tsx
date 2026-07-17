@@ -9,6 +9,10 @@ import EditProfileModal from './EditProfileModal';
 import DemoTour from './DemoTour';
 import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { clearEphemeral } from '@/lib/authPrefs';
+
+// Enforces "keep me signed in = off"; browser-only, so load it lazily.
+const EphemeralSessionGuard = dynamic(() => import('./EphemeralSessionGuard'), { ssr: false });
 
 // The Brain renders WebGL, which only exists in the browser.
 const BrainCompanion = dynamic(() => import('./BrainCompanion'), { ssr: false });
@@ -92,6 +96,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   async function handleSignOut() {
+    clearEphemeral();
     await supabase.auth.signOut();
     router.push('/login');
   }
@@ -258,6 +263,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       />
       <DemoTour />
       <BrainCompanion />
+      <EphemeralSessionGuard />
       </div>
     </ProfileContext.Provider>
   );
