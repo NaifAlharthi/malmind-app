@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import GoogleSheetSync from './GoogleSheetSync';
+import { buildSeries, RANGE_VIEWS, DEFAULT_RANGE_VIEW, type RangeView } from '@/lib/financialSeries';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -74,6 +75,7 @@ export default function FinancialNumbersPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [view, setView] = useState<RangeView>(DEFAULT_RANGE_VIEW);
 
   const load = useCallback(
     async (uid: string) => {
@@ -103,19 +105,7 @@ export default function FinancialNumbersPage() {
     })();
   }, [supabase, router, load]);
 
-  const chartData = useMemo(
-    () =>
-      rows.map((r) => {
-        const assets = r.cash + r.stocks + r.real_estate + r.equity + r.other_assets;
-        return {
-          label: `${MONTHS[r.month - 1]} ${String(r.year).slice(2)}`,
-          cash: r.cash, stocks: r.stocks, real_estate: r.real_estate, equity: r.equity, other_assets: r.other_assets,
-          liabilities: r.liabilities, income: r.income, expenses: r.expenses,
-          assets, netWorth: assets - r.liabilities,
-        };
-      }),
-    [rows]
-  );
+  const chartData = useMemo(() => buildSeries(rows, view), [rows, view]);
 
   const latest = rows[rows.length - 1];
   const latestAssets = latest ? latest.cash + latest.stocks + latest.real_estate + latest.equity + latest.other_assets : 0;
@@ -269,6 +259,12 @@ export default function FinancialNumbersPage() {
       ) : (
         <>
           <div data-tour="fn-charts">
+          {/* time-range control shared by the charts below */}
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)]">Chart view</div>
+            <RangeSelector value={view} onChange={setView} />
+          </div>
+
           {/* net worth / assets / liabilities */}
           <ChartCard title="Net worth, assets & liabilities over time">
             <ResponsiveContainer width="100%" height="100%">
@@ -408,6 +404,26 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label className="text-[11px] text-[var(--muted)] block mb-1">{label}</label>
       {children}
+    </div>
+  );
+}
+
+function RangeSelector({ value, onChange }: { value: RangeView; onChange: (v: RangeView) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1 bg-[var(--surface-1)] rounded-lg p-1">
+      {RANGE_VIEWS.map((v) => (
+        <button
+          key={v.key}
+          onClick={() => onChange(v.key)}
+          className={`text-xs rounded-md px-2.5 py-1 transition-colors ${
+            value === v.key
+              ? 'bg-[var(--surface-card)] text-[var(--ink)] font-medium shadow-sm'
+              : 'text-[var(--muted)] hover:text-[var(--ink-2)]'
+          }`}
+        >
+          {v.label}
+        </button>
+      ))}
     </div>
   );
 }
