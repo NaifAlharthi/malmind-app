@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ComposedChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  ReferenceArea,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import GoogleSheetSync from './GoogleSheetSync';
@@ -32,6 +33,16 @@ const ALL_METRICS = [
 ] as const;
 
 type MetricKey = (typeof ALL_METRICS)[number]['key'];
+
+// A selected span on the charts, keyed by the x-axis category labels.
+interface Band {
+  start: string;
+  end: string;
+}
+// The subset of Recharts' mouse-event state we use.
+interface ChartMouse {
+  activeLabel?: string | number;
+}
 
 interface Snapshot {
   id: string;
@@ -109,6 +120,92 @@ export default function FinancialNumbersPage() {
   }, [supabase, router, load]);
 
   const chartData = useMemo(() => buildSeries(rows, view), [rows, view]);
+
+  // ── Drag-to-select a sub-range on the charts ──────────────────────────
+  // All three charts share the same x categories (chartData labels), so one
+  // selection drives the shaded band + stats on every chart at once.
+  const [drag, setDrag] = useState<Band | null>(null); // live, while dragging
+  const [sel, setSel] = useState<Band | null>(null); // committed selection
+  const dragRef = useRef<Band | null>(null); // latest drag, readable in mouseup
+  const pressedRef = useRef(false); // mouse button held on a chart
+  const activeBand = drag ?? sel;
+
+  const bandIndices = useCallback(
+    (b: Band | null): [number, number] | null => {
+      if (!b) return null;
+      const a = chartData.findIndex((p) => p.label === b.start);
+      const c = chartData.findIndex((p) => p.label === b.end);
+      if (a < 0 || c < 0) return null;
+      return [Math.min(a, c), Math.max(a, c)];
+    },
+    [chartData]
+  );
+
+  // Reset any stale selection when the underlying series changes (e.g. the
+  // range view switches and the labels no longer exist).
+  useEffect(() => {
+    setSel(null);
+    setDrag(null);
+  }, [view, rows]);
+
+  const selIdx = bandIndices(sel);
+  const statPoints = selIdx ? chartData.slice(selIdx[0], selIdx[1] + 1) : chartData;
+
+  const onDown = (e: ChartMouse) => {
+    pressedRef.current = true;
+    const l = e?.activeLabel;
+    // Recharts may report an absent or empty category on the initial press
+    // (it only resolves the hovered label once the pointer moves) — the first
+    // move starts the band in that case.
+    if (l == null || l === '') return;
+    const b = { start: String(l), end: String(l) };
+    dragRef.current = b;
+    setDrag(b);
+  };
+  const onMove = (e: ChartMouse) => {
+    if (!pressedRef.current) return;
+    const l = e?.activeLabel;
+    if (l == null || l === '') return;
+    const b = dragRef.current
+      ? { start: dragRef.current.start, end: String(l) }
+      : { start: String(l), end: String(l) };
+    dragRef.current = b;
+    setDrag(b);
+  };
+  const onUp = () => {
+    pressedRef.current = false;
+    const d = dragRef.current;
+    dragRef.current = null;
+    setDrag(null);
+    if (d) setSel(d.start === d.end ? null : d);
+  };
+  const chartHandlers = { onMouseDown: onDown, onMouseMove: onMove, onMouseUp: onUp, onMouseLeave: onUp };
+
+  // Delta bubble text for a balance metric across the active band.
+  const balanceBubble = (key: NumericKey, good: boolean) => {
+    const idx = bandIndices(activeBand);
+    if (!idx || idx[0] === idx[1]) return null;
+    const a = chartData[idx[0]][key] as number;
+    const b = chartData[idx[1]][key] as number;
+    const abs = b - a;
+    const pct = a !== 0 ? (abs / Math.abs(a)) * 100 : null;
+    const favourable = abs === 0 ? true : abs > 0 === good;
+    const sign = abs > 0 ? '+' : abs < 0 ? '−' : '';
+    return {
+      text: `${pct !== null ? signedPct(pct) + ' · ' : ''}${sign}SAR ${fmt(Math.abs(abs))}`,
+      color: abs === 0 ? '#9C9A92' : favourable ? '#1D9E75' : '#C0392B',
+    };
+  };
+  const cashflowBubble = () => {
+    const idx = bandIndices(activeBand);
+    if (!idx || idx[0] === idx[1]) return null;
+    const slice = chartData.slice(idx[0], idx[1] + 1);
+    const net = slice.reduce((s, p) => s + p.income - p.expenses, 0);
+    return {
+      text: `Net ${net < 0 ? '−' : '+'}SAR ${fmt(Math.abs(net))} saved`,
+      color: net >= 0 ? '#1D9E75' : '#C0392B',
+    };
+  };
 
   const latest = rows[rows.length - 1];
   const latestAssets = latest ? latest.cash + latest.stocks + latest.real_estate + latest.equity + latest.other_assets : 0;
@@ -268,12 +365,31 @@ export default function FinancialNumbersPage() {
             <RangeSelector value={view} onChange={setView} />
           </div>
 
+          {/* selection state / hint for the drag-to-analyse interaction */}
+          <div className="flex items-center gap-2 mb-3 text-xs">
+            {sel ? (
+              <>
+                <span className="inline-flex items-center gap-1.5 bg-[var(--green-bg)] border border-[var(--green-border)] text-[var(--green-dark)] rounded-full px-3 py-1 font-medium">
+                  Selected · {sel.start} → {sel.end}
+                </span>
+                <button onClick={() => setSel(null)} className="text-[var(--muted)] hover:text-[var(--ink)] underline">
+                  Clear
+                </button>
+              </>
+            ) : (
+              <span className="text-[var(--muted)]">
+                Tip: click and drag across any chart to analyse a specific span — the shaded band and all stats update to it.
+              </span>
+            )}
+          </div>
+
           {/* net worth / assets / liabilities */}
           <ChartCard
             title="Net worth, assets & liabilities over time"
+            badge={!activeBand ? <MetricBadge points={statPoints} metricKey="netWorth" label="Net worth" good /> : null}
             footer={
               <SeriesStats
-                points={chartData}
+                points={statPoints}
                 metrics={[
                   { key: 'netWorth', label: 'Net worth', good: true },
                   { key: 'assets', label: 'Total assets', good: true },
@@ -283,7 +399,7 @@ export default function FinancialNumbersPage() {
             }
           >
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData}>
+              <ComposedChart data={chartData} {...chartHandlers}>
                 <CartesianGrid stroke="var(--border-default)" />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={fmtCompact} />
@@ -292,6 +408,7 @@ export default function FinancialNumbersPage() {
                 <Line type="monotone" dataKey="assets" name="Assets" stroke="#E0559E" strokeWidth={2.5} dot={false} />
                 <Line type="monotone" dataKey="liabilities" name="Liabilities" stroke="#17B8C9" strokeWidth={2.5} dot={false} />
                 <Line type="monotone" dataKey="netWorth" name="Net worth" stroke="#1D9E75" strokeWidth={3} dot={false} />
+                {selectionBand(activeBand, balanceBubble('netWorth', true))}
               </ComposedChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -299,15 +416,16 @@ export default function FinancialNumbersPage() {
           {/* asset composition */}
           <ChartCard
             title="Asset composition over time"
+            badge={!activeBand ? <MetricBadge points={statPoints} metricKey="assets" label="Total assets" good /> : null}
             footer={
               <SeriesStats
-                points={chartData}
+                points={statPoints}
                 metrics={ASSET_METRICS.map((m) => ({ key: m.key as NumericKey, label: m.label, good: true }))}
               />
             }
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
+              <BarChart data={chartData} {...chartHandlers}>
                 <CartesianGrid stroke="var(--border-default)" />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={fmtCompact} />
@@ -316,14 +434,19 @@ export default function FinancialNumbersPage() {
                 {ASSET_METRICS.map((m) => (
                   <Bar key={m.key} dataKey={m.key} name={m.label} stackId="a" fill={m.color} />
                 ))}
+                {selectionBand(activeBand, balanceBubble('assets', true))}
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
 
           {/* income vs expenses */}
-          <ChartCard title="Income vs expenses" footer={<CashflowStats points={chartData} />}>
+          <ChartCard
+            title="Income vs expenses"
+            badge={!activeBand ? <SavingsBadge points={statPoints} /> : null}
+            footer={<CashflowStats points={statPoints} />}
+          >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
+              <BarChart data={chartData} {...chartHandlers}>
                 <CartesianGrid stroke="var(--border-default)" />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={fmtCompact} />
@@ -331,6 +454,7 @@ export default function FinancialNumbersPage() {
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="income" name="Income" fill="#1D9E75" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="expenses" name="Expenses" fill="#E0922A" radius={[3, 3, 0, 0]} />
+                {selectionBand(activeBand, cashflowBubble())}
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -455,18 +579,101 @@ function ChartCard({
   title,
   children,
   footer,
+  badge,
 }: {
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  badge?: React.ReactNode;
 }) {
   return (
-    <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6">
+    <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6 select-none">
       <div className="text-sm font-medium text-[var(--ink)] mb-4">{title}</div>
-      <div className="h-64">{children}</div>
+      <div className="h-64 relative">
+        {children}
+        {badge && <div className="absolute top-0 right-1 pointer-events-none">{badge}</div>}
+      </div>
       {footer && (
         <div className="mt-4 pt-4 border-t border-[var(--border-default)]">{footer}</div>
       )}
+    </div>
+  );
+}
+
+// ── On-canvas change elements ────────────────────────────────────────────
+
+interface Bubble {
+  text: string;
+  color: string;
+}
+
+// The shaded selection band drawn on a chart, with an optional delta label.
+// Returned as a bare ReferenceArea element (not a component) so Recharts,
+// which matches children by element type, actually renders it.
+function selectionBand(band: Band | null, bubble: Bubble | null) {
+  if (!band) return null;
+  return (
+    <ReferenceArea
+      x1={band.start}
+      x2={band.end}
+      fill="var(--green)"
+      fillOpacity={0.1}
+      stroke="var(--green)"
+      strokeOpacity={0.45}
+      label={
+        bubble
+          ? { value: bubble.text, position: 'insideTop', fill: bubble.color, fontSize: 12 }
+          : undefined
+      }
+    />
+  );
+}
+
+// Always-on corner badge: headline % change for a balance metric over the
+// currently shown series.
+function MetricBadge({
+  points,
+  metricKey,
+  label,
+  good,
+}: {
+  points: SeriesPoint[];
+  metricKey: NumericKey;
+  label: string;
+  good: boolean;
+}) {
+  if (points.length < 2) return null;
+  const s = metricStat(points, metricKey);
+  if (s.deltaPct === null) return null;
+  const up = s.deltaAbs > 0;
+  const favourable = s.deltaAbs === 0 ? true : up === good;
+  const color = s.deltaAbs === 0 ? 'var(--muted)' : favourable ? 'var(--green-dark)' : 'var(--red-2)';
+  return (
+    <div
+      className="flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 border"
+      style={{ color, borderColor: color, background: 'var(--surface-card)' }}
+    >
+      <span className="text-[9px] font-normal text-[var(--muted)]">{label}</span>
+      {s.deltaAbs === 0 ? '—' : `${up ? '▲' : '▼'} ${signedPct(s.deltaPct)}`}
+    </div>
+  );
+}
+
+// Always-on corner badge for the cash-flow chart: savings rate over the view.
+function SavingsBadge({ points }: { points: SeriesPoint[] }) {
+  if (points.length === 0) return null;
+  const inc = metricStat(points, 'income');
+  const exp = metricStat(points, 'expenses');
+  if (inc.total <= 0) return null;
+  const rate = ((inc.total - exp.total) / inc.total) * 100;
+  const color = rate >= 0 ? 'var(--green-dark)' : 'var(--red-2)';
+  return (
+    <div
+      className="flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 border"
+      style={{ color, borderColor: color, background: 'var(--surface-card)' }}
+    >
+      <span className="text-[9px] font-normal text-[var(--muted)]">Savings rate</span>
+      {Math.round(rate)}%
     </div>
   );
 }
