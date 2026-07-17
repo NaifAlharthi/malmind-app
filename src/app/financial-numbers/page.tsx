@@ -7,7 +7,10 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import GoogleSheetSync from './GoogleSheetSync';
-import { buildSeries, RANGE_VIEWS, DEFAULT_RANGE_VIEW, type RangeView } from '@/lib/financialSeries';
+import {
+  buildSeries, metricStat, RANGE_VIEWS, DEFAULT_RANGE_VIEW,
+  type RangeView, type SeriesPoint, type NumericKey,
+} from '@/lib/financialSeries';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -266,7 +269,19 @@ export default function FinancialNumbersPage() {
           </div>
 
           {/* net worth / assets / liabilities */}
-          <ChartCard title="Net worth, assets & liabilities over time">
+          <ChartCard
+            title="Net worth, assets & liabilities over time"
+            footer={
+              <SeriesStats
+                points={chartData}
+                metrics={[
+                  { key: 'netWorth', label: 'Net worth', good: true },
+                  { key: 'assets', label: 'Total assets', good: true },
+                  { key: 'liabilities', label: 'Liabilities', good: false },
+                ]}
+              />
+            }
+          >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData}>
                 <CartesianGrid stroke="var(--border-default)" />
@@ -282,7 +297,15 @@ export default function FinancialNumbersPage() {
           </ChartCard>
 
           {/* asset composition */}
-          <ChartCard title="Asset composition over time">
+          <ChartCard
+            title="Asset composition over time"
+            footer={
+              <SeriesStats
+                points={chartData}
+                metrics={ASSET_METRICS.map((m) => ({ key: m.key as NumericKey, label: m.label, good: true }))}
+              />
+            }
+          >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid stroke="var(--border-default)" />
@@ -298,7 +321,7 @@ export default function FinancialNumbersPage() {
           </ChartCard>
 
           {/* income vs expenses */}
-          <ChartCard title="Income vs expenses">
+          <ChartCard title="Income vs expenses" footer={<CashflowStats points={chartData} />}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid stroke="var(--border-default)" />
@@ -428,11 +451,147 @@ function RangeSelector({ value, onChange }: { value: RangeView; onChange: (v: Ra
   );
 }
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+function ChartCard({
+  title,
+  children,
+  footer,
+}: {
+  title: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}) {
   return (
     <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6">
       <div className="text-sm font-medium text-[var(--ink)] mb-4">{title}</div>
       <div className="h-64">{children}</div>
+      {footer && (
+        <div className="mt-4 pt-4 border-t border-[var(--border-default)]">{footer}</div>
+      )}
+    </div>
+  );
+}
+
+// ── Statistical analysis UI ──────────────────────────────────────────────
+
+function signedPct(pct: number): string {
+  return `${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(1)}%`;
+}
+
+// A nominal (SAR) + percentage delta, coloured by whether the move is good.
+// `good` says which direction is favourable (up for net worth, down for debt).
+function DeltaText({ abs, pct, good }: { abs: number; pct: number | null; good: boolean }) {
+  if (abs === 0) {
+    return <div className="text-[11px] text-[var(--muted)]">No change</div>;
+  }
+  const up = abs > 0;
+  const favourable = up === good;
+  const color = favourable ? 'var(--green-dark)' : 'var(--red-2)';
+  return (
+    <div className="text-[11px] font-medium" style={{ color }}>
+      {up ? '▲' : '▼'} SAR {fmt(Math.abs(abs))}
+      {pct !== null && <span className="opacity-80"> ({signedPct(pct)})</span>}
+    </div>
+  );
+}
+
+function StatPill({
+  label,
+  value,
+  valueColor,
+  sub,
+  delta,
+}: {
+  label: string;
+  value: string;
+  valueColor?: string;
+  sub?: string;
+  delta?: { abs: number; pct: number | null; good: boolean };
+}) {
+  return (
+    <div>
+      <div className="text-[10px] text-[var(--muted)] mb-0.5">{label}</div>
+      <div className="text-sm font-semibold" style={{ color: valueColor ?? 'var(--ink)' }}>
+        {value}
+      </div>
+      {delta && <div className="mt-0.5"><DeltaText {...delta} /></div>}
+      {sub && <div className="text-[10px] text-[var(--muted)] mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+// Latest value + change across the visible view, for a set of balance metrics.
+function SeriesStats({
+  points,
+  metrics,
+}: {
+  points: SeriesPoint[];
+  metrics: { key: NumericKey; label: string; good: boolean }[];
+}) {
+  if (points.length === 0) return null;
+  const hasDelta = points.length >= 2;
+  const firstLabel = points[0].label;
+  const lastLabel = points[points.length - 1].label;
+
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--muted)] mb-2">
+        {hasDelta ? `Change · ${firstLabel} → ${lastLabel}` : `As of ${lastLabel}`}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+        {metrics.map((m) => {
+          const s = metricStat(points, m.key);
+          return (
+            <StatPill
+              key={m.key}
+              label={m.label}
+              value={`SAR ${fmt(s.last)}`}
+              delta={hasDelta ? { abs: s.deltaAbs, pct: s.deltaPct, good: m.good } : undefined}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Cash-flow summary: totals, net saved and savings rate over the visible view.
+function CashflowStats({ points }: { points: SeriesPoint[] }) {
+  if (points.length === 0) return null;
+  const inc = metricStat(points, 'income');
+  const exp = metricStat(points, 'expenses');
+  const netSaved = inc.total - exp.total;
+  const rate = inc.total > 0 ? (netSaved / inc.total) * 100 : null;
+  const per = points.length > 1 ? 'period' : 'month';
+  const firstLabel = points[0].label;
+  const lastLabel = points[points.length - 1].label;
+
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--muted)] mb-2">
+        Cash flow · {firstLabel} → {lastLabel}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+        <StatPill
+          label="Total income"
+          value={`SAR ${fmt(inc.total)}`}
+          sub={`avg SAR ${fmt(inc.avg)}/${per}`}
+        />
+        <StatPill
+          label="Total expenses"
+          value={`SAR ${fmt(exp.total)}`}
+          sub={`avg SAR ${fmt(exp.avg)}/${per}`}
+        />
+        <StatPill
+          label="Net saved"
+          value={`SAR ${fmt(netSaved)}`}
+          valueColor={netSaved >= 0 ? 'var(--green-dark)' : 'var(--red-2)'}
+        />
+        <StatPill
+          label="Savings rate"
+          value={rate !== null ? `${Math.round(rate)}%` : '—'}
+          valueColor={rate !== null && rate >= 0 ? 'var(--green-dark)' : 'var(--red-2)'}
+        />
+      </div>
     </div>
   );
 }

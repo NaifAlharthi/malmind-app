@@ -140,3 +140,57 @@ export function buildSeries(rows: SnapshotLike[], view: RangeView): SeriesPoint[
 
   return points;
 }
+
+// ── Statistical analysis ────────────────────────────────────────────────
+// Deltas (nominal SAR and %), totals and averages for a single metric across
+// whatever series is currently on screen — so the numbers always match the
+// selected range/resolution.
+
+export type NumericKey = Exclude<keyof SeriesPoint, 'label'>;
+
+export interface MetricStat {
+  count: number;
+  first: number;
+  last: number;
+  prev: number | null; // second-to-last point
+  deltaAbs: number; // last - first  (change across the whole view)
+  deltaPct: number | null; // % change across the view (null if first is 0)
+  periodAbs: number | null; // last - prev (most recent step)
+  periodPct: number | null;
+  total: number; // sum of every point (meaningful for flows)
+  avg: number; // mean per point
+  min: number;
+  max: number;
+}
+
+export function metricStat(points: SeriesPoint[], key: NumericKey): MetricStat {
+  const vals = points.map((p) => p[key] as number);
+  const n = vals.length;
+  if (n === 0) {
+    return { count: 0, first: 0, last: 0, prev: null, deltaAbs: 0, deltaPct: null, periodAbs: null, periodPct: null, total: 0, avg: 0, min: 0, max: 0 };
+  }
+
+  const first = vals[0];
+  const last = vals[n - 1];
+  const prev = n >= 2 ? vals[n - 2] : null;
+  const deltaAbs = last - first;
+  const deltaPct = first !== 0 ? (deltaAbs / Math.abs(first)) * 100 : null;
+  const periodAbs = prev !== null ? last - prev : null;
+  const periodPct = prev !== null && prev !== 0 ? ((last - prev) / Math.abs(prev)) * 100 : null;
+  const total = vals.reduce((s, v) => s + v, 0);
+
+  return {
+    count: n,
+    first,
+    last,
+    prev,
+    deltaAbs,
+    deltaPct,
+    periodAbs,
+    periodPct,
+    total,
+    avg: total / n,
+    min: Math.min(...vals),
+    max: Math.max(...vals),
+  };
+}
