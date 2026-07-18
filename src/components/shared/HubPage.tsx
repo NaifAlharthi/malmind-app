@@ -14,7 +14,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
+import TodayDashboard from '@/components/today/TodayDashboard';
 
 const MiniBrain = dynamic(
   () => import('./BrainCompanion').then((m) => m.MiniBrain),
@@ -107,7 +107,6 @@ export default function HubPage({ view }: { view: ViewKey }) {
   const supabase = createClient();
   const { t, locale } = useLocale();
   const [bundle, setBundle] = useState<Bundle | null>(null);
-  const [live, setLive] = useState<{ total: number; asOf: string | null } | null>(null);
   const [question, setQuestion] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -182,29 +181,6 @@ export default function HubPage({ view }: { view: ViewKey }) {
     router.push('/advisor');
   }
 
-  // Live portfolio valuation — Today only.
-  useEffect(() => {
-    if (view !== 'today') return;
-    let cancelled = false;
-    (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const rows = await loadHoldings(user.id);
-      if (rows.length === 0) {
-        if (!cancelled) setLive(null);
-        return;
-      }
-      const pv = await valueHoldings(rows);
-      if (!cancelled && pv.total > 0) setLive({ total: pv.total, asOf: pv.asOf });
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view]);
-
   const tools = TOOLS[view];
 
   // ── Per-view summary tiles ────────────────────────────────────────────
@@ -240,29 +216,8 @@ export default function HubPage({ view }: { view: ViewKey }) {
       ];
     }
 
-    if (view === 'today') {
-      if (!latest) return [];
-      const todayTiles: Tile[] = [
-        { label: t('home.netWorthAsOf', { date: label(latest) }), value: money(netWorthOf(latest)), accent: 'var(--green-dark)', big: true },
-        { label: t('home.balance.cash'), value: money(Number(latest.cash)) },
-        { label: t('home.balance.investments'), value: money(Number(latest.stocks) + Number(latest.equity)) },
-        { label: t('home.balance.liabilities'), value: money(Number(latest.liabilities)) },
-        { label: `${t('hub.sum.latestMonth')} · ${t('hub.sum.income')}`, value: money(Number(latest.income)) },
-        { label: `${t('hub.sum.latestMonth')} · ${t('hub.sum.expenses')}`, value: money(Number(latest.expenses)) },
-      ];
-      if (live && live.total > 0) {
-        const stamp = live.asOf
-          ? ` · ${new Date(live.asOf).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-          : '';
-        // Slot the live figure right after Investments.
-        todayTiles.splice(3, 0, {
-          label: `${t('hub.sum.livePortfolio')}${stamp}`,
-          value: money(live.total),
-          accent: 'var(--gold-2)',
-        });
-      }
-      return todayTiles;
-    }
+    // 'today' renders the TodayDashboard instead of tiles.
+    if (view === 'today') return [];
 
     // future
     const pace5y =
@@ -277,7 +232,7 @@ export default function HubPage({ view }: { view: ViewKey }) {
       { label: t('hub.sum.scenarios'), value: String(bundle.scenarios) },
       { label: t('hub.sum.plans'), value: String(bundle.plans) },
     ];
-  }, [bundle, view, t, money, live]);
+  }, [bundle, view, t, money]);
 
   const hasData = (bundle?.snaps.length ?? 0) > 0;
 
@@ -292,7 +247,9 @@ export default function HubPage({ view }: { view: ViewKey }) {
       </h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-2xl">{t(`hub.${view}.tagline`)}</p>
 
-      {bundle === null ? (
+      {view === 'today' ? (
+        <TodayDashboard />
+      ) : bundle === null ? (
         <div className="text-sm text-[var(--muted)] mb-6">{t('common.loading')}</div>
       ) : !hasData && view !== 'future' ? (
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6 text-sm text-[var(--muted)]">
