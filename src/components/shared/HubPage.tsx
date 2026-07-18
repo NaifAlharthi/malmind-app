@@ -14,6 +14,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
 
 const MiniBrain = dynamic(
   () => import('./BrainCompanion').then((m) => m.MiniBrain),
@@ -81,6 +82,14 @@ interface Bundle {
   plans: number;
 }
 
+interface Tile {
+  label: string;
+  value: string;
+  accent?: string;
+  sub?: string;
+  big?: boolean;
+}
+
 function fmt(n: number) {
   return Math.round(n).toLocaleString();
 }
@@ -98,6 +107,7 @@ export default function HubPage({ view }: { view: ViewKey }) {
   const supabase = createClient();
   const { t, locale } = useLocale();
   const [bundle, setBundle] = useState<Bundle | null>(null);
+  const [live, setLive] = useState<{ total: number; asOf: string | null } | null>(null);
   const [question, setQuestion] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -172,10 +182,33 @@ export default function HubPage({ view }: { view: ViewKey }) {
     router.push('/advisor');
   }
 
+  // Live portfolio valuation — Today only.
+  useEffect(() => {
+    if (view !== 'today') return;
+    let cancelled = false;
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const rows = await loadHoldings(user.id);
+      if (rows.length === 0) {
+        if (!cancelled) setLive(null);
+        return;
+      }
+      const pv = await valueHoldings(rows);
+      if (!cancelled && pv.total > 0) setLive({ total: pv.total, asOf: pv.asOf });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
   const tools = TOOLS[view];
 
   // ── Per-view summary tiles ────────────────────────────────────────────
-  const tiles = useMemo(() => {
+  const tiles = useMemo<Tile[]>(() => {
     if (!bundle) return [];
     const { snaps, chapters } = bundle;
     const latest = snaps[snaps.length - 1];
@@ -209,7 +242,7 @@ export default function HubPage({ view }: { view: ViewKey }) {
 
     if (view === 'today') {
       if (!latest) return [];
-      return [
+      const todayTiles: Tile[] = [
         { label: t('home.netWorthAsOf', { date: label(latest) }), value: money(netWorthOf(latest)), accent: 'var(--green-dark)', big: true },
         { label: t('home.balance.cash'), value: money(Number(latest.cash)) },
         { label: t('home.balance.investments'), value: money(Number(latest.stocks) + Number(latest.equity)) },
@@ -217,6 +250,18 @@ export default function HubPage({ view }: { view: ViewKey }) {
         { label: `${t('hub.sum.latestMonth')} · ${t('hub.sum.income')}`, value: money(Number(latest.income)) },
         { label: `${t('hub.sum.latestMonth')} · ${t('hub.sum.expenses')}`, value: money(Number(latest.expenses)) },
       ];
+      if (live && live.total > 0) {
+        const stamp = live.asOf
+          ? ` · ${new Date(live.asOf).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+          : '';
+        // Slot the live figure right after Investments.
+        todayTiles.splice(3, 0, {
+          label: `${t('hub.sum.livePortfolio')}${stamp}`,
+          value: money(live.total),
+          accent: 'var(--gold-2)',
+        });
+      }
+      return todayTiles;
     }
 
     // future
@@ -232,7 +277,7 @@ export default function HubPage({ view }: { view: ViewKey }) {
       { label: t('hub.sum.scenarios'), value: String(bundle.scenarios) },
       { label: t('hub.sum.plans'), value: String(bundle.plans) },
     ];
-  }, [bundle, view, t, money]);
+  }, [bundle, view, t, money, live]);
 
   const hasData = (bundle?.snaps.length ?? 0) > 0;
 
@@ -262,19 +307,17 @@ export default function HubPage({ view }: { view: ViewKey }) {
             <div
               key={tile.label}
               className={`bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-4 ${
-                'big' in tile && tile.big ? 'col-span-2' : ''
+                tile.big ? 'col-span-2' : ''
               }`}
             >
               <div className="text-[10px] text-[var(--muted)] mb-1">{tile.label}</div>
               <div
-                className={`font-serif font-bold ${'big' in tile && tile.big ? 'text-2xl' : 'text-lg'}`}
-                style={{ color: ('accent' in tile && tile.accent) || 'var(--ink)' }}
+                className={`font-serif font-bold ${tile.big ? 'text-2xl' : 'text-lg'}`}
+                style={{ color: tile.accent ?? 'var(--ink)' }}
               >
                 {tile.value}
               </div>
-              {'sub' in tile && tile.sub && (
-                <div className="text-[11px] text-[var(--muted)] mt-0.5">{tile.sub}</div>
-              )}
+              {tile.sub && <div className="text-[11px] text-[var(--muted)] mt-0.5">{tile.sub}</div>}
             </div>
           ))}
         </div>

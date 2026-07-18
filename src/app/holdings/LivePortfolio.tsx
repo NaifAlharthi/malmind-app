@@ -4,18 +4,15 @@
 // and we price it live from the market (in SAR), sum it, and offer to push the
 // total into this month's ledger so net worth, ratios, positioning and every
 // projection factor it in. Holdings live in the `assets` table (asset_type
-// 'stocks') with the ticker/quantity columns from schema_part14.
+// 'stocks') with the ticker/quantity columns from schema_part14. Prices
+// auto-refresh on an interval; the ticker field searches by name/symbol.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { fetchQuotes, quoteMap, type QuoteResult } from '@/lib/quotes';
+import { searchTickers, type TickerHit } from '@/lib/quotes';
+import { loadHoldings, valueHoldings, type Holding, type ValuedHolding } from '@/lib/livePortfolio';
 
-interface Holding {
-  id: string;
-  name: string;
-  ticker: string;
-  quantity: number;
-}
+const REFRESH_MS = 60_000;
 
 function fmt(n: number) {
   return Math.round(n).toLocaleString();
@@ -27,45 +24,40 @@ export default function LivePortfolio() {
   const supabase = createClient();
   const [userId, setUserId] = useState<string | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [quotes, setQuotes] = useState<Map<string, QuoteResult>>(new Map());
+  const [valued, setValued] = useState<ValuedHolding[]>([]);
   const [asOf, setAsOf] = useState<string | null>(null);
+  const [priced, setPriced] = useState(0);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', ticker: '', quantity: '' });
   const [applyMsg, setApplyMsg] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (uid: string) => {
-      const { data } = await supabase
-        .from('assets')
-        .select('id, name, ticker, quantity, asset_type')
-        .eq('user_id', uid);
-      const rows = ((data ?? []) as (Holding & { asset_type: string })[])
-        .filter((r) => r.ticker && Number(r.quantity) > 0)
-        .map((r) => ({ id: r.id, name: r.name, ticker: r.ticker, quantity: Number(r.quantity) }));
-      setHoldings(rows);
-      return rows;
-    },
-    [supabase]
-  );
+  // ticker autocomplete
+  const [hits, setHits] = useState<TickerHit[]>([]);
+  const [showHits, setShowHits] = useState(false);
+  const suppressSearch = useRef(false);
 
-  const refresh = useCallback(async (rows: Holding[]) => {
-    const symbols = rows.map((r) => r.ticker);
-    if (symbols.length === 0) {
-      setQuotes(new Map());
-      setAsOf(null);
-      return;
-    }
-    setLoading(true);
+  const price = useCallback(async (rows: Holding[], opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
-      const resp = await fetchQuotes(symbols);
-      setQuotes(quoteMap(resp));
-      setAsOf(resp.asOf);
+      const pv = await valueHoldings(rows);
+      setValued(pv.valued);
+      setPriced(pv.priced);
+      setAsOf(pv.asOf);
     } catch {
-      /* leave prior quotes in place */
+      /* keep prior prices */
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
+
+  const reload = useCallback(
+    async (uid: string) => {
+      const rows = await loadHoldings(uid);
+      setHoldings(rows);
+      await price(rows);
+    },
+    [price]
+  );
 
   useEffect(() => {
     (async () => {
@@ -74,10 +66,42 @@ export default function LivePortfolio() {
       } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const rows = await load(user.id);
-      refresh(rows);
+      await reload(user.id);
     })();
-  }, [supabase, load, refresh]);
+  }, [supabase, reload]);
+
+  // Auto-refresh prices while holdings exist.
+  useEffect(() => {
+    if (holdings.length === 0) return;
+    const id = setInterval(() => price(holdings, { silent: true }), REFRESH_MS);
+    return () => clearInterval(id);
+  }, [holdings, price]);
+
+  // Debounced ticker search.
+  useEffect(() => {
+    if (suppressSearch.current) {
+      suppressSearch.current = false;
+      return;
+    }
+    const q = form.ticker.trim();
+    if (q.length < 2) {
+      setHits([]);
+      setShowHits(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const r = await searchTickers(q);
+      setHits(r);
+      setShowHits(r.length > 0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [form.ticker]);
+
+  function pickHit(hit: TickerHit) {
+    suppressSearch.current = true;
+    setForm((f) => ({ ...f, ticker: hit.symbol, name: f.name || hit.name }));
+    setShowHits(false);
+  }
 
   async function addHolding(e: React.FormEvent) {
     e.preventDefault();
@@ -95,31 +119,19 @@ export default function LivePortfolio() {
       value: 0,
     });
     setForm({ name: '', ticker: '', quantity: '' });
+    setShowHits(false);
     setApplyMsg(null);
-    const rows = await load(userId);
-    refresh(rows);
+    await reload(userId);
   }
 
   async function del(id: string) {
     if (!userId) return;
     await supabase.from('assets').delete().eq('id', id);
     setApplyMsg(null);
-    const rows = await load(userId);
-    refresh(rows);
+    await reload(userId);
   }
 
-  const valued = useMemo(
-    () =>
-      holdings.map((h) => {
-        const q = quotes.get(h.ticker.toUpperCase());
-        const marketValue = q && q.priceSar !== null ? q.priceSar * h.quantity : null;
-        return { ...h, q, marketValue };
-      }),
-    [holdings, quotes]
-  );
-
   const total = valued.reduce((s, v) => s + (v.marketValue ?? 0), 0);
-  const priced = valued.filter((v) => v.marketValue !== null).length;
 
   async function applyToMonth() {
     if (!userId || total <= 0) return;
@@ -151,14 +163,13 @@ export default function LivePortfolio() {
             📈 Live investment portfolio
           </div>
           <p className="text-xs text-[var(--muted)] max-w-md leading-relaxed">
-            Add each holding as a ticker and share count — MalMind prices it live from the market in SAR.
-            Tadawul uses a <span className="font-mono">.SR</span> suffix (e.g. <span className="font-mono">2222.SR</span>);
-            US tickers are bare (e.g. <span className="font-mono">AAPL</span>).
+            Search a company or symbol and add your share count — MalMind prices it live from the market in SAR
+            and refreshes on its own. Tadawul uses a <span className="font-mono">.SR</span> suffix; US tickers are bare.
           </p>
         </div>
         {holdings.length > 0 && (
           <button
-            onClick={() => refresh(holdings)}
+            onClick={() => price(holdings)}
             disabled={loading}
             className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 disabled:opacity-50 whitespace-nowrap"
           >
@@ -175,12 +186,37 @@ export default function LivePortfolio() {
           placeholder="Name (optional)"
           className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
         />
-        <input
-          value={form.ticker}
-          onChange={(e) => setForm((f) => ({ ...f, ticker: e.target.value }))}
-          placeholder="Ticker"
-          className="w-28 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm font-mono uppercase outline-none focus:border-[var(--green)]"
-        />
+        <div className="relative">
+          <input
+            value={form.ticker}
+            onChange={(e) => setForm((f) => ({ ...f, ticker: e.target.value }))}
+            onFocus={() => hits.length > 0 && setShowHits(true)}
+            onBlur={() => setTimeout(() => setShowHits(false), 150)}
+            placeholder="Search or ticker"
+            autoComplete="off"
+            className="w-full sm:w-44 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
+          />
+          {showHits && (
+            <ul className="absolute z-20 top-full mt-1 left-0 right-0 sm:w-72 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-lg shadow-xl max-h-64 overflow-y-auto">
+              {hits.map((h) => (
+                <li key={`${h.symbol}-${h.exchange}`}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pickHit(h)}
+                    className="w-full text-start px-3 py-2 hover:bg-[var(--surface-1)] flex items-center justify-between gap-2"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-mono text-xs text-[var(--ink)]">{h.symbol}</span>
+                      <span className="block text-[10px] text-[var(--muted)] truncate">{h.name}</span>
+                    </span>
+                    <span className="text-[10px] text-[var(--muted)] whitespace-nowrap">{h.exchange}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <input
           value={form.quantity}
           onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
@@ -198,8 +234,8 @@ export default function LivePortfolio() {
 
       {holdings.length === 0 ? (
         <div className="text-sm text-[var(--muted)] py-2">
-          No live holdings yet. Add your first above — try <span className="font-mono">2222.SR</span> or{' '}
-          <span className="font-mono">AAPL</span>.
+          No live holdings yet. Try searching <span className="font-mono">Aramco</span>, or type a symbol like{' '}
+          <span className="font-mono">2222.SR</span> or <span className="font-mono">AAPL</span>.
         </div>
       ) : (
         <>
@@ -221,28 +257,28 @@ export default function LivePortfolio() {
                     <td className="py-2 pr-3">
                       <span className="font-mono text-[var(--ink)]">{v.ticker}</span>
                       {v.name !== v.ticker && <span className="text-[var(--muted)]"> · {v.name}</span>}
-                      {v.q && v.q.currency && v.q.currency !== 'SAR' && (
-                        <span className="text-[10px] text-[var(--muted)]"> ({v.q.currency})</span>
+                      {v.quote && v.quote.currency && v.quote.currency !== 'SAR' && (
+                        <span className="text-[10px] text-[var(--muted)]"> ({v.quote.currency})</span>
                       )}
                     </td>
                     <td className="py-2 px-3 text-right text-[var(--ink-2)]">{v.quantity}</td>
                     <td className="py-2 px-3 text-right text-[var(--ink-2)]">
-                      {v.q && v.q.priceSar !== null ? `SAR ${fmt(v.q.priceSar)}` : v.q ? '—' : '…'}
+                      {v.quote && v.quote.priceSar !== null ? `SAR ${fmt(v.quote.priceSar)}` : v.quote ? '—' : '…'}
                     </td>
                     <td
                       className="py-2 px-3 text-right"
                       style={{
                         color:
-                          v.q?.changePct == null
+                          v.quote?.changePct == null
                             ? 'var(--muted)'
-                            : v.q.changePct >= 0
+                            : v.quote.changePct >= 0
                               ? 'var(--green-dark)'
                               : 'var(--red-2)',
                       }}
                     >
-                      {v.q?.changePct == null
+                      {v.quote?.changePct == null
                         ? '—'
-                        : `${v.q.changePct >= 0 ? '▲' : '▼'} ${Math.abs(v.q.changePct).toFixed(1)}%`}
+                        : `${v.quote.changePct >= 0 ? '▲' : '▼'} ${Math.abs(v.quote.changePct).toFixed(1)}%`}
                     </td>
                     <td className="py-2 px-3 text-right font-semibold text-[var(--ink)]">
                       {v.marketValue !== null ? `SAR ${fmt(v.marketValue)}` : '—'}

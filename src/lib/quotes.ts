@@ -34,3 +34,23 @@ export function quoteMap(resp: QuotesResponse): Map<string, QuoteResult> {
   for (const q of resp.quotes) m.set(q.symbol.toUpperCase(), q);
   return m;
 }
+
+export interface TickerHit {
+  symbol: string;
+  name: string;
+  exchange: string;
+  type: string;
+}
+
+export async function searchTickers(query: string): Promise<TickerHit[]> {
+  const q = query.trim();
+  if (!q) return [];
+  try {
+    const res = await fetch(`/api/quotes/search?q=${encodeURIComponent(q)}`);
+    if (!res.ok) return [];
+    const json = await res.json();
+    return Array.isArray(json?.results) ? (json.results as TickerHit[]) : [];
+  } catch {
+    return [];
+  }
+}
