@@ -1,16 +1,105 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { splitName, joinName } from '@/lib/name';
 
 export interface EditableProfile {
   name: string;
+  email: string | null;
+  phone: string | null;
+  birthday: string | null;
   age: number | null;
+  gender: string | null;
   city: string | null;
-  employment: string | null;
-  monthly_income: number;
+  country: string | null;
+  currency: string;
+  marital_status: string | null;
+  life_stage: string | null;
 }
+
+// Dial codes offered in the phone field (region-first, then majors). Default
+// is Saudi Arabia.
+const DIAL_CODES = [
+  { code: '+966', label: '🇸🇦 +966' },
+  { code: '+971', label: '🇦🇪 +971' },
+  { code: '+965', label: '🇰🇼 +965' },
+  { code: '+973', label: '🇧🇭 +973' },
+  { code: '+974', label: '🇶🇦 +974' },
+  { code: '+968', label: '🇴🇲 +968' },
+  { code: '+962', label: '🇯🇴 +962' },
+  { code: '+20', label: '🇪🇬 +20' },
+  { code: '+1', label: '🇺🇸 +1' },
+  { code: '+44', label: '🇬🇧 +44' },
+  { code: '+90', label: '🇹🇷 +90' },
+  { code: '+91', label: '🇮🇳 +91' },
+  { code: '+92', label: '🇵🇰 +92' },
+];
+
+const CURRENCIES = [
+  { code: 'SAR', label: 'SAR — Saudi Riyal' },
+  { code: 'AED', label: 'AED — UAE Dirham' },
+  { code: 'KWD', label: 'KWD — Kuwaiti Dinar' },
+  { code: 'BHD', label: 'BHD — Bahraini Dinar' },
+  { code: 'QAR', label: 'QAR — Qatari Riyal' },
+  { code: 'OMR', label: 'OMR — Omani Rial' },
+  { code: 'USD', label: 'USD — US Dollar' },
+  { code: 'EUR', label: 'EUR — Euro' },
+  { code: 'GBP', label: 'GBP — British Pound' },
+  { code: 'EGP', label: 'EGP — Egyptian Pound' },
+  { code: 'TRY', label: 'TRY — Turkish Lira' },
+  { code: 'INR', label: 'INR — Indian Rupee' },
+];
+
+const GENDERS = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+];
+
+const MARITAL = [
+  { value: 'single', label: 'Single' },
+  { value: 'married', label: 'Married' },
+  { value: 'divorced', label: 'Divorced' },
+  { value: 'widowed', label: 'Widowed' },
+];
+
+const LIFE_STAGES = [
+  { value: 'student', label: 'Student' },
+  { value: 'employed', label: 'Employed' },
+  { value: 'self_employed', label: 'Self-employed' },
+  { value: 'business_owner', label: 'Business owner' },
+  { value: 'unemployed', label: 'Unemployed' },
+  { value: 'retired', label: 'Retired' },
+  { value: 'homemaker', label: 'Homemaker' },
+  { value: 'other', label: 'Other' },
+];
+
+const TODAY = new Date().toISOString().slice(0, 10);
+
+function ageFromBirthday(birthday: string): number | null {
+  if (!birthday) return null;
+  const b = new Date(birthday);
+  if (Number.isNaN(b.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age >= 0 && age < 130 ? age : null;
+}
+
+// Split a stored "+966501234567" into its dial code + local number.
+function splitPhone(phone: string): { dial: string; number: string } {
+  const codes = [...DIAL_CODES].map((d) => d.code).sort((a, b) => b.length - a.length);
+  for (const code of codes) {
+    if (phone.startsWith(code)) return { dial: code, number: phone.slice(code.length) };
+  }
+  return { dial: '+966', number: phone.replace(/^\+/, '') };
+}
+
+const fieldBase =
+  'bg-[var(--surface-input)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--green)]';
+const inputCls = `${fieldBase} w-full`;
+const labelCls = 'text-xs text-[var(--muted)] block mb-1';
 
 export default function EditProfileModal({
   open,
@@ -28,16 +117,26 @@ export default function EditProfileModal({
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [age, setAge] = useState('');
+  const [email, setEmail] = useState('');
+  const [dial, setDial] = useState('+966');
+  const [phone, setPhone] = useState('');
+  const [birthday, setBirthday] = useState('');
+  const [gender, setGender] = useState('');
   const [city, setCity] = useState('');
-  const [employment, setEmployment] = useState('');
-  const [monthlyIncome, setMonthlyIncome] = useState('');
+  const [country, setCountry] = useState('');
+  const [currency, setCurrency] = useState('SAR');
+  const [maritalStatus, setMaritalStatus] = useState('');
+  const [lifeStage, setLifeStage] = useState('');
+  const [detectingCountry, setDetectingCountry] = useState(false);
+
+  const savedAge = useRef<number | null>(null); // preserved when no birthday
+  const countryEdited = useRef(false);
 
   useEffect(() => {
     if (!open) return;
-
     setLoading(true);
     setError(null);
+    countryEdited.current = false;
 
     (async () => {
       const {
@@ -47,7 +146,9 @@ export default function EditProfileModal({
 
       const { data } = await supabase
         .from('profiles')
-        .select('name, age, city, employment, monthly_income')
+        .select(
+          'name, age, city, country, email, phone, birthday, gender, currency, marital_status, life_stage'
+        )
         .eq('id', user.id)
         .single();
 
@@ -55,14 +156,47 @@ export default function EditProfileModal({
         const { firstName, lastName } = splitName(data.name ?? '');
         setFirstName(firstName);
         setLastName(lastName);
-        setAge(data.age != null ? String(data.age) : '');
+        setEmail(data.email ?? user.email ?? '');
+        if (data.phone) {
+          const { dial, number } = splitPhone(String(data.phone));
+          setDial(dial);
+          setPhone(number);
+        } else {
+          setDial('+966');
+          setPhone('');
+        }
+        setBirthday(data.birthday ? String(data.birthday).slice(0, 10) : '');
+        setGender(data.gender ?? '');
         setCity(data.city ?? '');
-        setEmployment(data.employment ?? '');
-        setMonthlyIncome(data.monthly_income != null ? String(data.monthly_income) : '');
+        setCountry(data.country ?? '');
+        setCurrency(data.currency ?? 'SAR');
+        setMaritalStatus(data.marital_status ?? '');
+        setLifeStage(data.life_stage ?? '');
+        savedAge.current = data.age != null ? Number(data.age) : null;
       }
       setLoading(false);
     })();
   }, [open, supabase]);
+
+  // Auto-fill Country from City (unless the user has edited Country by hand).
+  useEffect(() => {
+    if (!open || countryEdited.current) return;
+    const c = city.trim();
+    if (c.length < 2) return;
+    const timer = setTimeout(async () => {
+      setDetectingCountry(true);
+      try {
+        const res = await fetch(`/api/geocode?city=${encodeURIComponent(c)}`);
+        const json = await res.json();
+        if (json?.country && !countryEdited.current) setCountry(json.country);
+      } catch {
+        /* leave country as-is */
+      } finally {
+        setDetectingCountry(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [city, open]);
 
   if (!open) return null;
 
@@ -79,26 +213,28 @@ export default function EditProfileModal({
       return;
     }
 
+    const localNumber = phone.replace(/\D/g, '');
     const updated: EditableProfile = {
       name: joinName(firstName, lastName),
-      age: age.trim() === '' ? null : Number(age),
-      city: city.trim() === '' ? null : city.trim(),
-      employment: employment.trim() === '' ? null : employment.trim(),
-      monthly_income: monthlyIncome.trim() === '' ? 0 : Number(monthlyIncome),
+      email: email.trim() || null,
+      phone: localNumber ? `${dial}${localNumber}` : null,
+      birthday: birthday || null,
+      age: birthday ? ageFromBirthday(birthday) : savedAge.current,
+      gender: gender || null,
+      city: city.trim() || null,
+      country: country.trim() || null,
+      currency: currency || 'SAR',
+      marital_status: maritalStatus || null,
+      life_stage: lifeStage || null,
     };
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(updated)
-      .eq('id', user.id);
-
+    const { error } = await supabase.from('profiles').update(updated).eq('id', user.id);
     setSaving(false);
 
     if (error) {
       setError(error.message);
       return;
     }
-
     onSaved(updated);
     onClose();
   }
@@ -113,9 +249,7 @@ export default function EditProfileModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-serif text-xl font-semibold text-[var(--ink)]">
-            Edit profile
-          </h2>
+          <h2 className="font-serif text-xl font-semibold text-[var(--ink)]">Edit profile</h2>
           <button
             onClick={onClose}
             className="text-[var(--muted)] hover:text-[var(--ink)] text-sm"
@@ -131,70 +265,121 @@ export default function EditProfileModal({
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-[var(--muted)] block mb-1">First name</label>
-                <input
-                  type="text"
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
-                />
+                <label className={labelCls}>First name</label>
+                <input type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className="text-xs text-[var(--muted)] block mb-1">Last name</label>
+                <label className={labelCls}>Last name</label>
+                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputCls} />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Email</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className={inputCls} />
+            </div>
+
+            <div>
+              <label className={labelCls}>Phone number</label>
+              <div className="flex gap-2">
+                <select value={dial} onChange={(e) => setDial(e.target.value)} className={`${fieldBase} w-24 shrink-0`}>
+                  {DIAL_CODES.map((d) => (
+                    <option key={d.code} value={d.code}>{d.label}</option>
+                  ))}
+                </select>
                 <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="5X XXX XXXX"
+                  className={`${fieldBase} flex-1 min-w-0`}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-[var(--muted)] block mb-1">Age</label>
+                <label className={labelCls}>Birthday</label>
                 <input
-                  type="number"
-                  min={0}
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
+                  type="date"
+                  value={birthday}
+                  max={TODAY}
+                  min="1920-01-01"
+                  onChange={(e) => setBirthday(e.target.value)}
+                  className={inputCls}
                 />
+                {birthday && ageFromBirthday(birthday) !== null && (
+                  <div className="text-[11px] text-[var(--muted)] mt-1">Age {ageFromBirthday(birthday)}</div>
+                )}
               </div>
               <div>
-                <label className="text-xs text-[var(--muted)] block mb-1">City</label>
+                <label className={labelCls}>Gender</label>
+                <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputCls}>
+                  <option value="">Select…</option>
+                  {GENDERS.map((g) => (
+                    <option key={g.value} value={g.value}>{g.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>City</label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
+                  placeholder="e.g. Riyadh"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>
+                  Country {detectingCountry && <span className="text-[var(--gold)]">· detecting…</span>}
+                </label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => {
+                    countryEdited.current = true;
+                    setCountry(e.target.value);
+                  }}
+                  placeholder="Auto-filled from city"
+                  className={inputCls}
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-[var(--muted)] block mb-1">Employment</label>
-              <input
-                type="text"
-                value={employment}
-                onChange={(e) => setEmployment(e.target.value)}
-                placeholder="e.g. Private sector (banking)"
-                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
-              />
+              <label className={labelCls}>Main currency</label>
+              <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={inputCls}>
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.label}</option>
+                ))}
+              </select>
+              <div className="text-[11px] text-[var(--muted)] mt-1">Used across your financial details.</div>
             </div>
 
-            <div>
-              <label className="text-xs text-[var(--muted)] block mb-1">
-                Monthly income (SAR)
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={monthlyIncome}
-                onChange={(e) => setMonthlyIncome(e.target.value)}
-                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Marital status</label>
+                <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} className={inputCls}>
+                  <option value="">Select…</option>
+                  {MARITAL.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Point in life</label>
+                <select value={lifeStage} onChange={(e) => setLifeStage(e.target.value)} className={inputCls}>
+                  <option value="">Select…</option>
+                  {LIFE_STAGES.map((l) => (
+                    <option key={l.value} value={l.value}>{l.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {error && (
