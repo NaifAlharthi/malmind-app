@@ -191,6 +191,45 @@ body {
     'Segoe UI', 'Tahoma', serif;
 }
 
+/* ───────────────────────────────────────────────────────────────
+   Timeline nav — a little figure that walks along Past · Today · Future
+   as you switch views. Position animates on the wrapper; leg/arm swing +
+   bob run only while `.mm-walking` is set.
+   ─────────────────────────────────────────────────────────────── */
+.mm-band {
+  transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mm-figure {
+  transition: left 0.75s cubic-bezier(0.45, 0.05, 0.2, 1);
+  transform: translateX(-50%);
+}
+.mm-limb {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+}
+@keyframes mm-legA { 0%, 100% { transform: rotate(26deg); } 50% { transform: rotate(-26deg); } }
+@keyframes mm-legB { 0%, 100% { transform: rotate(-26deg); } 50% { transform: rotate(26deg); } }
+@keyframes mm-armA { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(20deg); } }
+@keyframes mm-armB { 0%, 100% { transform: rotate(20deg); } 50% { transform: rotate(-20deg); } }
+@keyframes mm-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+.mm-figure.mm-walking .mm-bobber { animation: mm-bob 0.34s linear infinite; }
+.mm-figure.mm-walking .mm-legA { animation: mm-legA 0.34s linear infinite; }
+.mm-figure.mm-walking .mm-legB { animation: mm-legB 0.34s linear infinite; }
+.mm-figure.mm-walking .mm-armA { animation: mm-armA 0.34s linear infinite; }
+.mm-figure.mm-walking .mm-armB { animation: mm-armB 0.34s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-band { transition: none; }
+  .mm-figure { transition: none; }
+  .mm-figure.mm-walking .mm-bobber,
+  .mm-figure.mm-walking .mm-legA,
+  .mm-figure.mm-walking .mm-legB,
+  .mm-figure.mm-walking .mm-armA,
+  .mm-figure.mm-walking .mm-armB {
+    animation: none;
+  }
+}
+
 /* the floating Brain and its panel live in the bottom-left corner in RTL */
 [dir="rtl"] .mm-brain,
 [dir="rtl"] .mm-brain-panel {

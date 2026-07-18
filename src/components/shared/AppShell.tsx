@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import EditProfileModal from './EditProfileModal';
 import DemoTour from './DemoTour';
+import TimelineNav from './TimelineNav';
 import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
@@ -86,16 +87,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   // Desktop top-bar nav pill.
-  function TopNavLink({ href, labelKey, icon }: { href: string; labelKey: string; icon: string }) {
+  function TopNavLink({ href, labelKey, icon, className = '' }: { href: string; labelKey: string; icon: string; className?: string }) {
     const active = pathname === href.split('?')[0];
     return (
       <Link
         href={href}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+        className={`items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors shrink-0 ${
           active
             ? 'bg-[var(--ink)] text-[var(--surface-0)] font-medium'
             : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
-        }`}
+        } ${className}`}
       >
         <span>{icon}</span>
         <span>{t(labelKey)}</span>
@@ -125,20 +126,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     >
       <div className="min-h-screen bg-[var(--surface-0)] text-[var(--ink)] flex flex-col">
         {/* ── top bar ── */}
-        <header className="sticky top-0 z-40 h-14 bg-[var(--surface-card)]/95 backdrop-blur border-b border-[var(--border-default)]">
-          <div className="max-w-4xl mx-auto h-full px-4 sm:px-6 flex items-center gap-2">
+        <header className="sticky top-0 z-40 bg-[var(--surface-card)]/95 backdrop-blur border-b border-[var(--border-default)]">
+          <div className="max-w-4xl mx-auto min-h-14 px-4 sm:px-6 flex items-center gap-2">
             <Link href="/home" className="font-serif text-lg font-semibold tracking-tight shrink-0">
               Mal<span className="text-[var(--green)]">Mind</span>
             </Link>
 
-            {/* desktop nav */}
-            <nav className="hidden sm:flex items-center gap-1 ms-3">
-              {NAV_ITEMS.map((item) => (
-                <TopNavLink key={item.href} {...item} />
-              ))}
-            </nav>
+            {/* desktop nav: Home + the walking timeline + the Brain */}
+            <TopNavLink href="/home" labelKey="nav.home" icon="⌂" className="hidden sm:flex ms-2" />
+            <TimelineNav className="hidden sm:block flex-1 min-w-0 mx-1" />
+            <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" />
 
-            <div className="flex-1" />
+            {/* mobile: push utilities to the right (nav lives in the bottom bar) */}
+            <div className="flex-1 sm:hidden" />
 
             {/* utilities */}
             <div className="flex items-center gap-1 shrink-0">
