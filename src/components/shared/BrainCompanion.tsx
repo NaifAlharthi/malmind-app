@@ -140,7 +140,7 @@ export default function BrainCompanion() {
       <button
         onClick={() => { setOpen((o) => !o); excitementRef.current = 2; }}
         title={t('brain.tooltip', { level: level.level, name: levelName })}
-        className="mm-brain fixed bottom-5 right-5 z-40 w-24 h-24 rounded-full cursor-pointer focus:outline-none"
+        className="mm-brain fixed bottom-20 sm:bottom-5 right-5 z-40 w-24 h-24 rounded-full cursor-pointer focus:outline-none"
         style={{ background: 'transparent' }}
         aria-label={t('brain.open')}
       >
@@ -156,7 +156,7 @@ export default function BrainCompanion() {
 
       {/* training panel */}
       {open && (
-        <div className="mm-brain-panel fixed bottom-32 right-5 z-40 w-80 max-w-[92vw] bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl p-5">
+        <div className="mm-brain-panel fixed bottom-44 sm:bottom-32 right-5 z-40 w-80 max-w-[92vw] bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl p-5">
           <div className="flex items-start justify-between mb-1">
             <div>
               <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)]">{t('brain.title')}</div>

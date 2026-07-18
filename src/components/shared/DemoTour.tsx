@@ -260,7 +260,7 @@ export default function DemoTour() {
   // ── Tour finished / skipped: persistent demo banner ──
   if (step == null || !current) {
     return (
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 bg-[#0F2A1E] text-white rounded-full pl-5 pr-2 py-2 shadow-xl border border-[#5DCAA5]/40 max-w-[94vw]">
+      <div className="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 bg-[#0F2A1E] text-white rounded-full pl-5 pr-2 py-2 shadow-xl border border-[#5DCAA5]/40 max-w-[94vw]">
         <span className="text-xs whitespace-nowrap">
           👀 Exploring as <strong className="font-semibold">Sara</strong> — demo data, nothing saved
         </span>

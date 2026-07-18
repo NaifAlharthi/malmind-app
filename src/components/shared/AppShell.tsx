@@ -36,12 +36,15 @@ export function useProfileContext() {
 }
 
 // The whole product hangs off three time views (each hub page carries its
-// own toolbox drawer of feature pages), so the sidebar stays calm: Home,
-// the three views, and the Brain.
-const VIEW_ITEMS = [
+// own toolbox drawer of feature pages), so the nav stays calm: Home, the
+// three views, and the Brain — a single row that lives in the top bar on
+// desktop and a bottom tab bar on mobile.
+const NAV_ITEMS = [
+  { href: '/home', labelKey: 'nav.home', icon: '⌂' },
   { href: '/past', labelKey: 'nav.past', icon: '🕰' },
   { href: '/today', labelKey: 'nav.today', icon: '☀' },
   { href: '/future', labelKey: 'nav.future', icon: '🔭' },
+  { href: '/advisor', labelKey: 'nav.brain', icon: '🧠' },
 ];
 
 const FULL_BLEED_PATHS = ['/', '/onboarding', '/login', '/signup'];
@@ -53,7 +56,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const { locale, setLocale, t } = useLocale();
   const [initials, setInitials] = useState('?');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileVersion, setProfileVersion] = useState(0);
 
@@ -83,21 +85,36 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     router.push('/login');
   }
 
-  function NavLink({ href, label, labelKey, icon }: { href: string; label?: string; labelKey?: string; icon: string }) {
-    const hrefPath = href.split('?')[0];
-    const active = pathname === hrefPath;
+  // Desktop top-bar nav pill.
+  function TopNavLink({ href, labelKey, icon }: { href: string; labelKey: string; icon: string }) {
+    const active = pathname === href.split('?')[0];
     return (
       <Link
         href={href}
-        onClick={() => setSidebarOpen(false)}
-        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
           active
             ? 'bg-[var(--ink)] text-[var(--surface-0)] font-medium'
             : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
         }`}
       >
-        <span className="text-sm w-4 text-center">{icon}</span>
-        <span className="truncate">{labelKey ? t(labelKey) : label}</span>
+        <span>{icon}</span>
+        <span>{t(labelKey)}</span>
+      </Link>
+    );
+  }
+
+  // Mobile bottom tab.
+  function BottomTab({ href, labelKey, icon }: { href: string; labelKey: string; icon: string }) {
+    const active = pathname === href.split('?')[0];
+    return (
+      <Link
+        href={href}
+        className={`flex-1 flex flex-col items-center justify-center gap-0.5 ${
+          active ? 'text-[var(--green-dark)]' : 'text-[var(--muted)]'
+        }`}
+      >
+        <span className="text-lg leading-none">{icon}</span>
+        <span className={`text-[10px] ${active ? 'font-semibold' : ''}`}>{t(labelKey)}</span>
       </Link>
     );
   }
@@ -106,121 +123,69 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <ProfileContext.Provider
       value={{ openEditProfile: () => setEditProfileOpen(true), profileVersion }}
     >
-      <div className="min-h-screen bg-[var(--surface-0)] text-[var(--ink)] flex">
-      {/* mobile top bar */}
-      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-[var(--surface-card)] border-b border-[var(--border-default)] flex items-center justify-between px-4">
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-xl">
-          ☰
-        </button>
-        <Link href="/home" className="font-serif text-lg font-semibold">
-          Mal<span className="text-[var(--green)]">Mind</span>
-        </Link>
-        <button
-          onClick={() => setEditProfileOpen(true)}
-          title="Edit profile"
-          className="w-7 h-7 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-[10px] font-semibold text-[var(--green-dark)] hover:bg-[var(--green-hover-bg)] transition-colors"
-        >
-          {initials}
-        </button>
-      </div>
+      <div className="min-h-screen bg-[var(--surface-0)] text-[var(--ink)] flex flex-col">
+        {/* ── top bar ── */}
+        <header className="sticky top-0 z-40 h-14 bg-[var(--surface-card)]/95 backdrop-blur border-b border-[var(--border-default)]">
+          <div className="max-w-4xl mx-auto h-full px-4 sm:px-6 flex items-center gap-2">
+            <Link href="/home" className="font-serif text-lg font-semibold tracking-tight shrink-0">
+              Mal<span className="text-[var(--green)]">Mind</span>
+            </Link>
 
-      {/* sidebar */}
-      <aside
-        data-open={sidebarOpen}
-        className={`mm-sidebar fixed sm:sticky top-0 sm:top-0 left-0 h-screen w-64 bg-[var(--surface-card)] border-r border-[var(--border-default)] flex flex-col z-30 transition-transform sm:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } pt-14 sm:pt-0`}
-      >
-        <div className="hidden sm:flex items-center justify-between px-5 h-14 border-b border-[var(--border-default)]">
-          <Link href="/home" className="font-serif text-xl font-semibold tracking-tight">
-            Mal<span className="text-[var(--green)]">Mind</span>
-          </Link>
-          <button
-            onClick={() => setEditProfileOpen(true)}
-            title={t('common.editProfile')}
-            className="w-7 h-7 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-[10px] font-semibold text-[var(--green-dark)] hover:bg-[var(--green-hover-bg)] transition-colors"
-          >
-            {initials}
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-          <div>
-            <NavLink href="/home" labelKey="nav.home" icon="⌂" />
-          </div>
-
-          <div>
-            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--gold)]">
-              {t('nav.section.views')}
-            </div>
-            <div className="space-y-0.5">
-              {VIEW_ITEMS.map((item) => (
-                <NavLink key={item.labelKey} {...item} />
+            {/* desktop nav */}
+            <nav className="hidden sm:flex items-center gap-1 ms-3">
+              {NAV_ITEMS.map((item) => (
+                <TopNavLink key={item.href} {...item} />
               ))}
-            </div>
-          </div>
+            </nav>
 
-          <div>
-            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--muted)]">
-              {t('nav.section.alwaysOn')}
-            </div>
-            <NavLink href="/advisor" labelKey="nav.brain" icon="🧠" />
-          </div>
-        </div>
+            <div className="flex-1" />
 
-        <div className="p-3 border-t border-[var(--border-default)] space-y-0.5">
-          {/* language switcher */}
-          <div className="flex items-center gap-1 px-1 mb-1">
-            <span className="text-sm w-4 text-center text-[var(--muted)]">🌐</span>
-            <div className="flex-1 flex bg-[var(--surface-1)] rounded-lg p-0.5">
+            {/* utilities */}
+            <div className="flex items-center gap-1 shrink-0">
               <button
-                onClick={() => setLocale('en')}
-                className={`flex-1 rounded-md px-2 py-1 text-xs transition-colors ${
-                  locale === 'en'
-                    ? 'bg-[var(--surface-card)] text-[var(--ink)] font-medium shadow-sm'
-                    : 'text-[var(--muted)] hover:text-[var(--ink-2)]'
-                }`}
+                onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
+                title={t('common.language')}
+                className="h-8 px-2 rounded-lg text-xs text-[var(--ink-2)] hover:bg-[var(--surface-1)] flex items-center gap-1"
               >
-                English
+                <span>🌐</span>
+                <span className="font-medium">{locale === 'en' ? 'ع' : 'EN'}</span>
               </button>
               <button
-                onClick={() => setLocale('ar')}
-                className={`flex-1 rounded-md px-2 py-1 text-xs transition-colors ${
-                  locale === 'ar'
-                    ? 'bg-[var(--surface-card)] text-[var(--ink)] font-medium shadow-sm'
-                    : 'text-[var(--muted)] hover:text-[var(--ink-2)]'
-                }`}
+                onClick={toggleTheme}
+                title={theme === 'dark' ? t('common.lightMode') : t('common.darkMode')}
+                className="h-8 w-8 rounded-lg text-[var(--ink-2)] hover:bg-[var(--surface-1)] flex items-center justify-center text-sm"
               >
-                العربية
+                {theme === 'dark' ? '☀' : '☾'}
+              </button>
+              <button
+                onClick={() => setEditProfileOpen(true)}
+                title={t('common.editProfile')}
+                className="w-8 h-8 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-[10px] font-semibold text-[var(--green-dark)] hover:bg-[var(--green-hover-bg)] transition-colors"
+              >
+                {initials}
+              </button>
+              <button
+                onClick={handleSignOut}
+                title={t('common.signOut')}
+                className="h-8 px-2 rounded-lg text-xs text-[var(--muted)] hover:bg-[var(--surface-1)] flex items-center"
+              >
+                <span className="hidden sm:inline">{t('common.signOut')}</span>
+                <span className="sm:hidden text-sm">⏻</span>
               </button>
             </div>
           </div>
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center gap-2.5 text-start px-3 py-2 rounded-lg text-xs text-[var(--ink-2)] hover:bg-[var(--surface-1)]"
-          >
-            <span className="text-sm w-4 text-center">{theme === 'dark' ? '☀' : '☾'}</span>
-            {theme === 'dark' ? t('common.lightMode') : t('common.darkMode')}
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="w-full text-start px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:bg-[var(--surface-1)]"
-          >
-            {t('common.signOut')}
-          </button>
-        </div>
-      </aside>
+        </header>
 
-      {sidebarOpen && (
-        <div
-          className="sm:hidden fixed inset-0 bg-[var(--scrim)] z-20"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+        <main className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-8 max-w-4xl mx-auto w-full">
+          {children}
+        </main>
 
-      <main className="flex-1 min-w-0 px-6 py-8 pt-20 sm:pt-8 max-w-4xl mx-auto w-full">
-        {children}
-      </main>
+        {/* ── mobile bottom tab bar ── */}
+        <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[var(--surface-card)] border-t border-[var(--border-default)] flex items-stretch">
+          {NAV_ITEMS.map((item) => (
+            <BottomTab key={item.href} {...item} />
+          ))}
+        </nav>
 
       <EditProfileModal
         open={editProfileOpen}

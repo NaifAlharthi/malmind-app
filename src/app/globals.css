@@ -191,27 +191,6 @@ body {
     'Segoe UI', 'Tahoma', serif;
 }
 
-/* the flex row already puts the sidebar on the right at desktop; just move
-   its divider to the inner (left) edge */
-[dir="rtl"] .mm-sidebar {
-  border-right: 0;
-  border-left: 1px solid var(--border-default);
-}
-
-/* mobile drawer slides in from the right in RTL */
-@media (max-width: 639px) {
-  [dir="rtl"] .mm-sidebar {
-    left: auto;
-    right: 0;
-  }
-  [dir="rtl"] .mm-sidebar[data-open="false"] {
-    transform: translateX(100%);
-  }
-  [dir="rtl"] .mm-sidebar[data-open="true"] {
-    transform: translateX(0);
-  }
-}
-
 /* the floating Brain and its panel live in the bottom-left corner in RTL */
 [dir="rtl"] .mm-brain,
 [dir="rtl"] .mm-brain-panel {
