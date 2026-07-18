@@ -1,6 +1,7 @@
 'use client';
 
 import CaptureSection, { type FieldDef } from '@/components/shared/CaptureSection';
+import LivePortfolio from './LivePortfolio';
 
 const ASSET_TYPE_OPTIONS = [
   { value: 'cash', label: 'Cash' },
@@ -69,6 +70,8 @@ export default function HoldingsPage() {
         Capture what you own and what you owe. Everything you log here feeds your ratios, your net worth, and the 3D
         world on your home page — the more you add, the sharper the whole picture gets.
       </p>
+
+      <LivePortfolio />
 
       <CaptureSection
         icon="💼"
