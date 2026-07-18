@@ -12,9 +12,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
-  AreaChart, Area,
+  AreaChart, Area, PieChart, Pie,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -34,6 +34,12 @@ interface Goal {
   start_date: string; maturity_years: number;
 }
 
+interface DebtItem {
+  name: string;
+  original: number | null; // null when the starting amount is unknown
+  balance: number;
+}
+
 interface Data {
   profile: {
     monthly_income: number; side_income: number; monthly_expense: number;
@@ -44,6 +50,7 @@ interface Data {
   goals: Goal[];
   actualsByGoal: Record<string, number>;
   liveInvested: number | null;
+  debtItems: DebtItem[];
 }
 
 function fmt(n: number) {
@@ -67,10 +74,10 @@ function avg(xs: number[]) {
 
 // ── The four stages, in their usual order of progression ────────────────
 const QUADS = {
-  A: { title: 'Build mode', mood: 'Not enough income or assets yet', move: 'Generate income & first assets', incomeH: 10, outflowH: 20 },
-  B: { title: 'Falling behind', mood: 'Outflow outweighs income', move: 'Flip the balance', incomeH: 16, outflowH: 24 },
-  C: { title: 'Break-even', mood: 'Income covers outflow, nothing left', move: 'Create surplus & protect it', incomeH: 21, outflowH: 20 },
-  D: { title: 'Abundance', mood: 'Durable surplus — make it work', move: 'Multiply the surplus', incomeH: 24, outflowH: 15 },
+  A: { title: 'Build mode', mood: 'Little income or assets yet', move: 'Generate income & first assets', incomeH: 12, outflowH: 24 },
+  B: { title: 'Falling behind', mood: 'Outflow exceeds income', move: 'Flip the balance', incomeH: 19, outflowH: 28 },
+  C: { title: 'Break-even', mood: 'Covers costs, nothing left', move: 'Create surplus & protect it', incomeH: 25, outflowH: 24 },
+  D: { title: 'Abundance', mood: 'Durable surplus to deploy', move: 'Multiply the surplus', incomeH: 28, outflowH: 18 },
 } as const;
 type QuadKey = keyof typeof QUADS;
 
@@ -97,7 +104,7 @@ export default function TodayDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [profileRes, snapsRes, goalsRes, actualsRes] = await Promise.all([
+      const [profileRes, snapsRes, goalsRes, actualsRes, loansRes, liabsRes] = await Promise.all([
         supabase.from('profiles')
           .select('monthly_income, side_income, monthly_expense, liquid_savings, monthly_debt_payments, has_health_insurance')
           .eq('id', user.id).single(),
@@ -108,6 +115,8 @@ export default function TodayDashboard() {
           .select('id, name, target_amount, monthly_contribution, start_date, maturity_years')
           .eq('user_id', user.id),
         supabase.from('goal_fund_actuals').select('goal_fund_id, actual_amount').eq('user_id', user.id),
+        supabase.from('loans').select('name, original_amount, balance').eq('user_id', user.id),
+        supabase.from('liabilities').select('name, original_amount, balance').eq('user_id', user.id),
       ]);
 
       const actualsByGoal: Record<string, number> = {};
@@ -125,12 +134,26 @@ export default function TodayDashboard() {
         }
       } catch { /* fine without */ }
 
+      // Every named debt: bank loans + general liabilities, one list.
+      const debtItems: DebtItem[] = [
+        ...(((loansRes.data ?? []) as { name: string; original_amount: number | null; balance: number }[])),
+        ...(((liabsRes.data ?? []) as { name: string; original_amount: number | null; balance: number }[])),
+      ]
+        .map((r) => ({
+          name: r.name,
+          original: r.original_amount != null && Number(r.original_amount) > 0 ? Number(r.original_amount) : null,
+          balance: Number(r.balance) || 0,
+        }))
+        .filter((r) => r.balance > 0 || (r.original ?? 0) > 0)
+        .sort((a, b) => b.balance - a.balance);
+
       setData({
         profile: (profileRes.data as Data['profile']) ?? null,
         snaps: (snapsRes.data as Snap[]) ?? [],
         goals: (goalsRes.data as Goal[]) ?? [],
         actualsByGoal,
         liveInvested,
+        debtItems,
       });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -154,6 +177,7 @@ export default function TodayDashboard() {
       label: `${MONTHS[s.month - 1]} ${String(s.year).slice(2)}`,
       income: Number(s.income),
       expenses: Number(s.expenses),
+      net: Number(s.income) - Number(s.expenses),
     }));
 
     // wealth pace: avg month-over-month net-worth change (≤ last 12)
@@ -213,6 +237,7 @@ export default function TodayDashboard() {
       invested, liveIsUsed: d.liveInvested != null, freedom,
       risks, salary, side, goal,
       goalSaved: goal ? d.actualsByGoal[goal.id] ?? 0 : 0,
+      debtItems: d.debtItems,
     };
   }, [d]);
 
@@ -232,7 +257,7 @@ export default function TodayDashboard() {
   const {
     avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow, quad,
     nwPace, nwSeries, milestone, monthsToMilestone, invested, liveIsUsed, freedom,
-    risks, salary, side, goal, goalSaved,
+    risks, salary, side, goal, goalSaved, debtItems,
   } = derived;
 
   const delta = avgIncome - avgExpenses;
@@ -248,9 +273,9 @@ export default function TodayDashboard() {
   return (
     <div className="space-y-3 mb-6">
       {/* ── Row 1: position + cash flow ── */}
-      <div className="grid lg:grid-cols-5 gap-3">
-        <Card className="lg:col-span-2" title={t('today.quad.title')} href="/positioning">
-          <QuadrantMap active={quad} />
+      <div className="grid lg:grid-cols-2 gap-3">
+        <Card title={t('today.quad.title')} href="/positioning">
+          <QuadrantMap active={quad} hereLabel={t('today.quad.here')} />
           {quad && (
             <p className="text-xs text-[var(--ink-2)] leading-relaxed mt-2">
               <strong className="text-[var(--ink)]">{QUADS[quad].title}.</strong> {QUADS[quad].mood} — the move:{' '}
@@ -259,7 +284,7 @@ export default function TodayDashboard() {
           )}
         </Card>
 
-        <Card className="lg:col-span-3" title={t('today.cash.title')} href="/financial-numbers">
+        <Card title={t('today.cash.title')} href="/financial-numbers">
           <div className="flex items-baseline gap-4 flex-wrap mb-2">
             <div>
               <div className="text-[10px] text-[var(--muted)]">{t('today.cash.avgIncome')}</div>
@@ -279,58 +304,87 @@ export default function TodayDashboard() {
               {delta >= 0 ? '▲' : '▼'} {money(Math.abs(delta))}/mo {delta >= 0 ? t('today.cash.surplus') : t('today.cash.deficit')}
             </span>
           </div>
-          <div className="h-36" dir="ltr">
+          <div className="h-48" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={cashFlow} barGap={2}>
+              <BarChart data={cashFlow} barGap={2} margin={{ top: 16, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: 'var(--muted)' }} tickFormatter={fmtCompact} width={34} axisLine={false} tickLine={false} />
                 <Tooltip formatter={(v) => `SAR ${fmt(Number(v))}`} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                {/* lock the eye onto the present: mark the latest + previous month */}
+                {cashFlow.length >= 2 && (
+                  <ReferenceLine
+                    x={cashFlow[cashFlow.length - 2].label}
+                    stroke="var(--muted)" strokeDasharray="3 3"
+                    label={{ value: t('today.cash.last'), position: 'top', fontSize: 9, fill: 'var(--muted)' }}
+                  />
+                )}
+                {cashFlow.length >= 1 && (
+                  <ReferenceLine
+                    x={cashFlow[cashFlow.length - 1].label}
+                    stroke="var(--gold-2)" strokeDasharray="3 3"
+                    label={{ value: t('today.cash.current'), position: 'top', fontSize: 9, fill: 'var(--gold-2)' }}
+                  />
+                )}
                 <Bar dataKey="income" name="Income" fill="var(--green)" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="expenses" name="Expenses" fill="var(--amber)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="net" name={t('today.cash.net')} radius={[3, 3, 0, 0]}>
+                  {cashFlow.map((e, i) => (
+                    <Cell key={i} fill={e.net >= 0 ? 'var(--blue-2)' : 'var(--red)'} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
       </div>
 
-      {/* ── Row 2: sources · debt · risks ── */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* ── Row 2: income sources (pie) + risk radar ── */}
+      <div className="grid sm:grid-cols-2 gap-3">
         <Card title={t('today.sources.title')} href="/lifetime-income">
-          <div className="font-serif text-3xl font-bold text-[var(--ink)] mb-2">
-            {(salary > 0 ? 1 : 0) + (side > 0 ? 1 : 0)}
-          </div>
           {salary + side > 0 ? (
-            <>
-              <div className="flex h-3 rounded-full overflow-hidden mb-2" dir="ltr">
-                <div style={{ width: `${(salary / (salary + side)) * 100}%`, background: 'var(--green)' }} />
-                {side > 0 && <div style={{ width: `${(side / (salary + side)) * 100}%`, background: 'var(--blue)' }} />}
+            <div className="flex items-center gap-3">
+              <div className="relative h-32 w-32 shrink-0" dir="ltr">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Employer salary', value: salary },
+                        ...(side > 0 ? [{ name: 'Side income', value: side }] : []),
+                      ]}
+                      dataKey="value" nameKey="name"
+                      innerRadius={38} outerRadius={56} paddingAngle={side > 0 ? 3 : 0}
+                      stroke="none"
+                    >
+                      <Cell fill="var(--green)" />
+                      {side > 0 && <Cell fill="var(--blue)" />}
+                    </Pie>
+                    <Tooltip formatter={(v) => `SAR ${fmt(Number(v))}`} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="font-serif text-2xl font-bold text-[var(--ink)]">{(salary > 0 ? 1 : 0) + (side > 0 ? 1 : 0)}</span>
+                </div>
               </div>
-              <div className="space-y-1 text-xs text-[var(--ink-2)]">
+              <div className="min-w-0 flex-1 space-y-1.5 text-xs text-[var(--ink-2)]">
                 <div className="flex justify-between gap-2">
                   <span><span className="inline-block w-2 h-2 rounded-full me-1.5" style={{ background: 'var(--green)' }} />Employer salary</span>
-                  <span className="font-medium">{money(salary)}</span>
+                  <span className="font-medium whitespace-nowrap">{money(salary)}</span>
                 </div>
-                {side > 0 && (
+                {side > 0 ? (
                   <div className="flex justify-between gap-2">
                     <span><span className="inline-block w-2 h-2 rounded-full me-1.5" style={{ background: 'var(--blue)' }} />Side income</span>
-                    <span className="font-medium">{money(side)}</span>
+                    <span className="font-medium whitespace-nowrap">{money(side)}</span>
                   </div>
+                ) : (
+                  <p className="text-[11px] text-[var(--gold-text-alt)]">⚠ Everything rides on one source.</p>
                 )}
               </div>
-              {side === 0 && (
-                <p className="text-[11px] text-[var(--gold-text-alt)] mt-2">⚠ Everything rides on one source.</p>
-              )}
-            </>
+            </div>
           ) : (
             <p className="text-xs text-[var(--muted)]">Set your income in Edit Profile.</p>
           )}
-        </Card>
-
-        <Card title={t('today.debt.title')} href="/commitments">
-          <div className="font-serif text-2xl font-bold text-[var(--ink)] mb-3">{money(liabilities)}</div>
-          <Gauge label={t('today.debt.vsIncome')} pct={debtVsIncome} />
-          <Gauge label={t('today.debt.vsAssets')} pct={debtVsAssets} />
         </Card>
 
         <Card title={t('today.risks.title')} href="/risks">
@@ -363,7 +417,49 @@ export default function TodayDashboard() {
         </Card>
       </div>
 
-      {/* ── Row 3: plan + pace ── */}
+      {/* ── Row 3: debt load — each liability, paid vs remaining ── */}
+      <Card title={t('today.debt.title')} href="/commitments">
+        <div className="flex items-start justify-between gap-4 flex-wrap mb-3">
+          <div className="font-serif text-2xl font-bold text-[var(--ink)]">{money(liabilities)}</div>
+          {/* the two ratios, folded in as compact gauges */}
+          <div className="flex gap-5">
+            <div className="w-32"><Gauge label={t('today.debt.vsIncome')} pct={debtVsIncome} /></div>
+            <div className="w-32"><Gauge label={t('today.debt.vsAssets')} pct={debtVsAssets} /></div>
+          </div>
+        </div>
+
+        {debtItems.length > 0 ? (
+          <>
+            <div className="space-y-2.5">
+              {debtItems.map((item) => (
+                <DebtBar key={item.name} name={item.name} original={item.original} balance={item.balance} />
+              ))}
+              <div className="pt-2.5 border-t border-[var(--border-default)]">
+                <DebtBar
+                  name={t('today.debt.all')}
+                  original={
+                    debtItems.some((x) => x.original != null)
+                      ? debtItems.reduce((s, x) => s + (x.original ?? x.balance), 0)
+                      : null
+                  }
+                  balance={debtItems.reduce((s, x) => s + x.balance, 0)}
+                  bold
+                />
+              </div>
+            </div>
+            <div className="flex gap-4 mt-3 text-[10px] text-[var(--muted)]">
+              <span><span className="inline-block w-2.5 h-2.5 rounded-sm me-1" style={{ background: 'var(--blue-2)' }} />{t('today.debt.paid')}</span>
+              <span><span className="inline-block w-2.5 h-2.5 rounded-sm me-1" style={{ background: 'var(--chart-soft-green)' }} />{t('today.debt.remaining')}</span>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-[var(--muted)]">
+            Add your loans and liabilities in Bills &amp; Commitments to see each one&apos;s payoff progress here.
+          </p>
+        )}
+      </Card>
+
+      {/* ── Row 4: plan + pace ── */}
       <div className="grid lg:grid-cols-2 gap-3">
         <Card title={t('today.plan.title')} href="/goal-fund">
           {goal ? (
@@ -490,6 +586,40 @@ export default function TodayDashboard() {
     );
   }
 
+  // One liability as a horizontal paid-vs-remaining bar (blue = paid so far,
+  // green = still owed), with the paid share called out as a percentage.
+  function DebtBar({ name, original, balance, bold }: { name: string; original: number | null; balance: number; bold?: boolean }) {
+    const paid = original != null ? Math.max(0, original - balance) : null;
+    const paidPct = original != null && original > 0 && paid != null ? (paid / original) * 100 : null;
+    return (
+      <div>
+        <div className="flex justify-between items-baseline gap-2 mb-1">
+          <span className={`text-xs truncate ${bold ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-2)]'}`}>{name}</span>
+          {paidPct != null && (
+            <span className="text-[10px] font-semibold whitespace-nowrap" style={{ color: 'var(--red-2)' }}>
+              {paidPct.toFixed(paidPct < 10 ? 1 : 0)}% {t('today.debt.paid').toLowerCase()}
+            </span>
+          )}
+        </div>
+        <div className="flex h-5 rounded-md overflow-hidden bg-[var(--surface-1)]" dir="ltr">
+          {paid != null && paidPct != null && paid > 0 && (
+            <div
+              className="flex items-center justify-end px-1.5 shrink-0"
+              style={{ width: `${Math.max(1.5, paidPct)}%`, background: 'var(--blue-2)' }}
+            >
+              {paidPct > 20 && <span className="text-[9px] font-medium text-white whitespace-nowrap">{fmt(paid)}</span>}
+            </div>
+          )}
+          <div className="flex-1 flex items-center px-1.5 min-w-0" style={{ background: 'var(--chart-soft-green)' }}>
+            {balance > 0 && (
+              <span className="text-[9px] font-semibold whitespace-nowrap" style={{ color: '#1F3324' }}>{fmt(balance)}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function HeroStat({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
     return (
       <div>
@@ -502,18 +632,20 @@ export default function TodayDashboard() {
 }
 
 // ── The A→B→C→D quadrant map ─────────────────────────────────────────────
-// Horseshoe path: A (top-left) ↓ B (bottom-left) → C (bottom-right) ↑ D
-// (top-right) — the usual progression as finances mature toward surplus.
-function QuadrantMap({ active }: { active: QuadKey | null }) {
+// Reading order: A (top-left) → B (top-right) → C (bottom-left) → D
+// (bottom-right) — the usual progression as finances mature toward surplus.
+// The B→C arrow stretches diagonally across the middle.
+function QuadrantMap({ active, hereLabel }: { active: QuadKey | null; hereLabel: string }) {
   const cells: { key: QuadKey; x: number; y: number }[] = [
-    { key: 'A', x: 2, y: 2 },
-    { key: 'B', x: 2, y: 122 },
-    { key: 'C', x: 170, y: 122 },
-    { key: 'D', x: 170, y: 2 },
+    { key: 'A', x: 4, y: 4 },
+    { key: 'B', x: 181, y: 4 },
+    { key: 'C', x: 4, y: 134 },
+    { key: 'D', x: 181, y: 134 },
   ];
-  const W = 148, H = 96;
+  const W = 155, H = 112;
+  const barW = 15, barGap = 8;
   return (
-    <svg viewBox="0 0 320 220" className="w-full">
+    <svg viewBox="0 0 340 250" className="w-full">
       <defs>
         <marker id="qArrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
           <path d="M0,0 L8,4 L0,8 z" fill="var(--gold-2)" />
@@ -523,45 +655,50 @@ function QuadrantMap({ active }: { active: QuadKey | null }) {
       {cells.map(({ key, x, y }) => {
         const q = QUADS[key];
         const isActive = active === key;
+        // in/out bar pair, centered horizontally in the cell
+        const bx = x + W / 2 - (barW * 2 + barGap) / 2;
+        const barBase = y + H - 24;
         return (
           <g key={key}>
             <rect
-              x={x} y={y} width={W} height={H} rx={12}
+              x={x} y={y} width={W} height={H} rx={13}
               fill={isActive ? 'var(--green-bg)' : 'var(--surface-1)'}
               stroke={isActive ? 'var(--green)' : 'var(--border-default)'}
-              strokeWidth={isActive ? 1.8 : 1}
+              strokeWidth={isActive ? 2 : 1}
             />
             {/* step letter */}
-            <circle cx={x + 18} cy={y + 18} r={10} fill={isActive ? 'var(--green)' : 'var(--surface-card)'} stroke={isActive ? 'var(--green)' : 'var(--border-medium)'} />
-            <text x={x + 18} y={y + 22} textAnchor="middle" fontSize="11" fontWeight="700" fill={isActive ? '#fff' : 'var(--muted)'}>
+            <circle cx={x + 20} cy={y + 20} r={12} fill={isActive ? 'var(--green)' : 'var(--surface-card)'} stroke={isActive ? 'var(--green)' : 'var(--border-medium)'} />
+            <text x={x + 20} y={y + 24.5} textAnchor="middle" fontSize="12.5" fontWeight="700" fill={isActive ? '#fff' : 'var(--muted)'}>
               {key}
             </text>
             {/* title + mood */}
-            <text x={x + 34} y={y + 22} fontSize="11" fontWeight="600" fill="var(--ink)">{q.title}</text>
-            <text x={x + 12} y={y + 42} fontSize="8.5" fill="var(--muted)">{q.mood}</text>
-            {/* mini income vs outflow bars */}
-            <rect x={x + 14} y={y + H - 14 - q.incomeH} width={13} height={q.incomeH} rx={2} fill="var(--green)" />
-            <rect x={x + 31} y={y + H - 14 - q.outflowH} width={13} height={q.outflowH} rx={2} fill="var(--red-2)" opacity={0.85} />
-            <text x={x + 14} y={y + H - 4} fontSize="7" fill="var(--muted)">in</text>
-            <text x={x + 31} y={y + H - 4} fontSize="7" fill="var(--muted)">out</text>
-            {/* you-are-here */}
+            <text x={x + 38} y={y + 19} fontSize="12" fontWeight="600" fill="var(--ink)">{q.title}</text>
+            <text x={x + 38} y={y + 31} fontSize="8.5" fill="var(--muted)">{q.mood}</text>
+            {/* mini income vs outflow bars, centered */}
+            <rect x={bx} y={barBase - q.incomeH} width={barW} height={q.incomeH} rx={2.5} fill="var(--green)" />
+            <rect x={bx + barW + barGap} y={barBase - q.outflowH} width={barW} height={q.outflowH} rx={2.5} fill="var(--red-2)" opacity={0.85} />
+            <text x={bx + barW / 2} y={y + H - 12} textAnchor="middle" fontSize="7.5" fill="var(--muted)">in</text>
+            <text x={bx + barW + barGap + barW / 2} y={y + H - 12} textAnchor="middle" fontSize="7.5" fill="var(--muted)">out</text>
+            {/* you-are-here pill */}
             {isActive && (
               <g>
-                <circle cx={x + W - 18} cy={y + H - 18} r={5} fill="var(--green)" />
-                <circle cx={x + W - 18} cy={y + H - 18} r={9} fill="none" stroke="var(--green)" opacity={0.4}>
-                  <animate attributeName="r" values="6;11;6" dur="2s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
+                <rect x={x + W - 68} y={y + H - 23} width={60} height={16} rx={8} fill="var(--green)" />
+                <circle cx={x + W - 59} cy={y + H - 15} r={3} fill="#fff">
+                  <animate attributeName="opacity" values="1;0.25;1" dur="1.6s" repeatCount="indefinite" />
                 </circle>
+                <text x={x + W - 36} y={y + H - 11.5} textAnchor="middle" fontSize="7.5" fontWeight="700" fill="#fff">
+                  {hereLabel}
+                </text>
               </g>
             )}
           </g>
         );
       })}
 
-      {/* progression arrows A→B→C→D (the usual path as finances mature) */}
-      <line x1={76} y1={101} x2={76} y2={117} stroke="var(--gold-2)" strokeWidth={1.6} markerEnd="url(#qArrow)" />
-      <line x1={153} y1={170} x2={167} y2={170} stroke="var(--gold-2)" strokeWidth={1.6} markerEnd="url(#qArrow)" />
-      <line x1={244} y1={119} x2={244} y2={103} stroke="var(--gold-2)" strokeWidth={1.6} markerEnd="url(#qArrow)" />
+      {/* progression arrows: A→B (top), B→C (stretching diagonally), C→D (bottom) */}
+      <line x1={163} y1={60} x2={177} y2={60} stroke="var(--gold-2)" strokeWidth={1.8} markerEnd="url(#qArrow)" />
+      <line x1={238} y1={119} x2={104} y2={131} stroke="var(--gold-2)" strokeWidth={1.8} markerEnd="url(#qArrow)" />
+      <line x1={163} y1={190} x2={177} y2={190} stroke="var(--gold-2)" strokeWidth={1.8} markerEnd="url(#qArrow)" />
     </svg>
   );
 }
