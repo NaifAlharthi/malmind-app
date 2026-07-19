@@ -95,6 +95,16 @@ const RISK_COLOR: Record<string, string> = {
   high: 'var(--red)', medium: 'var(--gold-2)', low: 'var(--green)', unknown: 'var(--muted)',
 };
 
+// Asset classes for the composition-over-time chart (same palette as the
+// Financial Numbers charts).
+const ASSET_SERIES = [
+  { key: 'cash', labelKey: 'today.assets.cash', color: '#2a78d6' },
+  { key: 'stocks', labelKey: 'today.assets.stocks', color: '#17B8C9' },
+  { key: 'real_estate', labelKey: 'today.assets.realEstate', color: '#E0559E' },
+  { key: 'equity', labelKey: 'today.assets.equity', color: '#E0922A' },
+  { key: 'other_assets', labelKey: 'today.assets.other', color: '#9AA0A6' },
+] as const;
+
 function diagnose(avgIncome: number, avgExpenses: number, totalAssets: number): QuadKey | null {
   if (avgIncome <= 0 && avgExpenses <= 0) return null;
   if (avgIncome <= 0) return 'A';
@@ -111,6 +121,7 @@ export default function TodayDashboard() {
   const [selRisk, setSelRisk] = useState<string | null>(null);
   const [cashView, setCashView] = useState<'six' | 'ytd'>('six');
   const [srcInfo, setSrcInfo] = useState(false);
+  const [assetView, setAssetView] = useState<'pct' | 'abs'>('abs');
 
   const sar = t('common.sar');
   const money = (n: number) => (locale === 'ar' ? `${fmt(n)} ${sar}` : `${sar} ${fmt(n)}`);
@@ -321,6 +332,16 @@ export default function TodayDashboard() {
     const lifeKept = lifeLast?.cumulativeSaved ?? 0;
     const lifeKeptPct = lifeEarned > 0 ? (lifeKept / lifeEarned) * 100 : 0;
 
+    // Asset composition over time — every logged month's asset breakdown.
+    const assetComposition = snaps.map((s) => ({
+      label: `${MONTHS[s.month - 1]} ${String(s.year).slice(2)}`,
+      cash: Number(s.cash),
+      stocks: Number(s.stocks),
+      real_estate: Number(s.real_estate),
+      equity: Number(s.equity),
+      other_assets: Number(s.other_assets),
+    }));
+
     return {
       age,
       employment: profile?.employment ?? null,
@@ -334,6 +355,7 @@ export default function TodayDashboard() {
       goalSaved: goal ? d.actualsByGoal[goal.id] ?? 0 : 0,
       debtItems: d.debtItems,
       lifeYearly, lifeEarned, lifeKept, lifeKeptPct,
+      assetComposition,
     };
   }, [d]);
 
@@ -355,7 +377,7 @@ export default function TodayDashboard() {
     nwPace, nwSeries, milestone, monthsToMilestone, invested, liveIsUsed, freedom,
     risks, salary, side, goal, goalSaved, debtItems,
     age, employment, compare, hasCompareData,
-    lifeYearly, lifeEarned, lifeKept, lifeKeptPct,
+    lifeYearly, lifeEarned, lifeKept, lifeKeptPct, assetComposition,
   } = derived;
   const cfData = cashView === 'six' ? cashFlow : yearCashFlow;
   const hasForecast = cfData.some((e) => e.forecast);
@@ -384,6 +406,18 @@ export default function TodayDashboard() {
       : []),
   ].filter((s) => s.amt > 0);
   const biggestStream = [...sourceStreams].sort((a, b) => b.amt - a.amt)[0];
+
+  // Forecast band: total income expected from the first upcoming month
+  // through December, shown as a labelled band under the projected bars.
+  const forecastEntries = cashView === 'ytd' ? yearCashFlow.filter((e) => e.forecast) : [];
+  const forecastTotal = forecastEntries.reduce((s, e) => s + e.income, 0);
+  const firstForecastLabel = forecastEntries[0]?.label ?? null;
+  const negDepth = Math.max(0, ...cfData.filter((e) => !e.forecast).map((e) => e.expenses));
+
+  // Asset-composition series that actually carry a value in the history.
+  const assetSeries = ASSET_SERIES.filter((s) =>
+    assetComposition.some((r) => Number(r[s.key]) > 0)
+  );
 
   const delta = avgIncome - avgExpenses;
   const highRisks = risks.filter((r) => r.level === 'high');
@@ -432,6 +466,13 @@ export default function TodayDashboard() {
       how: 'Paid = original amount − current balance, from your Bills & Commitments records. The gauges divide total owed by your annual income and total assets.',
       action: 'Under 30% of annual income is comfortable; past 60% it commands your life. Consider the snowball: clear the smallest balance first for momentum.',
       ask: 'Assess my debt load and design a payoff strategy for my loans.',
+    },
+    assets: {
+      title: t('today.assets.title'),
+      what: 'How your wealth is split across cash, stocks, real estate, equity and other — every logged month. Toggle between the SAR amount and each class’s share of the whole.',
+      how: 'Straight from the asset columns of your monthly ledger in My Financial Numbers, stacked over time.',
+      action: 'Watch for over-concentration in one class, and whether your mix is drifting the way you intend as you add months.',
+      ask: 'Analyze how my asset allocation has shifted over time and whether my current mix fits my goals.',
     },
     compare: {
       title: t('today.compare.title'),
@@ -569,6 +610,16 @@ export default function TodayDashboard() {
                     x1={cfData[curIdx].label} x2={cfData[curIdx].label}
                     fill="var(--gold-2)" fillOpacity={0.1}
                     label={<BandLabel text={t('today.cash.current')} align="start" color="var(--gold-2)" />}
+                  />
+                )}
+                {/* how much income is on the way through year-end */}
+                {cashView === 'ytd' && hasForecast && firstForecastLabel && negDepth > 0 && (
+                  <ReferenceArea
+                    x1={firstForecastLabel} x2={cfData[cfData.length - 1].label}
+                    y1={0} y2={-negDepth}
+                    fill="var(--green)" fillOpacity={0.09}
+                    stroke="var(--green-border)" strokeOpacity={0.5} strokeDasharray="3 3"
+                    label={<ForecastBandLabel text={`${money(forecastTotal)} ${t('today.cash.onTheWay')}`} />}
                   />
                 )}
                 <ReferenceLine y={0} stroke="var(--border-strong)" />
@@ -832,6 +883,55 @@ export default function TodayDashboard() {
         )}
       </Card>
 
+      {/* ── Row 4a: asset composition over time ── */}
+      {assetComposition.length > 0 && assetSeries.length > 0 && (
+        <Card title={t('today.assets.title')} href="/financial-numbers" explain={EX.assets}>
+          <div className="flex bg-[var(--surface-1)] rounded-lg p-0.5 mb-2 w-fit">
+            <button
+              onClick={() => setAssetView('abs')}
+              className={`text-[10px] px-2.5 py-1 rounded-md transition-colors ${
+                assetView === 'abs' ? 'bg-[var(--surface-card)] text-[var(--ink)] font-medium shadow-sm' : 'text-[var(--muted)]'
+              }`}
+            >
+              {t('today.assets.amount')}
+            </button>
+            <button
+              onClick={() => setAssetView('pct')}
+              className={`text-[10px] px-2.5 py-1 rounded-md transition-colors ${
+                assetView === 'pct' ? 'bg-[var(--surface-card)] text-[var(--ink)] font-medium shadow-sm' : 'text-[var(--muted)]'
+              }`}
+            >
+              {t('today.assets.share')}
+            </button>
+          </div>
+          <div className="h-56" dir="ltr">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={assetComposition}
+                stackOffset={assetView === 'pct' ? 'expand' : 'none'}
+                margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                <XAxis
+                  dataKey="label" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false}
+                  interval={Math.max(0, Math.floor(assetComposition.length / 8))}
+                />
+                <YAxis
+                  tick={{ fontSize: 9, fill: 'var(--muted)' }} width={38} axisLine={false} tickLine={false}
+                  domain={assetView === 'pct' ? [0, 1] : undefined}
+                  tickFormatter={(v) => (assetView === 'pct' ? `${Math.round(Number(v) * 100)}%` : fmtCompact(Number(v)))}
+                />
+                <Tooltip formatter={(v, name) => [`SAR ${fmt(Number(v))}`, name]} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                {assetSeries.map((s) => (
+                  <Bar key={s.key} dataKey={s.key} name={t(s.labelKey)} stackId="a" fill={s.color} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      )}
+
       {/* ── Row 4b: lifetime income vs savings ── */}
       {lifeEarned > 0 && (
         <Card title={t('today.lifetime.title')} href="/lifetime-income" explain={EX.lifetime}>
@@ -1045,6 +1145,24 @@ export default function TodayDashboard() {
       </div>
     );
   }
+}
+
+// Centred label for the "income on the way" forecast band, sitting just
+// under the zero line beneath the projected income bars.
+function ForecastBandLabel({ viewBox, text }: { viewBox?: { x: number; y: number; width: number; height: number }; text: string }) {
+  if (!viewBox) return null;
+  return (
+    <text
+      x={viewBox.x + viewBox.width / 2}
+      y={viewBox.y + 16}
+      textAnchor="middle"
+      fontSize={10.5}
+      fontWeight={700}
+      fill="var(--green-dark)"
+    >
+      {text}
+    </text>
+  );
 }
 
 // Label for the last/current-month reference bands. Anchoring "last month" to
