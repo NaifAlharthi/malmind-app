@@ -46,6 +46,7 @@ const TOOLS: Record<ViewKey, HubTool[]> = {
     { href: '/standard-of-living?mode=track', icon: '🪜', titleKey: 'hub.card.solTracked.title', descKey: 'hub.card.solTracked.desc' },
   ],
   future: [
+    { href: '/freedom', icon: '🕊', titleKey: 'hub.card.freedom.title', descKey: 'hub.card.freedom.desc' },
     { href: '/what-if', icon: '🔮', titleKey: 'hub.card.whatIf.title', descKey: 'hub.card.whatIf.desc' },
     { href: '/doubling-path', icon: '📈', titleKey: 'home.card.doubling.title', descKey: 'home.card.doubling.desc' },
     { href: '/goal-fund', icon: '🎯', titleKey: 'home.card.goalFund.title', descKey: 'home.card.goalFund.desc' },

@@ -64,3 +64,49 @@ export function computeFreedom(i: FreedomInputs): FreedomReading | null {
       monthsToFreedom != null ? new Date().getFullYear() + Math.floor(monthsToFreedom / 12) : null,
   };
 }
+
+export interface FreedomPathPoint {
+  year: number;
+  capital: number; // projected working capital that year-end
+}
+
+export interface FreedomPath {
+  freedomNumber: number;
+  points: FreedomPathPoint[];
+  crossYear: number | null; // the year capital first reaches the freedom number
+}
+
+/**
+ * Year-by-year capital trajectory: invested capital compounds at the expected
+ * return while the monthly pace keeps adding. Used to chart when your capital
+ * crosses the freedom line.
+ */
+export function projectFreedomPath(i: FreedomInputs, maxYears = 50): FreedomPath {
+  const rate = i.withdrawalRate ?? 0.04;
+  const growth = i.annualGrowth ?? 0.06;
+  const startYear = new Date().getFullYear();
+  const freedomNumber = i.avgMonthlyExpenses > 0 ? (i.avgMonthlyExpenses * 12) / rate : 0;
+
+  const monthly = Math.pow(1 + growth, 1 / 12) - 1;
+  const pace = Math.max(0, i.monthlyInvestPace);
+  let capital = Math.max(0, i.investedNow);
+
+  const points: FreedomPathPoint[] = [{ year: startYear, capital }];
+  let crossYear: number | null = freedomNumber > 0 && capital >= freedomNumber ? startYear : null;
+
+  for (let m = 1; m <= maxYears * 12; m++) {
+    capital = capital * (1 + monthly) + pace;
+    if (crossYear === null && freedomNumber > 0 && capital >= freedomNumber) {
+      crossYear = startYear + Math.floor(m / 12);
+    }
+    if (m % 12 === 0) {
+      points.push({ year: startYear + m / 12, capital });
+      // Stop a couple of years past the crossing so the chart stays legible.
+      if (crossYear !== null && startYear + m / 12 >= crossYear + 2) break;
+    }
+    // Give up on flat/declining trajectories that will never reach freedom.
+    if (crossYear === null && pace === 0 && growth === 0) break;
+  }
+
+  return { freedomNumber, points, crossYear };
+}

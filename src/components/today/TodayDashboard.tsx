@@ -1023,9 +1023,9 @@ export default function TodayDashboard() {
       {freedom && (
         <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-5 text-white">
           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-            <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)]">
-              🕊 {t('today.freedom.title')}
-            </div>
+            <Link href="/freedom" className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] hover:underline">
+              🕊 {t('today.freedom.title')} →
+            </Link>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-white/50">
                 4% rule · {liveIsUsed ? 'live portfolio' : 'latest ledger'}
