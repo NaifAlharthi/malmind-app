@@ -22,6 +22,7 @@ import { computeRisks, type RiskInputs, type RiskResult } from '@/lib/risks';
 import { computeFreedom } from '@/lib/financialFreedom';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
 import { BENCHMARK_START_AGE, buildBenchmarkCurves, buildYouSeries } from '@/lib/positioningBenchmarks';
+import { buildProjection } from '@/lib/lifetimeProjection';
 import ExplainButton, { type ExplainContent } from '@/components/shared/ExplainButton';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -48,6 +49,7 @@ interface Data {
     liquid_savings: number | null; monthly_debt_payments: number | null;
     has_health_insurance: boolean | null;
     age: number | null; employment: string | null;
+    career_start_year: number | null; career_start_income: number | null; lifetime_save_rate: number | null;
   } | null;
   snaps: Snap[];
   goals: Goal[];
@@ -78,7 +80,7 @@ function avg(xs: number[]) {
 
 // ── The four stages, in their usual order of progression ────────────────
 const QUADS = {
-  A: { title: 'Build mode', mood: 'Little income or assets yet', move: 'Generate income & first assets', incomeH: 12, outflowH: 24 },
+  A: { title: 'Build mode', mood: 'Little income or assets yet', move: 'Generate income & first assets', incomeH: 0, outflowH: 24 },
   B: { title: 'Falling behind', mood: 'Outflow exceeds income', move: 'Flip the balance', incomeH: 19, outflowH: 28 },
   C: { title: 'Break-even', mood: 'Covers costs, nothing left', move: 'Create surplus & protect it', incomeH: 25, outflowH: 24 },
   D: { title: 'Abundance', mood: 'Durable surplus to deploy', move: 'Multiply the surplus', incomeH: 28, outflowH: 18 },
@@ -107,6 +109,7 @@ export default function TodayDashboard() {
   const { t, locale } = useLocale();
   const [data, setData] = useState<Data | null>(null);
   const [selRisk, setSelRisk] = useState<string | null>(null);
+  const [cashView, setCashView] = useState<'six' | 'ytd'>('six');
 
   const sar = t('common.sar');
   const money = (n: number) => (locale === 'ar' ? `${fmt(n)} ${sar}` : `${sar} ${fmt(n)}`);
@@ -119,7 +122,7 @@ export default function TodayDashboard() {
 
       const [profileRes, snapsRes, goalsRes, actualsRes, loansRes, liabsRes, nwRes] = await Promise.all([
         supabase.from('profiles')
-          .select('monthly_income, side_income, monthly_expense, liquid_savings, monthly_debt_payments, has_health_insurance, age, employment')
+          .select('monthly_income, side_income, monthly_expense, liquid_savings, monthly_debt_payments, has_health_insurance, age, employment, career_start_year, career_start_income, lifetime_save_rate')
           .eq('id', user.id).single(),
         supabase.from('financial_snapshots')
           .select('year, month, cash, stocks, real_estate, equity, other_assets, liabilities, income, expenses')
@@ -196,7 +199,39 @@ export default function TodayDashboard() {
       income: Number(s.income),
       expenses: Number(s.expenses),
       net: Number(s.income) - Number(s.expenses),
+      forecast: false,
     }));
+
+    // Year-to-date + a forecast through December, using the recent average
+    // pace for months that haven't happened yet — "money that's supposed to
+    // hit your bank account."
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const yearActual = snaps
+      .filter((s) => s.year === curYear)
+      .map((s) => ({
+        label: `${MONTHS[s.month - 1]} ${String(s.year).slice(2)}`,
+        income: Number(s.income),
+        expenses: Number(s.expenses),
+        net: Number(s.income) - Number(s.expenses),
+        forecast: false,
+        _month: s.month,
+      }));
+    const lastLoggedMonth = yearActual.length ? yearActual[yearActual.length - 1]._month : 0;
+    const yearForecast: typeof yearActual = [];
+    const projIncome = last6.length ? avg(last6.map((s) => Number(s.income))) : 0;
+    const projExpenses = last6.length ? avg(last6.map((s) => Number(s.expenses))) : 0;
+    for (let m = lastLoggedMonth + 1; m <= 12; m++) {
+      yearForecast.push({
+        label: `${MONTHS[m - 1]} ${String(curYear).slice(2)}`,
+        income: projIncome,
+        expenses: projExpenses,
+        net: projIncome - projExpenses,
+        forecast: true,
+        _month: m,
+      });
+    }
+    const yearCashFlow = [...yearActual, ...yearForecast].map(({ _month, ...rest }) => rest);
 
     // wealth pace: avg month-over-month net-worth change (≤ last 12)
     const tail = snaps.slice(-13);
@@ -263,18 +298,41 @@ export default function TodayDashboard() {
       }));
     }
 
+    // Lifetime income vs. savings: the same career-earnings projection used
+    // in Lifetime Income → Understand, aggregated to one point per year.
+    const lifeStartYear = profile?.career_start_year ?? new Date().getFullYear() - 5;
+    const lifeStartIncome = Number(profile?.career_start_income) || 0;
+    const lifeSaveRate = (profile?.lifetime_save_rate != null ? Number(profile.lifetime_save_rate) : 20) / 100;
+    const lifeCurrentIncome = Number(profile?.monthly_income) || avgIncome || 0;
+    const lifeSeries = buildProjection({
+      startYear: lifeStartYear,
+      startIncome: lifeStartIncome,
+      currentIncome: lifeCurrentIncome,
+      saveRate: lifeSaveRate,
+    });
+    const yearlyMap = new Map<number, { earned: number; kept: number }>();
+    for (const p of lifeSeries) yearlyMap.set(p.year, { earned: p.cumulativeIncome, kept: p.cumulativeSaved });
+    const lifeYearly = Array.from(yearlyMap.entries()).map(([year, v]) => ({
+      year: String(year), earned: v.earned, kept: v.kept,
+    }));
+    const lifeLast = lifeSeries[lifeSeries.length - 1];
+    const lifeEarned = lifeLast?.cumulativeIncome ?? 0;
+    const lifeKept = lifeLast?.cumulativeSaved ?? 0;
+    const lifeKeptPct = lifeEarned > 0 ? (lifeKept / lifeEarned) * 100 : 0;
+
     return {
       age,
       employment: profile?.employment ?? null,
       compare,
       hasCompareData: compare.some((p) => p.you != null),
-      latest, avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow,
+      latest, avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow, yearCashFlow,
       quad: diagnose(avgIncome, avgExpenses, totalAssets),
       nwPace, nwSeries, milestone, monthsToMilestone,
       invested, liveIsUsed: d.liveInvested != null, freedom,
       risks, salary, side, goal,
       goalSaved: goal ? d.actualsByGoal[goal.id] ?? 0 : 0,
       debtItems: d.debtItems,
+      lifeYearly, lifeEarned, lifeKept, lifeKeptPct,
     };
   }, [d]);
 
@@ -292,11 +350,23 @@ export default function TodayDashboard() {
   }
 
   const {
-    avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow, quad,
+    avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow, yearCashFlow, quad,
     nwPace, nwSeries, milestone, monthsToMilestone, invested, liveIsUsed, freedom,
     risks, salary, side, goal, goalSaved, debtItems,
     age, employment, compare, hasCompareData,
+    lifeYearly, lifeEarned, lifeKept, lifeKeptPct,
   } = derived;
+  const cfData = cashView === 'six' ? cashFlow : yearCashFlow;
+  const hasForecast = cfData.some((e) => e.forecast);
+  // Anchor the "current"/"last" bands to the real calendar month when it's on
+  // the chart (the Through-December view); otherwise to the latest data.
+  const nowD = new Date();
+  const nowLabel = `${MONTHS[nowD.getMonth()]} ${String(nowD.getFullYear()).slice(2)}`;
+  const curIdx = (() => {
+    const i = cfData.findIndex((e) => e.label === nowLabel);
+    return i === -1 ? cfData.length - 1 : i;
+  })();
+  const lastIdx = curIdx - 1;
 
   const delta = avgIncome - avgExpenses;
   const highRisks = risks.filter((r) => r.level === 'high');
@@ -366,6 +436,13 @@ export default function TodayDashboard() {
       action: 'Pace is the one number that compounds. Raise it by widening the income–spending gap or by making idle cash work.',
       ask: 'How fast am I building wealth, and what would realistically accelerate my pace the most?',
     },
+    lifetime: {
+      title: t('today.lifetime.title'),
+      what: 'Every riyal you are projected to earn across your career (blue bars) against what actually stays with you as savings (red line) — the same question as Lifetime Income → Understand, distilled to one chart.',
+      how: 'A projection from your career-start year and income, your current income, and your savings rate, ramping both up realistically over time. It is a model, not logged history — refine the assumptions in Lifetime Income.',
+      action: 'The gap between the bars and the line is spending. Raising your savings rate even a little compounds enormously over a full career.',
+      ask: 'Show me how much I have earned and kept over my career, and how to raise my savings rate.',
+    },
     freedom: {
       title: t('today.freedom.title'),
       what: 'The capital at which passive returns replace your recurring expenses — making work a choice. The road shows how far along you are.',
@@ -381,6 +458,16 @@ export default function TodayDashboard() {
       <div className="grid lg:grid-cols-2 gap-3">
         <Card title={t('today.quad.title')} href="/positioning" explain={EX.quad}>
           <QuadrantMap active={quad} hereLabel={t('today.quad.here')} />
+          <div className="flex items-center gap-4 mt-1.5 text-[10px] text-[var(--muted)]">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'var(--green)' }} />
+              {t('today.quad.moneyIn')}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'var(--red-2)' }} />
+              {t('today.quad.moneyOut')}
+            </span>
+          </div>
           {quad && (
             <p className="text-xs text-[var(--ink-2)] leading-relaxed mt-2">
               <strong className="text-[var(--ink)]">{QUADS[quad].title}.</strong> {QUADS[quad].mood} — the move:{' '}
@@ -409,10 +496,30 @@ export default function TodayDashboard() {
               {delta >= 0 ? '▲' : '▼'} {money(Math.abs(delta))}/mo {delta >= 0 ? t('today.cash.surplus') : t('today.cash.deficit')}
             </span>
           </div>
+
+          <div className="flex bg-[var(--surface-1)] rounded-lg p-0.5 mb-2 w-fit">
+            <button
+              onClick={() => setCashView('six')}
+              className={`text-[10px] px-2.5 py-1 rounded-md transition-colors ${
+                cashView === 'six' ? 'bg-[var(--surface-card)] text-[var(--ink)] font-medium shadow-sm' : 'text-[var(--muted)]'
+              }`}
+            >
+              {t('today.cash.viewSix')}
+            </button>
+            <button
+              onClick={() => setCashView('ytd')}
+              className={`text-[10px] px-2.5 py-1 rounded-md transition-colors ${
+                cashView === 'ytd' ? 'bg-[var(--surface-card)] text-[var(--ink)] font-medium shadow-sm' : 'text-[var(--muted)]'
+              }`}
+            >
+              {t('today.cash.viewYtd')}
+            </button>
+          </div>
+
           <div className="h-48" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={cashFlow.map((e) => ({ ...e, expensesDown: -e.expenses }))}
+                data={cfData.map((e) => ({ ...e, expensesDown: -e.expenses }))}
                 barGap={2}
                 margin={{ top: 14, right: 4, left: 0, bottom: 0 }}
                 stackOffset="sign"
@@ -427,31 +534,48 @@ export default function TodayDashboard() {
                 <Tooltip formatter={(v, name) => [`SAR ${fmt(Math.abs(Number(v)))}`, name]} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
                 {/* soft bands lock the eye onto the present, without pointing at any bar */}
-                {cashFlow.length >= 2 && (
+                {lastIdx >= 0 && (
                   <ReferenceArea
-                    x1={cashFlow[cashFlow.length - 2].label} x2={cashFlow[cashFlow.length - 2].label}
+                    x1={cfData[lastIdx].label} x2={cfData[lastIdx].label}
                     fill="var(--muted)" fillOpacity={0.08}
                     label={{ value: t('today.cash.last'), position: 'insideTop', fontSize: 9, fill: 'var(--muted)' }}
                   />
                 )}
-                {cashFlow.length >= 1 && (
+                {cfData.length >= 1 && (
                   <ReferenceArea
-                    x1={cashFlow[cashFlow.length - 1].label} x2={cashFlow[cashFlow.length - 1].label}
+                    x1={cfData[curIdx].label} x2={cfData[curIdx].label}
                     fill="var(--gold-2)" fillOpacity={0.1}
                     label={{ value: t('today.cash.current'), position: 'insideTop', fontSize: 9, fill: 'var(--gold-2)' }}
                   />
                 )}
                 <ReferenceLine y={0} stroke="var(--border-strong)" />
-                <Bar dataKey="income" name="Income" fill="var(--green)" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="expensesDown" name="Expenses" fill="var(--amber)" radius={[0, 0, 3, 3]} />
-                <Bar dataKey="net" name={t('today.cash.net')} fill="var(--blue-2)" radius={[3, 3, 0, 0]}>
-                  {cashFlow.map((e, i) => (
-                    <Cell key={i} fill={e.net >= 0 ? 'var(--blue-2)' : 'var(--red)'} />
+                <Bar dataKey="income" name="Income" radius={[3, 3, 0, 0]}>
+                  {cfData.map((e, i) => (
+                    <Cell key={i} fill="var(--green)" fillOpacity={e.forecast ? 0.35 : 1} stroke={e.forecast ? 'var(--green)' : 'none'} strokeDasharray={e.forecast ? '2 2' : undefined} />
+                  ))}
+                </Bar>
+                <Bar dataKey="expensesDown" name="Expenses" radius={[0, 0, 3, 3]}>
+                  {cfData.map((e, i) => (
+                    <Cell key={i} fill="var(--amber)" fillOpacity={e.forecast ? 0.35 : 1} stroke={e.forecast ? 'var(--amber)' : 'none'} strokeDasharray={e.forecast ? '2 2' : undefined} />
+                  ))}
+                </Bar>
+                <Bar dataKey="net" name={t('today.cash.net')} radius={[3, 3, 0, 0]}>
+                  {cfData.map((e, i) => (
+                    <Cell
+                      key={i}
+                      fill={e.net >= 0 ? 'var(--blue-2)' : 'var(--red)'}
+                      fillOpacity={e.forecast ? 0.35 : 1}
+                      stroke={e.forecast ? (e.net >= 0 ? 'var(--blue-2)' : 'var(--red)') : 'none'}
+                      strokeDasharray={e.forecast ? '2 2' : undefined}
+                    />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
+          {cashView === 'ytd' && hasForecast && (
+            <p className="text-[10px] text-[var(--muted)] mt-1.5">{t('today.cash.forecastNote')}</p>
+          )}
         </Card>
       </div>
 
@@ -650,6 +774,41 @@ export default function TodayDashboard() {
           </p>
         )}
       </Card>
+
+      {/* ── Row 4b: lifetime income vs savings ── */}
+      {lifeEarned > 0 && (
+        <Card title={t('today.lifetime.title')} href="/lifetime-income" explain={EX.lifetime}>
+          <div className="flex items-baseline gap-4 flex-wrap mb-2">
+            <div>
+              <div className="text-[10px] text-[var(--muted)]">{t('today.lifetime.earned')}</div>
+              <div className="font-serif text-xl font-bold text-[var(--blue)]">{moneyC(lifeEarned)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[var(--muted)]">{t('today.lifetime.kept')}</div>
+              <div className="font-serif text-xl font-bold text-[var(--green-dark)]">{moneyC(lifeKept)}</div>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-[var(--green-dark)] bg-[var(--green-bg)]">
+              {Math.round(lifeKeptPct)}%
+            </span>
+          </div>
+          <div className="h-40" dir="ltr">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={lifeYearly} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                <XAxis
+                  dataKey="year" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false}
+                  interval={Math.max(0, Math.floor(lifeYearly.length / 6))}
+                />
+                <YAxis tick={{ fontSize: 9, fill: 'var(--muted)' }} tickFormatter={fmtCompact} width={34} axisLine={false} tickLine={false} />
+                <Tooltip formatter={(v, name) => [`SAR ${fmt(Number(v))}`, name]} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Bar dataKey="earned" name={t('today.lifetime.earned')} fill="var(--blue)" radius={[2, 2, 0, 0]} />
+                <Line type="monotone" dataKey="kept" name={t('today.lifetime.kept')} stroke="var(--green-dark)" strokeWidth={2.5} dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      )}
 
       {/* ── Row 5: plan + pace ── */}
       <div className="grid lg:grid-cols-2 gap-3">
@@ -927,19 +1086,25 @@ function QuadrantMap({ active, hereLabel }: { active: QuadKey | null; hereLabel:
             {/* title + mood */}
             <text x={x + 38} y={y + 19} fontSize="12" fontWeight="600" fill="var(--ink)">{q.title}</text>
             <text x={x + 38} y={y + 31} fontSize="8.5" fill="var(--muted)">{q.mood}</text>
-            {/* mini income vs outflow bars, centered */}
-            <rect x={bx} y={barBase - q.incomeH} width={barW} height={q.incomeH} rx={2.5} fill="var(--green)" />
+            {/* mini income vs outflow bars, centered — a quadrant with no
+                income (e.g. build mode) gets a flat zero-line, not a bar */}
+            {q.incomeH > 0 ? (
+              <rect x={bx} y={barBase - q.incomeH} width={barW} height={q.incomeH} rx={2.5} fill="var(--green)" />
+            ) : (
+              <line x1={bx} y1={barBase} x2={bx + barW} y2={barBase} stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="2 2" />
+            )}
             <rect x={bx + barW + barGap} y={barBase - q.outflowH} width={barW} height={q.outflowH} rx={2.5} fill="var(--red-2)" opacity={0.85} />
             <text x={bx + barW / 2} y={y + H - 12} textAnchor="middle" fontSize="7.5" fill="var(--muted)">in</text>
             <text x={bx + barW + barGap + barW / 2} y={y + H - 12} textAnchor="middle" fontSize="7.5" fill="var(--muted)">out</text>
-            {/* you-are-here pill */}
+            {/* you-are-here pill, tucked in the gap between the mood line and
+                the bars so it never covers either */}
             {isActive && (
               <g>
-                <rect x={x + W - 68} y={y + H - 23} width={60} height={16} rx={8} fill="var(--green)" />
-                <circle cx={x + W - 59} cy={y + H - 15} r={3} fill="#fff">
+                <rect x={x + W / 2 - 39} y={y + 39} width={78} height={16} rx={8} fill="var(--green)" />
+                <circle cx={x + W / 2 - 28} cy={y + 47} r={3} fill="#fff">
                   <animate attributeName="opacity" values="1;0.25;1" dur="1.6s" repeatCount="indefinite" />
                 </circle>
-                <text x={x + W - 36} y={y + H - 11.5} textAnchor="middle" fontSize="7.5" fontWeight="700" fill="#fff">
+                <text x={x + W / 2 + 6} y={y + 50} textAnchor="middle" fontSize="7.5" fontWeight="700" fill="#fff">
                   {hereLabel}
                 </text>
               </g>
