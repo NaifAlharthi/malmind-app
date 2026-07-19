@@ -110,6 +110,7 @@ export default function TodayDashboard() {
   const [data, setData] = useState<Data | null>(null);
   const [selRisk, setSelRisk] = useState<string | null>(null);
   const [cashView, setCashView] = useState<'six' | 'ytd'>('six');
+  const [srcInfo, setSrcInfo] = useState(false);
 
   const sar = t('common.sar');
   const money = (n: number) => (locale === 'ar' ? `${fmt(n)} ${sar}` : `${sar} ${fmt(n)}`);
@@ -368,6 +369,22 @@ export default function TodayDashboard() {
   })();
   const lastIdx = curIdx - 1;
 
+  // Income streams, split by nature. Passive income = the yield your invested
+  // capital already generates (4% safe rate) — money that arrives without your
+  // time. That's what the active-vs-passive donut contrasts against.
+  const passiveIncome = invested > 0 ? (invested * 0.04) / 12 : 0;
+  const activeIncome = salary + side;
+  const incomeTotal = activeIncome + passiveIncome;
+  const passivePct = incomeTotal > 0 ? (passiveIncome / incomeTotal) * 100 : 0;
+  const sourceStreams = [
+    { name: 'Employer salary', amt: salary, kind: 'active' as const, emp: true, perMo: false },
+    ...(side > 0 ? [{ name: 'Side income', amt: side, kind: 'active' as const, emp: false, perMo: false }] : []),
+    ...(passiveIncome > 0
+      ? [{ name: t('today.sources.investYield'), amt: passiveIncome, kind: 'passive' as const, emp: false, perMo: true }]
+      : []),
+  ].filter((s) => s.amt > 0);
+  const biggestStream = [...sourceStreams].sort((a, b) => b.amt - a.amt)[0];
+
   const delta = avgIncome - avgExpenses;
   const highRisks = risks.filter((r) => r.level === 'high');
   const medRisks = risks.filter((r) => r.level === 'medium');
@@ -519,7 +536,13 @@ export default function TodayDashboard() {
           <div className="h-48" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={cfData.map((e) => ({ ...e, expensesDown: -e.expenses }))}
+                data={cfData.map((e) => ({
+                  ...e,
+                  // Upcoming months: only expected income is knowable, so
+                  // drop the projected expense and net bars.
+                  expensesDown: e.forecast ? null : -e.expenses,
+                  net: e.forecast ? null : e.net,
+                }))}
                 barGap={2}
                 margin={{ top: 14, right: 4, left: 0, bottom: 0 }}
                 stackOffset="sign"
@@ -538,14 +561,14 @@ export default function TodayDashboard() {
                   <ReferenceArea
                     x1={cfData[lastIdx].label} x2={cfData[lastIdx].label}
                     fill="var(--muted)" fillOpacity={0.08}
-                    label={{ value: t('today.cash.last'), position: 'insideTop', fontSize: 9, fill: 'var(--muted)' }}
+                    label={<BandLabel text={t('today.cash.last')} align="end" color="var(--muted)" />}
                   />
                 )}
                 {cfData.length >= 1 && (
                   <ReferenceArea
                     x1={cfData[curIdx].label} x2={cfData[curIdx].label}
                     fill="var(--gold-2)" fillOpacity={0.1}
-                    label={{ value: t('today.cash.current'), position: 'insideTop', fontSize: 9, fill: 'var(--gold-2)' }}
+                    label={<BandLabel text={t('today.cash.current')} align="start" color="var(--gold-2)" />}
                   />
                 )}
                 <ReferenceLine y={0} stroke="var(--border-strong)" />
@@ -582,57 +605,91 @@ export default function TodayDashboard() {
       {/* ── Row 2: income sources (pie) + risk radar ── */}
       <div className="grid sm:grid-cols-2 gap-3">
         <Card title={t('today.sources.title')} href="/lifetime-income" explain={EX.sources}>
-          {salary + side > 0 ? (
-            <div className="flex items-center gap-2">
-              <div className="relative h-40 w-44 shrink-0" dir="ltr">
+          {activeIncome > 0 ? (
+            <div className="flex items-center gap-3">
+              {/* active vs passive donut */}
+              <div className="relative h-36 w-36 shrink-0" dir="ltr">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={[
-                        { name: 'Employer salary', value: salary },
-                        ...(side > 0 ? [{ name: 'Side income', value: side }] : []),
+                        { name: t('today.sources.active'), value: activeIncome },
+                        ...(passiveIncome > 0 ? [{ name: t('today.sources.passive'), value: passiveIncome }] : []),
                       ]}
                       dataKey="value" nameKey="name"
-                      innerRadius={30} outerRadius={46} paddingAngle={side > 0 ? 3 : 0}
+                      innerRadius={34} outerRadius={52} paddingAngle={passiveIncome > 0 ? 3 : 0}
                       stroke="none"
-                      labelLine={{ stroke: 'var(--border-strong)' }}
-                      label={renderSourceLabel}
                     >
                       <Cell fill="var(--green)" />
-                      {side > 0 && <Cell fill="var(--blue)" />}
+                      {passiveIncome > 0 && <Cell fill="var(--gold-2)" />}
                     </Pie>
-                    <Tooltip formatter={(v) => `SAR ${fmt(Number(v))}`} />
+                    <Tooltip formatter={(v, name) => [`${money(Number(v))}/mo`, name]} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="font-serif text-xl font-bold text-[var(--ink)]">{(salary > 0 ? 1 : 0) + (side > 0 ? 1 : 0)}</span>
+                  <span className="font-serif text-xl font-bold text-[var(--ink)] leading-none">{sourceStreams.length}</span>
+                  <span className="text-[8px] tracking-wide text-[var(--muted)] uppercase mt-0.5">
+                    {sourceStreams.length === 1 ? 'source' : 'sources'}
+                  </span>
                 </div>
               </div>
+
               <div className="min-w-0 flex-1 space-y-2">
                 <div>
                   <div className="text-[10px] text-[var(--muted)]">{t('today.sources.biggest')}</div>
                   <div className="text-xs font-semibold text-[var(--ink)] leading-snug">
-                    {salary >= side ? 'Employer salary' : 'Side income'}
-                    {salary >= side && employment ? <span className="text-[var(--muted)] font-normal"> · {employment}</span> : null}
+                    {biggestStream.name}
+                    {biggestStream.emp && employment ? (
+                      <span className="text-[var(--muted)] font-normal"> · {employment}</span>
+                    ) : null}
                   </div>
                 </div>
+
+                {/* each stream, coloured by nature */}
                 <div className="space-y-1 text-[11px] text-[var(--ink-2)]">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--green)' }} />
-                    <span className="truncate">Employer salary</span>
-                    <SourceTag active />
-                  </div>
-                  {side > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--blue)' }} />
-                      <span className="truncate">Side income</span>
-                      <SourceTag active />
+                  {sourceStreams.map((s) => (
+                    <div key={s.name} className="flex items-center gap-1.5">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ background: s.kind === 'passive' ? 'var(--gold-2)' : 'var(--green)' }}
+                      />
+                      <span className="truncate">{s.name}</span>
+                      <span className="ms-auto font-medium whitespace-nowrap">
+                        {money(s.amt)}{s.perMo ? '/mo' : ''}
+                      </span>
                     </div>
-                  )}
+                  ))}
                 </div>
-                <p className="text-[10px] text-[var(--gold-text-alt)] leading-relaxed">
-                  {t('today.sources.nudge')}
-                </p>
+
+                {/* active vs passive split + explainer */}
+                <div className="flex items-center gap-2.5 text-[10px] text-[var(--ink-2)] pt-0.5">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full" style={{ background: 'var(--green)' }} />
+                    {t('today.sources.active')} {Math.round(100 - passivePct)}%
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full" style={{ background: 'var(--gold-2)' }} />
+                    {t('today.sources.passive')} {Math.round(passivePct)}%
+                  </span>
+                  <button
+                    onClick={() => setSrcInfo((v) => !v)}
+                    className="ms-auto flex items-center gap-1 text-[var(--muted)] hover:text-[var(--green-dark)]"
+                  >
+                    <span className="w-[14px] h-[14px] rounded-full border border-[var(--border-medium)] text-[8px] leading-none flex items-center justify-center">?</span>
+                    {t('today.sources.whatsThis')}
+                  </button>
+                </div>
+
+                {srcInfo && (
+                  <div className="text-[10px] text-[var(--ink-2)] leading-relaxed bg-[var(--surface-1)] rounded-lg p-2.5 space-y-1.5">
+                    <p><strong className="text-[var(--green-dark)]">{t('today.sources.active')}</strong> — {t('today.sources.explainActive')}</p>
+                    <p><strong className="text-[var(--gold-text-alt)]">{t('today.sources.passive')}</strong> — {t('today.sources.explainPassive')}</p>
+                  </div>
+                )}
+
+                {passivePct < 10 && (
+                  <p className="text-[10px] text-[var(--gold-text-alt)] leading-relaxed">{t('today.sources.nudge')}</p>
+                )}
               </div>
             </div>
           ) : (
@@ -945,21 +1002,6 @@ export default function TodayDashboard() {
     );
   }
 
-  // Active = you work for it; Passive = it works for you.
-  function SourceTag({ active }: { active: boolean }) {
-    return (
-      <span
-        className={`ms-auto text-[9px] px-1.5 py-0.5 rounded-full border whitespace-nowrap ${
-          active
-            ? 'border-[var(--border-medium)] text-[var(--muted)]'
-            : 'border-[var(--green-border)] text-[var(--green-dark)] bg-[var(--green-bg)]'
-        }`}
-      >
-        {active ? t('today.sources.active') : t('today.sources.passive')}
-      </span>
-    );
-  }
-
   // One liability as a horizontal paid-vs-remaining bar (blue = paid so far,
   // green = still owed), with the paid share called out as a percentage.
   function DebtBar({ name, original, balance, bold }: { name: string; original: number | null; balance: number; bold?: boolean }) {
@@ -1005,18 +1047,22 @@ export default function TodayDashboard() {
   }
 }
 
-// Pie-slice label: the amount + share, attached to its slice by a label line.
-const RADIAN = Math.PI / 180;
-function renderSourceLabel(props: unknown) {
-  const { cx = 0, cy = 0, midAngle = 0, outerRadius = 0, percent = 0, value = 0 } =
-    props as { cx?: number; cy?: number; midAngle?: number; outerRadius?: number; percent?: number; value?: number };
-  const r = outerRadius + 14;
-  const x = cx + r * Math.cos(-midAngle * RADIAN);
-  const y = cy + r * Math.sin(-midAngle * RADIAN);
-  const compact = value >= 1000 ? `${Math.round(value / 1000)}K` : String(Math.round(value));
+// Label for the last/current-month reference bands. Anchoring "last month" to
+// the right edge and "current month" to the left edge splits them at the
+// month boundary so the two labels never overlap.
+function BandLabel({
+  viewBox, text, align, color,
+}: {
+  viewBox?: { x: number; y: number; width: number; height: number };
+  text: string;
+  align: 'start' | 'end';
+  color: string;
+}) {
+  if (!viewBox) return null;
+  const x = align === 'end' ? viewBox.x + viewBox.width - 2 : viewBox.x + 2;
   return (
-    <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={9} fill="var(--ink-2)">
-      {`SAR ${compact} · ${Math.round(percent * 100)}%`}
+    <text x={x} y={viewBox.y + 9} textAnchor={align} fontSize={9} fill={color}>
+      {text}
     </text>
   );
 }
