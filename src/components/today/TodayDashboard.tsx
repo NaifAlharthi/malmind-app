@@ -12,15 +12,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, Cell,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ReferenceArea, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
-  AreaChart, Area, PieChart, Pie,
+  AreaChart, Area, PieChart, Pie, ComposedChart, Line,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { computeRisks, type RiskInputs } from '@/lib/risks';
+import { computeRisks, type RiskInputs, type RiskResult } from '@/lib/risks';
 import { computeFreedom } from '@/lib/financialFreedom';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
+import { BENCHMARK_START_AGE, buildBenchmarkCurves, buildYouSeries } from '@/lib/positioningBenchmarks';
+import ExplainButton, { type ExplainContent } from '@/components/shared/ExplainButton';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -45,12 +47,14 @@ interface Data {
     monthly_income: number; side_income: number; monthly_expense: number;
     liquid_savings: number | null; monthly_debt_payments: number | null;
     has_health_insurance: boolean | null;
+    age: number | null; employment: string | null;
   } | null;
   snaps: Snap[];
   goals: Goal[];
   actualsByGoal: Record<string, number>;
   liveInvested: number | null;
   debtItems: DebtItem[];
+  nwSnaps: { year: number; value: number }[];
 }
 
 function fmt(n: number) {
@@ -81,6 +85,14 @@ const QUADS = {
 } as const;
 type QuadKey = keyof typeof QUADS;
 
+const AXIS_LABEL: Record<string, string> = {
+  income: 'Income', runway: 'Runway', health: 'Health', concentration: 'Mix', debt: 'Debt',
+};
+
+const RISK_COLOR: Record<string, string> = {
+  high: 'var(--red)', medium: 'var(--gold-2)', low: 'var(--green)', unknown: 'var(--muted)',
+};
+
 function diagnose(avgIncome: number, avgExpenses: number, totalAssets: number): QuadKey | null {
   if (avgIncome <= 0 && avgExpenses <= 0) return null;
   if (avgIncome <= 0) return 'A';
@@ -94,6 +106,7 @@ export default function TodayDashboard() {
   const supabase = createClient();
   const { t, locale } = useLocale();
   const [data, setData] = useState<Data | null>(null);
+  const [selRisk, setSelRisk] = useState<string | null>(null);
 
   const sar = t('common.sar');
   const money = (n: number) => (locale === 'ar' ? `${fmt(n)} ${sar}` : `${sar} ${fmt(n)}`);
@@ -104,9 +117,9 @@ export default function TodayDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [profileRes, snapsRes, goalsRes, actualsRes, loansRes, liabsRes] = await Promise.all([
+      const [profileRes, snapsRes, goalsRes, actualsRes, loansRes, liabsRes, nwRes] = await Promise.all([
         supabase.from('profiles')
-          .select('monthly_income, side_income, monthly_expense, liquid_savings, monthly_debt_payments, has_health_insurance')
+          .select('monthly_income, side_income, monthly_expense, liquid_savings, monthly_debt_payments, has_health_insurance, age, employment')
           .eq('id', user.id).single(),
         supabase.from('financial_snapshots')
           .select('year, month, cash, stocks, real_estate, equity, other_assets, liabilities, income, expenses')
@@ -117,6 +130,7 @@ export default function TodayDashboard() {
         supabase.from('goal_fund_actuals').select('goal_fund_id, actual_amount').eq('user_id', user.id),
         supabase.from('loans').select('name, original_amount, balance').eq('user_id', user.id),
         supabase.from('liabilities').select('name, original_amount, balance').eq('user_id', user.id),
+        supabase.from('net_worth_snapshots').select('year, amount').eq('user_id', user.id),
       ]);
 
       const actualsByGoal: Record<string, number> = {};
@@ -154,6 +168,10 @@ export default function TodayDashboard() {
         actualsByGoal,
         liveInvested,
         debtItems,
+        nwSnaps: (((nwRes.data ?? []) as { year: number; amount: number }[])).map((r) => ({
+          year: r.year,
+          value: Number(r.amount),
+        })),
       });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,7 +248,26 @@ export default function TodayDashboard() {
 
     const goal = [...d.goals].sort((a, b) => Number(b.target_amount) - Number(a.target_amount))[0] ?? null;
 
+    // Net worth vs. benchmark curves by age (same model as Financial Positioning).
+    const age = profile?.age ?? null;
+    let compare: { age: number; you: number | null; national: number; higher: number }[] = [];
+    if (age && age >= BENCHMARK_START_AGE) {
+      const currentYear = new Date().getFullYear();
+      const you = buildYouSeries(d.nwSnaps, age, currentYear, BENCHMARK_START_AGE, age);
+      const bench = buildBenchmarkCurves(BENCHMARK_START_AGE, age);
+      compare = Array.from({ length: age - BENCHMARK_START_AGE + 1 }, (_, i) => ({
+        age: BENCHMARK_START_AGE + i,
+        you: you[i] ?? null,
+        national: bench.networthNational[i],
+        higher: bench.networthHigher[i],
+      }));
+    }
+
     return {
+      age,
+      employment: profile?.employment ?? null,
+      compare,
+      hasCompareData: compare.some((p) => p.you != null),
       latest, avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow,
       quad: diagnose(avgIncome, avgExpenses, totalAssets),
       nwPace, nwSeries, milestone, monthsToMilestone,
@@ -258,23 +295,91 @@ export default function TodayDashboard() {
     avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow, quad,
     nwPace, nwSeries, milestone, monthsToMilestone, invested, liveIsUsed, freedom,
     risks, salary, side, goal, goalSaved, debtItems,
+    age, employment, compare, hasCompareData,
   } = derived;
 
   const delta = avgIncome - avgExpenses;
   const highRisks = risks.filter((r) => r.level === 'high');
   const medRisks = risks.filter((r) => r.level === 'medium');
   const radarData = risks.map((r) => ({
-    axis: { income: 'Income', runway: 'Runway', health: 'Health', concentration: 'Mix', debt: 'Debt' }[r.id] ?? r.id,
+    axis: AXIS_LABEL[r.id] ?? r.id,
     score: r.score,
   }));
+  const selectedRisk = risks.find((r) => r.id === selRisk) ?? null;
   const debtVsIncome = avgIncome > 0 ? (liabilities / (avgIncome * 12)) * 100 : null;
   const debtVsAssets = totalAssets > 0 ? (liabilities / totalAssets) * 100 : null;
+
+  // The Brain's card-by-card explanations (the "?" on each card).
+  const EX: Record<string, ExplainContent> = {
+    quad: {
+      title: t('today.quad.title'),
+      what: 'Which of the four financial stages you are in right now — A build mode, B falling behind, C break-even, D abundance. People usually progress A → B → C → D as income grows and behavior matures into surplus.',
+      how: 'Your average monthly income vs spending over the last 6 logged months, plus your asset cushion. A deficit with under 3 months of assets reads as A; a deficit with a cushion as B; a surplus under 10% of income as C; above that, D.',
+      action: 'Each stage has one move that matters — it is written under the map. Open Financial Positioning for the full playbook of levers at your stage.',
+      ask: 'Which financial stage am I in (A build mode, B falling behind, C break-even, D abundance), and what is the single most important move for me right now?',
+    },
+    cash: {
+      title: t('today.cash.title'),
+      what: 'Your last six months of money entering (green, up) and leaving (amber, down), with the blue Net bar showing what each month actually left behind. The highlighted bands mark the current and previous month.',
+      how: 'Straight from your monthly ledger in My Financial Numbers: income, expenses, and net = income − expenses.',
+      action: 'A widening green-over-amber gap is the engine of everything else. If Net dips negative in some months, find the leak in My Financial Numbers.',
+      ask: 'Analyze my income vs expenses over the last 6 months. Where is my surplus going and how can I widen it?',
+    },
+    sources: {
+      title: t('today.sources.title'),
+      what: 'How many streams feed your income, who the biggest contributor is, and whether each stream is active (you work for it) or passive (it works for you).',
+      how: 'From your profile: employer salary and side income. Passive streams — rent, dividends, business income — are the ones that carry you toward financial freedom.',
+      action: 'One active source is a single point of failure. Build a second stream, then start converting active income into assets that pay you.',
+      ask: 'How concentrated is my income, and what realistic passive income sources could I build in Saudi Arabia?',
+    },
+    risks: {
+      title: t('today.risks.title'),
+      what: 'Five life-risks scored 0 (safe) to 100 (exposed): income concentration, emergency runway, health cover, asset mix, and debt burden. The bigger the shaded shape, the more exposed you are. Tap any chip below for the finding.',
+      how: 'Computed from your real numbers — income sources, liquid savings vs spending, insurance answer, asset mix, and debt payments. Nothing is fabricated; missing data reads as unknown.',
+      action: 'Fix the reddest axis first — usually runway or insurance. The Risks page maps each one to concrete mitigations.',
+      ask: 'Walk me through my top financial risks right now and the most effective mitigations, in order.',
+    },
+    debt: {
+      title: t('today.debt.title'),
+      what: 'Every loan and liability you carry: how much of each is already paid off (blue) versus still owed (green), plus your total debt as a share of annual income and of assets.',
+      how: 'Paid = original amount − current balance, from your Bills & Commitments records. The gauges divide total owed by your annual income and total assets.',
+      action: 'Under 30% of annual income is comfortable; past 60% it commands your life. Consider the snowball: clear the smallest balance first for momentum.',
+      ask: 'Assess my debt load and design a payoff strategy for my loans.',
+    },
+    compare: {
+      title: t('today.compare.title'),
+      what: 'Your net worth trajectory by age, against an illustrative national-average curve and a higher-earning peer curve.',
+      how: 'Your yearly net-worth snapshots plotted at each age, over benchmark curves modeled for Saudi earners. The gap is a measure of distance — not a verdict.',
+      action: 'Log a net worth snapshot each year, and use Financial Positioning to see which levers close the gap fastest.',
+      ask: 'How does my net worth compare to peers my age, and what would close the gap fastest?',
+    },
+    plan: {
+      title: t('today.plan.title'),
+      what: 'Your biggest named goal — the thing you are saving toward — with its progress and monthly pace.',
+      action: 'A goal with a name and a monthly number gets funded; a vague intention does not. Keep exactly one big plan in focus.',
+      ask: 'Review my next big plan — is its pace realistic, and should it be my top priority?',
+    },
+    pace: {
+      title: t('today.pace.title'),
+      what: 'How fast your net worth is actually growing per month, and how long the next milestone takes at that speed.',
+      how: 'The average month-over-month change in your net worth across the last 12 logged months.',
+      action: 'Pace is the one number that compounds. Raise it by widening the income–spending gap or by making idle cash work.',
+      ask: 'How fast am I building wealth, and what would realistically accelerate my pace the most?',
+    },
+    freedom: {
+      title: t('today.freedom.title'),
+      what: 'The capital at which passive returns replace your recurring expenses — making work a choice. The road shows how far along you are.',
+      how: 'At a 4% safe withdrawal rate, you need 25× your annual spending invested. Progress = your working capital ÷ that number; the ETA compounds your capital at 6%/year plus your monthly investing pace.',
+      action: 'Two levers move the finish line: spend less (each SAR 1,000/month less = SAR 300K less needed) or invest more each month.',
+      ask: 'What is my financial freedom number, and the fastest realistic path to reach it?',
+    },
+  };
 
   return (
     <div className="space-y-3 mb-6">
       {/* ── Row 1: position + cash flow ── */}
       <div className="grid lg:grid-cols-2 gap-3">
-        <Card title={t('today.quad.title')} href="/positioning">
+        <Card title={t('today.quad.title')} href="/positioning" explain={EX.quad}>
           <QuadrantMap active={quad} hereLabel={t('today.quad.here')} />
           {quad && (
             <p className="text-xs text-[var(--ink-2)] leading-relaxed mt-2">
@@ -284,7 +389,7 @@ export default function TodayDashboard() {
           )}
         </Card>
 
-        <Card title={t('today.cash.title')} href="/financial-numbers">
+        <Card title={t('today.cash.title')} href="/financial-numbers" explain={EX.cash}>
           <div className="flex items-baseline gap-4 flex-wrap mb-2">
             <div>
               <div className="text-[10px] text-[var(--muted)]">{t('today.cash.avgIncome')}</div>
@@ -306,30 +411,40 @@ export default function TodayDashboard() {
           </div>
           <div className="h-48" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={cashFlow} barGap={2} margin={{ top: 16, right: 4, left: 0, bottom: 0 }}>
+              <BarChart
+                data={cashFlow.map((e) => ({ ...e, expensesDown: -e.expenses }))}
+                barGap={2}
+                margin={{ top: 14, right: 4, left: 0, bottom: 0 }}
+                stackOffset="sign"
+              >
                 <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 9, fill: 'var(--muted)' }} tickFormatter={fmtCompact} width={34} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v) => `SAR ${fmt(Number(v))}`} />
+                <YAxis
+                  tick={{ fontSize: 9, fill: 'var(--muted)' }}
+                  tickFormatter={(v) => fmtCompact(Math.abs(Number(v)))}
+                  width={34} axisLine={false} tickLine={false}
+                />
+                <Tooltip formatter={(v, name) => [`SAR ${fmt(Math.abs(Number(v)))}`, name]} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
-                {/* lock the eye onto the present: mark the latest + previous month */}
+                {/* soft bands lock the eye onto the present, without pointing at any bar */}
                 {cashFlow.length >= 2 && (
-                  <ReferenceLine
-                    x={cashFlow[cashFlow.length - 2].label}
-                    stroke="var(--muted)" strokeDasharray="3 3"
-                    label={{ value: t('today.cash.last'), position: 'top', fontSize: 9, fill: 'var(--muted)' }}
+                  <ReferenceArea
+                    x1={cashFlow[cashFlow.length - 2].label} x2={cashFlow[cashFlow.length - 2].label}
+                    fill="var(--muted)" fillOpacity={0.08}
+                    label={{ value: t('today.cash.last'), position: 'insideTop', fontSize: 9, fill: 'var(--muted)' }}
                   />
                 )}
                 {cashFlow.length >= 1 && (
-                  <ReferenceLine
-                    x={cashFlow[cashFlow.length - 1].label}
-                    stroke="var(--gold-2)" strokeDasharray="3 3"
-                    label={{ value: t('today.cash.current'), position: 'top', fontSize: 9, fill: 'var(--gold-2)' }}
+                  <ReferenceArea
+                    x1={cashFlow[cashFlow.length - 1].label} x2={cashFlow[cashFlow.length - 1].label}
+                    fill="var(--gold-2)" fillOpacity={0.1}
+                    label={{ value: t('today.cash.current'), position: 'insideTop', fontSize: 9, fill: 'var(--gold-2)' }}
                   />
                 )}
+                <ReferenceLine y={0} stroke="var(--border-strong)" />
                 <Bar dataKey="income" name="Income" fill="var(--green)" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="expenses" name="Expenses" fill="var(--amber)" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="net" name={t('today.cash.net')} radius={[3, 3, 0, 0]}>
+                <Bar dataKey="expensesDown" name="Expenses" fill="var(--amber)" radius={[0, 0, 3, 3]} />
+                <Bar dataKey="net" name={t('today.cash.net')} fill="var(--blue-2)" radius={[3, 3, 0, 0]}>
                   {cashFlow.map((e, i) => (
                     <Cell key={i} fill={e.net >= 0 ? 'var(--blue-2)' : 'var(--red)'} />
                   ))}
@@ -342,10 +457,10 @@ export default function TodayDashboard() {
 
       {/* ── Row 2: income sources (pie) + risk radar ── */}
       <div className="grid sm:grid-cols-2 gap-3">
-        <Card title={t('today.sources.title')} href="/lifetime-income">
+        <Card title={t('today.sources.title')} href="/lifetime-income" explain={EX.sources}>
           {salary + side > 0 ? (
-            <div className="flex items-center gap-3">
-              <div className="relative h-32 w-32 shrink-0" dir="ltr">
+            <div className="flex items-center gap-2">
+              <div className="relative h-40 w-44 shrink-0" dir="ltr">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -354,8 +469,10 @@ export default function TodayDashboard() {
                         ...(side > 0 ? [{ name: 'Side income', value: side }] : []),
                       ]}
                       dataKey="value" nameKey="name"
-                      innerRadius={38} outerRadius={56} paddingAngle={side > 0 ? 3 : 0}
+                      innerRadius={30} outerRadius={46} paddingAngle={side > 0 ? 3 : 0}
                       stroke="none"
+                      labelLine={{ stroke: 'var(--border-strong)' }}
+                      label={renderSourceLabel}
                     >
                       <Cell fill="var(--green)" />
                       {side > 0 && <Cell fill="var(--blue)" />}
@@ -364,22 +481,34 @@ export default function TodayDashboard() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="font-serif text-2xl font-bold text-[var(--ink)]">{(salary > 0 ? 1 : 0) + (side > 0 ? 1 : 0)}</span>
+                  <span className="font-serif text-xl font-bold text-[var(--ink)]">{(salary > 0 ? 1 : 0) + (side > 0 ? 1 : 0)}</span>
                 </div>
               </div>
-              <div className="min-w-0 flex-1 space-y-1.5 text-xs text-[var(--ink-2)]">
-                <div className="flex justify-between gap-2">
-                  <span><span className="inline-block w-2 h-2 rounded-full me-1.5" style={{ background: 'var(--green)' }} />Employer salary</span>
-                  <span className="font-medium whitespace-nowrap">{money(salary)}</span>
-                </div>
-                {side > 0 ? (
-                  <div className="flex justify-between gap-2">
-                    <span><span className="inline-block w-2 h-2 rounded-full me-1.5" style={{ background: 'var(--blue)' }} />Side income</span>
-                    <span className="font-medium whitespace-nowrap">{money(side)}</span>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div>
+                  <div className="text-[10px] text-[var(--muted)]">{t('today.sources.biggest')}</div>
+                  <div className="text-xs font-semibold text-[var(--ink)] leading-snug">
+                    {salary >= side ? 'Employer salary' : 'Side income'}
+                    {salary >= side && employment ? <span className="text-[var(--muted)] font-normal"> · {employment}</span> : null}
                   </div>
-                ) : (
-                  <p className="text-[11px] text-[var(--gold-text-alt)]">⚠ Everything rides on one source.</p>
-                )}
+                </div>
+                <div className="space-y-1 text-[11px] text-[var(--ink-2)]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--green)' }} />
+                    <span className="truncate">Employer salary</span>
+                    <SourceTag active />
+                  </div>
+                  {side > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--blue)' }} />
+                      <span className="truncate">Side income</span>
+                      <SourceTag active />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-[var(--gold-text-alt)] leading-relaxed">
+                  {t('today.sources.nudge')}
+                </p>
               </div>
             </div>
           ) : (
@@ -387,7 +516,7 @@ export default function TodayDashboard() {
           )}
         </Card>
 
-        <Card title={t('today.risks.title')} href="/risks">
+        <Card title={t('today.risks.title')} href="/risks" explain={EX.risks}>
           <div className="flex items-center gap-2 mb-1">
             {highRisks.length > 0 && (
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ color: 'var(--red-dark-text)', background: 'var(--red-bg)' }}>
@@ -400,25 +529,52 @@ export default function TodayDashboard() {
               </span>
             )}
           </div>
-          <div className="h-32" dir="ltr">
+          <div className="h-28" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radarData} outerRadius="75%">
                 <PolarGrid stroke="var(--chart-grid)" />
                 <PolarAngleAxis dataKey="axis" tick={{ fontSize: 9, fill: 'var(--muted)' }} />
                 <Radar dataKey="score" stroke="var(--red)" fill="var(--red)" fillOpacity={0.25} />
+                <Tooltip content={<RiskTooltip risks={risks} />} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
-          {highRisks[0] && (
-            <p className="text-[11px] text-[var(--ink-2)] truncate" title={highRisks[0].finding}>
-              {highRisks[0].icon} {highRisks[0].title}
-            </p>
+          {/* tap a risk for its finding */}
+          <div className="flex flex-wrap gap-1 mb-1">
+            {risks.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setSelRisk(selRisk === r.id ? null : r.id)}
+                className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                  selRisk === r.id
+                    ? 'border-[var(--green)] bg-[var(--green-bg)] text-[var(--ink)]'
+                    : 'border-[var(--border-default)] text-[var(--muted)] hover:text-[var(--ink-2)]'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: RISK_COLOR[r.level] }} />
+                {AXIS_LABEL[r.id] ?? r.id}
+              </button>
+            ))}
+          </div>
+          {selectedRisk && (
+            <div className="text-[11px] text-[var(--ink-2)] leading-relaxed bg-[var(--surface-1)] rounded-lg p-2.5">
+              <span className="font-medium text-[var(--ink)]">{selectedRisk.icon} {selectedRisk.title}.</span>{' '}
+              {selectedRisk.finding}
+              {selectedRisk.mitigations[0]?.href && (
+                <>
+                  {' '}
+                  <Link href={selectedRisk.mitigations[0].href} className="text-[var(--green-dark)] font-medium">
+                    {selectedRisk.mitigations[0].linkLabel} →
+                  </Link>
+                </>
+              )}
+            </div>
           )}
         </Card>
       </div>
 
       {/* ── Row 3: debt load — each liability, paid vs remaining ── */}
-      <Card title={t('today.debt.title')} href="/commitments">
+      <Card title={t('today.debt.title')} href="/commitments" explain={EX.debt}>
         <div className="flex items-start justify-between gap-4 flex-wrap mb-3">
           <div className="font-serif text-2xl font-bold text-[var(--ink)]">{money(liabilities)}</div>
           {/* the two ratios, folded in as compact gauges */}
@@ -459,9 +615,45 @@ export default function TodayDashboard() {
         )}
       </Card>
 
-      {/* ── Row 4: plan + pace ── */}
+      {/* ── Row 4: net worth vs peers, by age ── */}
+      <Card title={t('today.compare.title')} href="/positioning" explain={EX.compare}>
+        {age && compare.length > 1 ? (
+          <>
+            <div className="h-44" dir="ltr">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={compare} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                  <XAxis dataKey="age" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 9, fill: 'var(--muted)' }}
+                    tickFormatter={fmtCompact} width={38} axisLine={false} tickLine={false}
+                  />
+                  <Tooltip labelFormatter={(v) => `Age ${v}`} formatter={(v, name) => [`SAR ${fmt(Number(v))}`, name]} />
+                  <Legend wrapperStyle={{ fontSize: 10 }} />
+                  <Line type="monotone" dataKey="national" name="National avg" stroke="var(--blue-2)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="higher" name="Higher peer" stroke="var(--ink)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="you" name="You" stroke="var(--green)" strokeWidth={3} dot={false} connectNulls={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            {!hasCompareData && (
+              <p className="text-[11px] text-[var(--muted)] mt-1">
+                Log a yearly net worth snapshot in{' '}
+                <Link href="/positioning" className="text-[var(--green-dark)] font-medium">Financial Positioning</Link>{' '}
+                to draw your own line against the benchmarks.
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-[var(--muted)]">
+            Set your age in Edit Profile to see how you compare against peers and the national average.
+          </p>
+        )}
+      </Card>
+
+      {/* ── Row 5: plan + pace ── */}
       <div className="grid lg:grid-cols-2 gap-3">
-        <Card title={t('today.plan.title')} href="/goal-fund">
+        <Card title={t('today.plan.title')} href="/goal-fund" explain={EX.plan}>
           {goal ? (
             <>
               <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -487,7 +679,7 @@ export default function TodayDashboard() {
           )}
         </Card>
 
-        <Card title={t('today.pace.title')} href="/velocity">
+        <Card title={t('today.pace.title')} href="/velocity" explain={EX.pace}>
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
               <div className="font-serif text-2xl font-bold" style={{ color: nwPace >= 0 ? 'var(--green-dark)' : 'var(--red-2)' }}>
@@ -518,8 +710,13 @@ export default function TodayDashboard() {
             <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)]">
               🕊 {t('today.freedom.title')}
             </div>
-            <div className="text-[10px] text-white/50">
-              4% rule · {liveIsUsed ? 'live portfolio' : 'latest ledger'}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-white/50">
+                4% rule · {liveIsUsed ? 'live portfolio' : 'latest ledger'}
+              </span>
+              <span className="[&>button]:border-white/30 [&>button]:text-white/60 [&>button:hover]:text-white [&>button:hover]:border-white/60">
+                <ExplainButton content={EX.freedom} />
+              </span>
             </div>
           </div>
 
@@ -559,12 +756,15 @@ export default function TodayDashboard() {
   );
 
   // ── local pieces ──────────────────────────────────────────────────────
-  function Card({ title, href, className = '', children }: { title: string; href: string; className?: string; children: React.ReactNode }) {
+  function Card({ title, href, className = '', explain, children }: { title: string; href: string; className?: string; explain?: ExplainContent; children: React.ReactNode }) {
     return (
       <div className={`bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-4 ${className}`}>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between gap-2 mb-2">
           <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--muted)]">{title}</div>
-          <Link href={href} className="text-[var(--muted)] hover:text-[var(--green-dark)] text-xs">→</Link>
+          <div className="flex items-center gap-1.5">
+            {explain && <ExplainButton content={explain} />}
+            <Link href={href} className="text-[var(--muted)] hover:text-[var(--green-dark)] text-xs">→</Link>
+          </div>
         </div>
         {children}
       </div>
@@ -583,6 +783,21 @@ export default function TodayDashboard() {
           <div className="h-full rounded-full" style={{ width: `${Math.min(100, pct ?? 0)}%`, background: color }} />
         </div>
       </div>
+    );
+  }
+
+  // Active = you work for it; Passive = it works for you.
+  function SourceTag({ active }: { active: boolean }) {
+    return (
+      <span
+        className={`ms-auto text-[9px] px-1.5 py-0.5 rounded-full border whitespace-nowrap ${
+          active
+            ? 'border-[var(--border-medium)] text-[var(--muted)]'
+            : 'border-[var(--green-border)] text-[var(--green-dark)] bg-[var(--green-bg)]'
+        }`}
+      >
+        {active ? t('today.sources.active') : t('today.sources.passive')}
+      </span>
     );
   }
 
@@ -629,6 +844,44 @@ export default function TodayDashboard() {
       </div>
     );
   }
+}
+
+// Pie-slice label: the amount + share, attached to its slice by a label line.
+const RADIAN = Math.PI / 180;
+function renderSourceLabel(props: unknown) {
+  const { cx = 0, cy = 0, midAngle = 0, outerRadius = 0, percent = 0, value = 0 } =
+    props as { cx?: number; cy?: number; midAngle?: number; outerRadius?: number; percent?: number; value?: number };
+  const r = outerRadius + 14;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
+  const compact = value >= 1000 ? `${Math.round(value / 1000)}K` : String(Math.round(value));
+  return (
+    <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={9} fill="var(--ink-2)">
+      {`SAR ${compact} · ${Math.round(percent * 100)}%`}
+    </text>
+  );
+}
+
+// Hovering an axis on the radar shows that risk's real finding.
+function RiskTooltip({
+  active, payload, risks,
+}: {
+  active?: boolean;
+  payload?: { payload?: { axis?: string } }[];
+  risks: RiskResult[];
+}) {
+  if (!active || !payload?.length) return null;
+  const axis = payload[0]?.payload?.axis;
+  const risk = risks.find((r) => (AXIS_LABEL[r.id] ?? r.id) === axis);
+  if (!risk) return null;
+  return (
+    <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-lg px-3 py-2 max-w-[230px] shadow-xl">
+      <div className="text-[10px] font-semibold text-[var(--ink)] mb-0.5">{risk.icon} {risk.title}</div>
+      <div className="text-[10px] text-[var(--ink-2)] leading-relaxed">
+        {risk.level === 'unknown' ? risk.missingHint ?? risk.finding : risk.finding}
+      </div>
+    </div>
+  );
 }
 
 // ── The A→B→C→D quadrant map ─────────────────────────────────────────────
@@ -695,9 +948,9 @@ function QuadrantMap({ active, hereLabel }: { active: QuadKey | null; hereLabel:
         );
       })}
 
-      {/* progression arrows: A→B (top), B→C (stretching diagonally), C→D (bottom) */}
+      {/* progression arrows: A→B (top), B→C (short diagonal at the center), C→D (bottom) */}
       <line x1={163} y1={60} x2={177} y2={60} stroke="var(--gold-2)" strokeWidth={1.8} markerEnd="url(#qArrow)" />
-      <line x1={238} y1={119} x2={104} y2={131} stroke="var(--gold-2)" strokeWidth={1.8} markerEnd="url(#qArrow)" />
+      <line x1={177} y1={118} x2={163} y2={132} stroke="var(--gold-2)" strokeWidth={1.8} markerEnd="url(#qArrow)" />
       <line x1={163} y1={190} x2={177} y2={190} stroke="var(--gold-2)" strokeWidth={1.8} markerEnd="url(#qArrow)" />
     </svg>
   );
