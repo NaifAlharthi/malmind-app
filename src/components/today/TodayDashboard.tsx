@@ -41,7 +41,19 @@ interface DebtItem {
   name: string;
   original: number | null; // null when the starting amount is unknown
   balance: number;
+  leverage: boolean; // true = wealth-building (mortgage, business); false = consumption
 }
+
+// Leverage debt buys assets that can appreciate or produce income (a home, a
+// business, education). Everything else — cars, cards, personal/BNPL — is
+// consumption debt that only costs you.
+function isLeverageDebt(name: string, tag: string | null): boolean {
+  const s = `${name} ${tag ?? ''}`.toLowerCase();
+  return /mortgage|home\s?loan|house|real\s?estate|property|land|apartment|villa|business|invest|company|project|educat|student|tuition|study|degree/.test(s);
+}
+
+// Net-worth milestones the wealth-pace ladder counts toward.
+const MILESTONE_STOPS = [10_000, 50_000, 100_000, 250_000, 500_000, 750_000, 1_000_000];
 
 interface Data {
   profile: {
@@ -143,8 +155,8 @@ export default function TodayDashboard() {
           .select('id, name, target_amount, monthly_contribution, start_date, maturity_years')
           .eq('user_id', user.id),
         supabase.from('goal_fund_actuals').select('goal_fund_id, actual_amount').eq('user_id', user.id),
-        supabase.from('loans').select('name, original_amount, balance').eq('user_id', user.id),
-        supabase.from('liabilities').select('name, original_amount, balance').eq('user_id', user.id),
+        supabase.from('loans').select('name, original_amount, balance, category').eq('user_id', user.id),
+        supabase.from('liabilities').select('name, original_amount, balance, kind').eq('user_id', user.id),
         supabase.from('net_worth_snapshots').select('year, amount').eq('user_id', user.id),
       ]);
 
@@ -163,15 +175,17 @@ export default function TodayDashboard() {
         }
       } catch { /* fine without */ }
 
-      // Every named debt: bank loans + general liabilities, one list.
+      // Every named debt: bank loans (with a category) + general liabilities
+      // (with a kind), one list, classified leverage vs consumption.
       const debtItems: DebtItem[] = [
-        ...(((loansRes.data ?? []) as { name: string; original_amount: number | null; balance: number }[])),
-        ...(((liabsRes.data ?? []) as { name: string; original_amount: number | null; balance: number }[])),
+        ...(((loansRes.data ?? []) as { name: string; original_amount: number | null; balance: number; category: string | null }[]).map((r) => ({ ...r, tag: r.category }))),
+        ...(((liabsRes.data ?? []) as { name: string; original_amount: number | null; balance: number; kind: string | null }[]).map((r) => ({ ...r, tag: r.kind }))),
       ]
         .map((r) => ({
           name: r.name,
           original: r.original_amount != null && Number(r.original_amount) > 0 ? Number(r.original_amount) : null,
           balance: Number(r.balance) || 0,
+          leverage: isLeverageDebt(r.name, r.tag ?? null),
         }))
         .filter((r) => r.balance > 0 || (r.original ?? 0) > 0)
         .sort((a, b) => b.balance - a.balance);
@@ -295,19 +309,27 @@ export default function TodayDashboard() {
 
     const goal = [...d.goals].sort((a, b) => Number(b.target_amount) - Number(a.target_amount))[0] ?? null;
 
-    // Net worth vs. benchmark curves by age (same model as Financial Positioning).
+    // Net worth vs. benchmark curves by age, with today marked and your own
+    // line projected forward at your current pace ("if things stay as is").
     const age = profile?.age ?? null;
-    let compare: { age: number; you: number | null; national: number; higher: number }[] = [];
+    let compare: { age: number; you: number | null; youProjected: number | null; national: number; higher: number }[] = [];
     if (age && age >= BENCHMARK_START_AGE) {
       const currentYear = new Date().getFullYear();
+      const pastSpan = age - BENCHMARK_START_AGE;
+      const maxAge = age + Math.max(pastSpan, 10); // extend forward so today sits near centre
       const you = buildYouSeries(d.nwSnaps, age, currentYear, BENCHMARK_START_AGE, age);
-      const bench = buildBenchmarkCurves(BENCHMARK_START_AGE, age);
-      compare = Array.from({ length: age - BENCHMARK_START_AGE + 1 }, (_, i) => ({
-        age: BENCHMARK_START_AGE + i,
-        you: you[i] ?? null,
-        national: bench.networthNational[i],
-        higher: bench.networthHigher[i],
-      }));
+      const bench = buildBenchmarkCurves(BENCHMARK_START_AGE, maxAge);
+      const annualPace = nwPace * 12;
+      compare = Array.from({ length: maxAge - BENCHMARK_START_AGE + 1 }, (_, i) => {
+        const a = BENCHMARK_START_AGE + i;
+        return {
+          age: a,
+          you: a <= age ? (you[i] ?? null) : null,
+          youProjected: a >= age ? Math.max(0, netWorth + annualPace * (a - age)) : null,
+          national: bench.networthNational[i],
+          higher: bench.networthHigher[i],
+        };
+      });
     }
 
     // Lifetime income vs. savings: the same career-earnings projection used
@@ -342,11 +364,28 @@ export default function TodayDashboard() {
       other_assets: Number(s.other_assets),
     }));
 
+    // Balances scorecards + liquidity ratio.
+    const cash = latest ? Number(latest.cash) : 0;
+    const liquidityPct = totalAssets > 0 ? (cash / totalAssets) * 100 : 0;
+    const monthsOfCash = avgExpenses > 0 ? cash / avgExpenses : null;
+    const assetTiles = latest
+      ? ASSET_SERIES.map((s) => ({ key: s.key, labelKey: s.labelKey, color: s.color, value: Number(latest[s.key]) }))
+          .filter((tt) => tt.value > 0)
+      : [];
+
+    // Wealth-pace ladder: time from today's net worth to each milestone.
+    const paceLadder = MILESTONE_STOPS.map((target) => ({
+      target,
+      reached: netWorth >= target,
+      months: netWorth < target && nwPace > 0 ? (target - netWorth) / nwPace : null,
+    }));
+
     return {
       age,
       employment: profile?.employment ?? null,
       compare,
       hasCompareData: compare.some((p) => p.you != null),
+      cash, liquidityPct, monthsOfCash, assetTiles, paceLadder,
       latest, avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow, yearCashFlow,
       quad: diagnose(avgIncome, avgExpenses, totalAssets),
       nwPace, nwSeries, milestone, monthsToMilestone,
@@ -374,10 +413,11 @@ export default function TodayDashboard() {
 
   const {
     avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow, yearCashFlow, quad,
-    nwPace, nwSeries, milestone, monthsToMilestone, invested, liveIsUsed, freedom,
+    nwPace, nwSeries, invested, liveIsUsed, freedom,
     risks, salary, side, goal, goalSaved, debtItems,
     age, employment, compare, hasCompareData,
     lifeYearly, lifeEarned, lifeKept, lifeKeptPct, assetComposition,
+    cash, liquidityPct, monthsOfCash, assetTiles, paceLadder,
   } = derived;
   const cfData = cashView === 'six' ? cashFlow : yearCashFlow;
   const hasForecast = cfData.some((e) => e.forecast);
@@ -414,10 +454,17 @@ export default function TodayDashboard() {
   const firstForecastLabel = forecastEntries[0]?.label ?? null;
   const negDepth = Math.max(0, ...cfData.filter((e) => !e.forecast).map((e) => e.expenses));
 
-  // Asset-composition series that actually carry a value in the history.
-  const assetSeries = ASSET_SERIES.filter((s) =>
-    assetComposition.some((r) => Number(r[s.key]) > 0)
-  );
+  // Asset-composition series that carry value, ordered biggest-first so the
+  // largest class sits at the bottom of the stack; "Other" is pinned last.
+  const assetLatest = assetComposition[assetComposition.length - 1];
+  const assetSeries = ASSET_SERIES
+    .filter((s) => assetComposition.some((r) => Number(r[s.key]) > 0))
+    .slice()
+    .sort((a, b) => {
+      if (a.key === 'other_assets') return 1;
+      if (b.key === 'other_assets') return -1;
+      return Number(assetLatest?.[b.key] ?? 0) - Number(assetLatest?.[a.key] ?? 0);
+    });
 
   const delta = avgIncome - avgExpenses;
   const highRisks = risks.filter((r) => r.level === 'high');
@@ -430,8 +477,36 @@ export default function TodayDashboard() {
   const debtVsIncome = avgIncome > 0 ? (liabilities / (avgIncome * 12)) * 100 : null;
   const debtVsAssets = totalAssets > 0 ? (liabilities / totalAssets) * 100 : null;
 
+  // Liquidity verdict (cash as a share of assets; healthy ≈ 10–20%).
+  const liqLow = liquidityPct < 8;
+  const liqHigh = liquidityPct > 30;
+  const liqColor = liqLow || liqHigh ? 'var(--amber)' : 'var(--green)';
+  const liqVerdict = liqLow ? t('today.liquidity.thin') : liqHigh ? t('today.liquidity.idle') : t('today.liquidity.healthy');
+
+  // Debt split: leverage (wealth-building) vs consumption.
+  const leverageTotal = debtItems.filter((x) => x.leverage).reduce((s, x) => s + x.balance, 0);
+  const consumptionTotal = debtItems.filter((x) => !x.leverage).reduce((s, x) => s + x.balance, 0);
+
+  // Format a month count as "X yr Y mo".
+  const dur = (months: number) => {
+    const total = Math.max(0, Math.round(months));
+    const y = Math.floor(total / 12);
+    const mo = total % 12;
+    const parts: string[] = [];
+    if (y > 0) parts.push(`${y} ${t('today.pace.yr')}`);
+    if (mo > 0 || y === 0) parts.push(`${mo} ${t('today.pace.mo')}`);
+    return parts.join(' ');
+  };
+
   // The Brain's card-by-card explanations (the "?" on each card).
   const EX: Record<string, ExplainContent> = {
+    balances: {
+      title: t('today.balances.title'),
+      what: 'What you own right now, split by asset class — cash, stocks, real estate, equity and other — with your net worth, and how liquid you are.',
+      how: 'The asset columns of your most recent logged month in My Financial Numbers. Liquidity = cash ÷ total assets; the healthy band is roughly 10–20%.',
+      action: 'Keep enough cash to cover 3–6 months of spending, but not so much that it sits idle losing value to inflation — invest the excess.',
+      ask: 'Review my balances, asset mix and liquidity — is my cash level right, or should some be invested?',
+    },
     quad: {
       title: t('today.quad.title'),
       what: 'Which of the four financial stages you are in right now — A build mode, B falling behind, C break-even, D abundance. People usually progress A → B → C → D as income grows and behavior matures into surplus.',
@@ -512,6 +587,58 @@ export default function TodayDashboard() {
 
   return (
     <div className="space-y-3 mb-6">
+      {/* ── Row 0: balances scorecards + liquidity ── */}
+      {assetTiles.length > 0 && (
+        <Card title={t('today.balances.title')} href="/holdings" explain={EX.balances}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3">
+            {assetTiles.map((tt) => (
+              <div key={tt.key}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: tt.color }} />
+                  <span className="text-[10px] text-[var(--muted)] truncate">{t(tt.labelKey)}</span>
+                </div>
+                <div className="font-serif text-base font-bold text-[var(--ink)]">{moneyC(tt.value)}</div>
+                <div className="text-[9px] text-[var(--muted)]">
+                  {totalAssets > 0 ? Math.round((tt.value / totalAssets) * 100) : 0}% {t('today.balances.ofAssets')}
+                </div>
+              </div>
+            ))}
+            <div>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--green-dark)' }} />
+                <span className="text-[10px] text-[var(--muted)] truncate">{t('today.balances.netWorth')}</span>
+              </div>
+              <div className="font-serif text-base font-bold text-[var(--green-dark)]">{moneyC(netWorth)}</div>
+              <div className="text-[9px] text-[var(--muted)]">−{money(liabilities)}</div>
+            </div>
+          </div>
+
+          {totalAssets > 0 && (
+            <div className="mt-4 pt-4 border-t border-[var(--border-default)]">
+              <div className="flex items-baseline justify-between gap-2 mb-1.5 flex-wrap">
+                <div className="text-[11px] font-medium text-[var(--ink)]">💧 {t('today.liquidity.title')}</div>
+                <div className="text-[10px] text-[var(--muted)]">
+                  {t('today.liquidity.cashOfAssets', { pct: Math.round(liquidityPct) })}
+                  {monthsOfCash != null ? ` · ${t('today.liquidity.months', { n: monthsOfCash.toFixed(1) })}` : ''}
+                </div>
+              </div>
+              {/* gauge on a 0–50% scale, with the healthy 10–20% zone shaded */}
+              <div className="relative h-2.5 rounded-full overflow-hidden bg-[var(--surface-1)]" dir="ltr">
+                <div className="absolute inset-y-0" style={{ left: '20%', width: '20%', background: 'var(--green-bg)' }} />
+                <div
+                  className="absolute inset-y-0 w-1.5 rounded-full"
+                  style={{ left: `calc(${Math.min(100, (liquidityPct / 50) * 100)}% - 3px)`, background: liqColor }}
+                />
+              </div>
+              <div className="flex justify-between text-[8px] text-[var(--muted)] mt-0.5">
+                <span>0%</span><span className="text-[var(--green-dark)]">{t('today.liquidity.band')}</span><span>50%+</span>
+              </div>
+              <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mt-1.5">{liqVerdict}</p>
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* ── Row 1: position + cash flow ── */}
       <div className="grid lg:grid-cols-2 gap-3">
         <Card title={t('today.quad.title')} href="/positioning" explain={EX.quad}>
@@ -818,9 +945,27 @@ export default function TodayDashboard() {
 
         {debtItems.length > 0 ? (
           <>
+            {/* leverage vs consumption split */}
+            {(leverageTotal > 0 || consumptionTotal > 0) && (
+              <div className="flex items-stretch gap-2 mb-3">
+                {leverageTotal > 0 && (
+                  <div className="flex-1 rounded-lg px-3 py-2 bg-[var(--green-bg)] border border-[var(--green-border)]">
+                    <div className="text-[10px] text-[var(--green-dark)]">🌱 {t('today.debt.leverageFull')}</div>
+                    <div className="font-serif text-base font-bold text-[var(--green-dark)]">{money(leverageTotal)}</div>
+                  </div>
+                )}
+                {consumptionTotal > 0 && (
+                  <div className="flex-1 rounded-lg px-3 py-2 bg-[var(--gold-bg)] border border-[var(--gold)]/40">
+                    <div className="text-[10px] text-[var(--gold-text-alt)]">🛒 {t('today.debt.consumptionFull')}</div>
+                    <div className="font-serif text-base font-bold text-[var(--gold-text-alt)]">{money(consumptionTotal)}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2.5">
               {debtItems.map((item) => (
-                <DebtBar key={item.name} name={item.name} original={item.original} balance={item.balance} />
+                <DebtBar key={item.name} name={item.name} original={item.original} balance={item.balance} leverage={item.leverage} />
               ))}
               <div className="pt-2.5 border-t border-[var(--border-default)]">
                 <DebtBar
@@ -835,10 +980,11 @@ export default function TodayDashboard() {
                 />
               </div>
             </div>
-            <div className="flex gap-4 mt-3 text-[10px] text-[var(--muted)]">
+            <div className="flex gap-4 mt-3 text-[10px] text-[var(--muted)] flex-wrap">
               <span><span className="inline-block w-2.5 h-2.5 rounded-sm me-1" style={{ background: 'var(--blue-2)' }} />{t('today.debt.paid')}</span>
               <span><span className="inline-block w-2.5 h-2.5 rounded-sm me-1" style={{ background: 'var(--chart-soft-green)' }} />{t('today.debt.remaining')}</span>
             </div>
+            <p className="text-[10px] text-[var(--muted)] mt-1.5 leading-relaxed">{t('today.debt.goodBadHint')}</p>
           </>
         ) : (
           <p className="text-xs text-[var(--muted)]">
@@ -862,9 +1008,17 @@ export default function TodayDashboard() {
                   />
                   <Tooltip labelFormatter={(v) => `Age ${v}`} formatter={(v, name) => [`SAR ${fmt(Number(v))}`, name]} />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
+                  {age != null && (
+                    <ReferenceLine
+                      x={age}
+                      stroke="var(--gold-2)" strokeWidth={1.5} strokeDasharray="3 3"
+                      label={{ value: t('today.compare.today'), position: 'top', fontSize: 9, fill: 'var(--gold-2)' }}
+                    />
+                  )}
                   <Line type="monotone" dataKey="national" name="National avg" stroke="var(--blue-2)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
                   <Line type="monotone" dataKey="higher" name="Higher peer" stroke="var(--ink)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="you" name="You" stroke="var(--green)" strokeWidth={3} dot={false} connectNulls={false} />
+                  <Line type="monotone" dataKey="you" name={t('today.compare.you')} stroke="var(--green)" strokeWidth={3} dot={false} connectNulls={false} />
+                  <Line type="monotone" dataKey="youProjected" name={t('today.compare.projected')} stroke="var(--green)" strokeWidth={2} dot={false} strokeDasharray="5 3" connectNulls={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -922,7 +1076,20 @@ export default function TodayDashboard() {
                   tickFormatter={(v) => (assetView === 'pct' ? `${Math.round(Number(v) * 100)}%` : fmtCompact(Number(v)))}
                 />
                 <Tooltip formatter={(v, name) => [`SAR ${fmt(Number(v))}`, name]} />
-                <Legend wrapperStyle={{ fontSize: 10 }} />
+                {/* custom legend so it follows stack order (biggest first, Other last) */}
+                <Legend
+                  wrapperStyle={{ fontSize: 10 }}
+                  content={() => (
+                    <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 pt-1">
+                      {assetSeries.map((s) => (
+                        <span key={s.key} className="inline-flex items-center gap-1 text-[10px] text-[var(--ink-2)]">
+                          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} />
+                          {t(s.labelKey)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                />
                 {assetSeries.map((s) => (
                   <Bar key={s.key} dataKey={s.key} name={t(s.labelKey)} stackId="a" fill={s.color} />
                 ))}
@@ -1001,12 +1168,7 @@ export default function TodayDashboard() {
               <div className="font-serif text-2xl font-bold" style={{ color: nwPace >= 0 ? 'var(--green-dark)' : 'var(--red-2)' }}>
                 {nwPace >= 0 ? '+' : '−'}{money(Math.abs(nwPace))}
               </div>
-              <div className="text-[10px] text-[var(--muted)] mb-1.5">{t('today.pace.perMonth')}</div>
-              {monthsToMilestone != null && Number.isFinite(monthsToMilestone) && (
-                <p className="text-[11px] text-[var(--ink-2)]">
-                  ≈ <strong>{Math.ceil(monthsToMilestone)} months</strong> to {moneyC(milestone)}
-                </p>
-              )}
+              <div className="text-[10px] text-[var(--muted)]">{t('today.pace.perMonth')}</div>
             </div>
             <div className="h-16 w-36 shrink-0" dir="ltr">
               <ResponsiveContainer width="100%" height="100%">
@@ -1016,6 +1178,28 @@ export default function TodayDashboard() {
               </ResponsiveContainer>
             </div>
           </div>
+
+          {nwPace > 0 ? (
+            <div className="mt-3 pt-3 border-t border-[var(--border-default)]">
+              <div className="text-[10px] text-[var(--muted)] mb-1.5">{t('today.pace.ladderTitle')}</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {paceLadder.map((m) => (
+                  <div key={m.target} className="flex items-center justify-between gap-2 text-[11px]">
+                    <span className="text-[var(--ink-2)]">{moneyC(m.target)}</span>
+                    {m.reached ? (
+                      <span className="text-[var(--green-dark)] font-medium whitespace-nowrap">{t('today.pace.reached')}</span>
+                    ) : m.months != null ? (
+                      <span className="font-medium text-[var(--ink)] whitespace-nowrap">{dur(m.months)}</span>
+                    ) : (
+                      <span className="text-[var(--muted)]">—</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-[11px] text-[var(--muted)] mt-2">{t('today.pace.stalled')}</p>
+          )}
         </Card>
       </div>
 
@@ -1104,13 +1288,27 @@ export default function TodayDashboard() {
 
   // One liability as a horizontal paid-vs-remaining bar (blue = paid so far,
   // green = still owed), with the paid share called out as a percentage.
-  function DebtBar({ name, original, balance, bold }: { name: string; original: number | null; balance: number; bold?: boolean }) {
+  function DebtBar({ name, original, balance, bold, leverage }: { name: string; original: number | null; balance: number; bold?: boolean; leverage?: boolean }) {
     const paid = original != null ? Math.max(0, original - balance) : null;
     const paidPct = original != null && original > 0 && paid != null ? (paid / original) * 100 : null;
     return (
       <div>
         <div className="flex justify-between items-baseline gap-2 mb-1">
-          <span className={`text-xs truncate ${bold ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-2)]'}`}>{name}</span>
+          <span className={`text-xs truncate flex items-center gap-1.5 ${bold ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-2)]'}`}>
+            {leverage !== undefined && (
+              <span
+                className="text-[8px] px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0"
+                style={
+                  leverage
+                    ? { color: 'var(--green-dark)', background: 'var(--green-bg)' }
+                    : { color: 'var(--gold-text-alt)', background: 'var(--gold-bg)' }
+                }
+              >
+                {leverage ? t('today.debt.leverage') : t('today.debt.consumption')}
+              </span>
+            )}
+            <span className="truncate">{name}</span>
+          </span>
           {paidPct != null && (
             <span className="text-[10px] font-semibold whitespace-nowrap" style={{ color: 'var(--red-2)' }}>
               {paidPct.toFixed(paidPct < 10 ? 1 : 0)}% {t('today.debt.paid').toLowerCase()}
