@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 interface DebtRow {
   id: string;
@@ -25,6 +26,10 @@ function fmt(n: number) {
 
 export default function LoanPayoff({ version, onChanged }: { version: number; onChanged: () => void }) {
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const money = (n: number) => (ar ? `${fmt(n)} ريال` : `SAR ${fmt(n)}`);
   const [userId, setUserId] = useState<string | null>(null);
   const [debts, setDebts] = useState<DebtRow[]>([]);
   const [pending, setPending] = useState<Record<string, string>>({});
@@ -109,16 +114,18 @@ export default function LoanPayoff({ version, onChanged }: { version: number; on
       }
     }
     if (loanRows.length === 0 && liabilityRows.length === 0) {
-      setImportMsg('No valid rows. Expected: name, type (loan/mortgage/liability), original, balance, monthly, rate.');
+      setImportMsg(L('لا صفوف صحيحة. المتوقّع: الاسم، النوع (قرض/رهن/خصم)، الأصلي، الرصيد، الشهري، النسبة.', 'No valid rows. Expected: name, type (loan/mortgage/liability), original, balance, monthly, rate.'));
       return;
     }
     if (loanRows.length) await supabase.from('loans').insert(loanRows);
     if (liabilityRows.length) await supabase.from('liabilities').insert(liabilityRows);
-    setImportMsg(`Imported ${loanRows.length + liabilityRows.length} debt${loanRows.length + liabilityRows.length === 1 ? '' : 's'}.`);
+    const nAdded = loanRows.length + liabilityRows.length;
+    setImportMsg(L(`تم استيراد ${nAdded} ديناً.`, `Imported ${nAdded} debt${nAdded === 1 ? '' : 's'}.`));
     setImportText('');
     load(userId);
     onChanged();
-  }, [userId, supabase, load, onChanged]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, supabase, load, onChanged, ar]);
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -135,11 +142,13 @@ export default function LoanPayoff({ version, onChanged }: { version: number; on
     <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-4">
       <div className="flex items-center gap-2.5 mb-1">
         <span className="text-lg">📉</span>
-        <h2 className="font-serif text-lg font-semibold text-[var(--ink)]">Payoff progress</h2>
+        <h2 className="font-serif text-lg font-semibold text-[var(--ink)]">{L('تقدّم السداد', 'Payoff progress')}</h2>
       </div>
       <p className="text-xs text-[var(--muted)] mb-4 max-w-xl">
-        Every debt as a journey: how much of the original amount you&apos;ve already killed, what remains, and how
-        many months of payments stand between you and zero.
+        {L(
+          'كل دَين كرحلة: كم من المبلغ الأصلي قضيت عليه فعلاً، وكم تبقّى، وكم شهراً من الدفعات يفصلك عن الصفر.',
+          "Every debt as a journey: how much of the original amount you've already killed, what remains, and how many months of payments stand between you and zero."
+        )}
       </p>
 
       {rows.items.length > 0 && (
@@ -147,44 +156,44 @@ export default function LoanPayoff({ version, onChanged }: { version: number; on
           {/* summary tiles */}
           <div className="grid grid-cols-3 gap-3 mb-5">
             <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-xl p-3">
-              <div className="text-[10px] text-[var(--muted)] mb-1">Borrowed in total</div>
-              <div className="font-serif text-base font-bold text-[var(--ink)]">SAR {fmt(rows.totalOriginal)}</div>
+              <div className="text-[10px] text-[var(--muted)] mb-1">{L('إجمالي المقترَض', 'Borrowed in total')}</div>
+              <div className="font-serif text-base font-bold text-[var(--ink)]">{money(rows.totalOriginal)}</div>
             </div>
             <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-xl p-3">
-              <div className="text-[10px] text-[var(--muted)] mb-1">Paid off so far</div>
-              <div className="font-serif text-base font-bold text-[#4A78C4]">SAR {fmt(rows.totalPaid)} · {rows.totalPct.toFixed(1)}%</div>
+              <div className="text-[10px] text-[var(--muted)] mb-1">{L('المُسدَّد حتى الآن', 'Paid off so far')}</div>
+              <div className="font-serif text-base font-bold text-[#4A78C4]">{money(rows.totalPaid)} · {rows.totalPct.toFixed(1)}%</div>
             </div>
             <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-xl p-3">
-              <div className="text-[10px] text-[var(--muted)] mb-1">Still remaining</div>
-              <div className="font-serif text-base font-bold text-[var(--green-dark)]">SAR {fmt(rows.totalBalance)}</div>
+              <div className="text-[10px] text-[var(--muted)] mb-1">{L('المتبقّي', 'Still remaining')}</div>
+              <div className="font-serif text-base font-bold text-[var(--green-dark)]">{money(rows.totalBalance)}</div>
             </div>
           </div>
 
           {/* stacked payoff bars */}
           <div className="flex flex-col gap-3 mb-5">
-            {[...rows.items, { id: 'all', name: 'All debts', paid: rows.totalPaid, balance: rows.totalBalance, paidPct: rows.totalPct, monthsLeft: null, original: rows.totalOriginal, monthly: 0, source: 'loans' as const }].map((d) => (
+            {[...rows.items, { id: 'all', name: L('كل الديون', 'All debts'), paid: rows.totalPaid, balance: rows.totalBalance, paidPct: rows.totalPct, monthsLeft: null, original: rows.totalOriginal, monthly: 0, source: 'loans' as const }].map((d) => (
               <div key={d.id}>
                 <div className="flex justify-between items-baseline mb-1">
                   <span className={`text-xs ${d.id === 'all' ? 'font-bold' : 'font-medium'} text-[var(--ink)]`}>{d.name}</span>
                   <span className="text-[10px] text-[var(--muted)]">
-                    {d.paidPct.toFixed(1)}% paid{d.monthsLeft != null ? ` · ~${d.monthsLeft} months to zero` : ''}
+                    {d.paidPct.toFixed(1)}% {L('مُسدَّد', 'paid')}{d.monthsLeft != null ? ` · ${L(`~${d.monthsLeft} شهراً للصفر`, `~${d.monthsLeft} months to zero`)}` : ''}
                   </span>
                 </div>
                 <div className="h-7 rounded-md overflow-hidden flex bg-[var(--surface-1)]">
                   {d.paidPct > 0 && (
-                    <div className="h-full bg-[#4A78C4] flex items-center pl-2 text-[10px] text-white font-medium whitespace-nowrap overflow-hidden" style={{ width: `${Math.max(d.paidPct, 3)}%` }}>
-                      {d.paidPct >= 12 ? `SAR ${fmt(d.paid)}` : ''}
+                    <div className="h-full bg-[#4A78C4] flex items-center ps-2 text-[10px] text-white font-medium whitespace-nowrap overflow-hidden" style={{ width: `${Math.max(d.paidPct, 3)}%` }}>
+                      {d.paidPct >= 12 ? money(d.paid) : ''}
                     </div>
                   )}
-                  <div className="h-full bg-[#7fb069] flex items-center justify-end pr-2 text-[10px] text-white font-medium whitespace-nowrap overflow-hidden" style={{ width: `${Math.max(100 - d.paidPct, 3)}%` }}>
-                    {100 - d.paidPct >= 12 ? `SAR ${fmt(d.balance)}` : ''}
+                  <div className="h-full bg-[#7fb069] flex items-center justify-end pe-2 text-[10px] text-white font-medium whitespace-nowrap overflow-hidden" style={{ width: `${Math.max(100 - d.paidPct, 3)}%` }}>
+                    {100 - d.paidPct >= 12 ? money(d.balance) : ''}
                   </div>
                 </div>
               </div>
             ))}
             <div className="flex gap-4 text-[10px] text-[var(--ink-2)]">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#4A78C4] inline-block" />Paid</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#7fb069] inline-block" />Remaining</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#4A78C4] inline-block" />{L('مُسدَّد', 'Paid')}</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#7fb069] inline-block" />{L('متبقٍّ', 'Remaining')}</span>
             </div>
           </div>
 
@@ -192,33 +201,33 @@ export default function LoanPayoff({ version, onChanged }: { version: number; on
           <div className="overflow-x-auto mb-4">
             <table className="w-full text-xs whitespace-nowrap">
               <thead>
-                <tr className="text-[var(--muted)] text-left">
-                  <th className="py-1.5 pr-4 font-medium">Debt</th>
-                  <th className="py-1.5 px-3 font-medium text-right">Original</th>
-                  <th className="py-1.5 px-3 font-medium text-right">Paid (SAR)</th>
-                  <th className="py-1.5 px-3 font-medium text-right">Paid (%)</th>
-                  <th className="py-1.5 px-3 font-medium text-right">Remaining (SAR)</th>
-                  <th className="py-1.5 px-3 font-medium text-right">Remaining (%)</th>
+                <tr className="text-[var(--muted)] text-start">
+                  <th className="py-1.5 pe-4 font-medium text-start">{L('الدَّين', 'Debt')}</th>
+                  <th className="py-1.5 px-3 font-medium text-end">{L('الأصلي', 'Original')}</th>
+                  <th className="py-1.5 px-3 font-medium text-end">{L('مُسدَّد (ريال)', 'Paid (SAR)')}</th>
+                  <th className="py-1.5 px-3 font-medium text-end">{L('مُسدَّد (%)', 'Paid (%)')}</th>
+                  <th className="py-1.5 px-3 font-medium text-end">{L('متبقٍّ (ريال)', 'Remaining (SAR)')}</th>
+                  <th className="py-1.5 px-3 font-medium text-end">{L('متبقٍّ (%)', 'Remaining (%)')}</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.items.map((d) => (
                   <tr key={d.id} className="border-t border-[var(--border-default)]">
-                    <td className="py-1.5 pr-4 text-[var(--ink)] font-medium">{d.name}</td>
-                    <td className="py-1.5 px-3 text-right text-[var(--ink-2)]">{fmt(d.original ?? 0)}</td>
-                    <td className="py-1.5 px-3 text-right text-[#4A78C4] font-semibold">{fmt(d.paid)}</td>
-                    <td className="py-1.5 px-3 text-right text-[var(--ink-2)]">{d.paidPct.toFixed(2)}%</td>
-                    <td className="py-1.5 px-3 text-right text-[var(--green-dark)] font-semibold">{fmt(d.balance)}</td>
-                    <td className="py-1.5 px-3 text-right text-[var(--ink-2)]">{(100 - d.paidPct).toFixed(2)}%</td>
+                    <td className="py-1.5 pe-4 text-[var(--ink)] font-medium">{d.name}</td>
+                    <td className="py-1.5 px-3 text-end text-[var(--ink-2)]">{fmt(d.original ?? 0)}</td>
+                    <td className="py-1.5 px-3 text-end text-[#4A78C4] font-semibold">{fmt(d.paid)}</td>
+                    <td className="py-1.5 px-3 text-end text-[var(--ink-2)]">{d.paidPct.toFixed(2)}%</td>
+                    <td className="py-1.5 px-3 text-end text-[var(--green-dark)] font-semibold">{fmt(d.balance)}</td>
+                    <td className="py-1.5 px-3 text-end text-[var(--ink-2)]">{(100 - d.paidPct).toFixed(2)}%</td>
                   </tr>
                 ))}
                 <tr className="border-t border-[var(--border-default)] font-bold">
-                  <td className="py-1.5 pr-4 text-[var(--ink)]">All</td>
-                  <td className="py-1.5 px-3 text-right text-[var(--ink-2)]">{fmt(rows.totalOriginal)}</td>
-                  <td className="py-1.5 px-3 text-right text-[#4A78C4]">{fmt(rows.totalPaid)}</td>
-                  <td className="py-1.5 px-3 text-right text-[var(--ink-2)]">{rows.totalPct.toFixed(2)}%</td>
-                  <td className="py-1.5 px-3 text-right text-[var(--green-dark)]">{fmt(rows.totalBalance)}</td>
-                  <td className="py-1.5 px-3 text-right text-[var(--ink-2)]">{(100 - rows.totalPct).toFixed(2)}%</td>
+                  <td className="py-1.5 pe-4 text-[var(--ink)]">{L('الكل', 'All')}</td>
+                  <td className="py-1.5 px-3 text-end text-[var(--ink-2)]">{fmt(rows.totalOriginal)}</td>
+                  <td className="py-1.5 px-3 text-end text-[#4A78C4]">{fmt(rows.totalPaid)}</td>
+                  <td className="py-1.5 px-3 text-end text-[var(--ink-2)]">{rows.totalPct.toFixed(2)}%</td>
+                  <td className="py-1.5 px-3 text-end text-[var(--green-dark)]">{fmt(rows.totalBalance)}</td>
+                  <td className="py-1.5 px-3 text-end text-[var(--ink-2)]">{(100 - rows.totalPct).toFixed(2)}%</td>
                 </tr>
               </tbody>
             </table>
@@ -230,21 +239,21 @@ export default function LoanPayoff({ version, onChanged }: { version: number; on
       {untracked.length > 0 && (
         <div className="mb-4">
           <div className="text-[11px] tracking-[0.08em] uppercase text-[var(--muted)] mb-2">
-            Add the original amount to start tracking payoff
+            {L('أضِف المبلغ الأصلي لبدء تتبّع السداد', 'Add the original amount to start tracking payoff')}
           </div>
           <div className="flex flex-col gap-2">
             {untracked.map((d) => (
               <div key={d.id} className="flex items-center gap-2 flex-wrap text-xs bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2">
                 <span className="text-[var(--ink)] font-medium flex-1 min-w-[120px]">{d.name}</span>
-                <span className="text-[var(--muted)]">balance SAR {fmt(d.balance)}</span>
+                <span className="text-[var(--muted)]">{L('الرصيد', 'balance')} {money(d.balance)}</span>
                 <input
                   value={pending[d.id] ?? ''}
                   onChange={(e) => setPending((p) => ({ ...p, [d.id]: e.target.value }))}
-                  placeholder="Original amount"
+                  placeholder={L('المبلغ الأصلي', 'Original amount')}
                   className="w-32 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--ink)] outline-none focus:border-[var(--green)]"
                 />
                 <button onClick={() => setOriginal(d)} className="text-xs font-medium text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5">
-                  Track
+                  {L('تتبّع', 'Track')}
                 </button>
               </div>
             ))}
@@ -254,7 +263,7 @@ export default function LoanPayoff({ version, onChanged }: { version: number; on
 
       {/* file drop / paste import */}
       <button onClick={() => setImportOpen((o) => !o)} className="text-xs font-medium text-[var(--ink)]">
-        {importOpen ? '▾' : '▸'} Import loans from a file
+        {importOpen ? '▾' : '▸'} {L('استيراد القروض من ملف', 'Import loans from a file')}
       </button>
       {importOpen && (
         <div className="mt-2">
@@ -263,8 +272,8 @@ export default function LoanPayoff({ version, onChanged }: { version: number; on
             onDragOver={(e) => e.preventDefault()}
             className="border-2 border-dashed border-[var(--border-medium)] rounded-xl p-4 text-center text-xs text-[var(--muted)] mb-2"
           >
-            Drop a .csv here — one debt per line:{' '}
-            <span className="font-mono text-[var(--ink-2)]">name, type (loan/mortgage/liability), original, balance, monthly, rate</span>
+            {L('أسقِط ملف .csv هنا — دَين في كل سطر:', 'Drop a .csv here — one debt per line:')}{' '}
+            <span className="font-mono text-[var(--ink-2)]" dir="ltr">name, type (loan/mortgage/liability), original, balance, monthly, rate</span>
           </div>
           <textarea
             value={importText}
@@ -275,7 +284,7 @@ export default function LoanPayoff({ version, onChanged }: { version: number; on
           />
           <div className="flex items-center gap-3 mt-2">
             <button onClick={() => parseAndImport(importText)} className="text-xs font-medium text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5">
-              Import rows
+              {L('استيراد الصفوف', 'Import rows')}
             </button>
             {importMsg && <span className="text-xs text-[var(--ink-2)]">{importMsg}</span>}
           </div>

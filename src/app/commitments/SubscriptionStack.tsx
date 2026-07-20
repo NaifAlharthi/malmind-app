@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 interface Sub {
   id: string;
@@ -24,14 +25,20 @@ function fmt(n: number) {
   return Math.round(n).toLocaleString();
 }
 
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 function monthsBetween(from: Date, to: Date): number {
   return Math.max(0, (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()));
 }
 
 export default function SubscriptionStack({ version }: { version: number }) {
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const money = (n: number) => (ar ? `${fmt(n)} ريال` : `SAR ${fmt(n)}`);
+  const MN = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => new Intl.DateTimeFormat(ar ? 'ar' : 'en', { month: 'short' }).format(new Date(2020, i, 1))),
+    [ar]
+  );
   const [subs, setSubs] = useState<Sub[]>([]);
 
   const load = useCallback(async (uid: string) => {
@@ -86,11 +93,11 @@ export default function SubscriptionStack({ version }: { version: number }) {
         const es = new Date(e.start.getFullYear(), e.start.getMonth(), 1);
         if (es <= cursor) cumulative += e.monthlyEq;
       }
-      points.push({ label: `${MONTHS_SHORT[cursor.getMonth()]} ${String(cursor.getFullYear()).slice(2)}`, cumulative: Math.round(cumulative) });
+      points.push({ label: `${MN[cursor.getMonth()]} ${String(cursor.getFullYear()).slice(2)}`, cumulative: Math.round(cumulative) });
       cursor.setMonth(cursor.getMonth() + 1);
     }
     return points;
-  }, [enriched, now]);
+  }, [enriched, now, MN]);
 
   const categories = useMemo(() => {
     const m = new Map<string, number>();
@@ -111,49 +118,51 @@ export default function SubscriptionStack({ version }: { version: number }) {
     <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-4">
       <div className="flex items-center gap-2.5 mb-1">
         <span className="text-lg">🧱</span>
-        <h2 className="font-serif text-lg font-semibold text-[var(--ink)]">Your stack</h2>
+        <h2 className="font-serif text-lg font-semibold text-[var(--ink)]">{L('مكدّسك', 'Your stack')}</h2>
       </div>
       <p className="text-xs text-[var(--muted)] mb-4 max-w-xl">
-        The economy is shifting to subscriptions — and each one feels tiny. Stacked together and stretched over the
-        years you&apos;ve held them, they&apos;re not tiny. This is your stack, honestly measured.
+        {L(
+          'يتحوّل الاقتصاد إلى الاشتراكات — وكلٌّ منها يبدو ضئيلاً. لكن مكدّسة معاً وممتدّة عبر السنوات التي احتفظت بها، ليست ضئيلة. هذا مكدّسك، مقيساً بصدق.',
+          "The economy is shifting to subscriptions — and each one feels tiny. Stacked together and stretched over the years you've held them, they're not tiny. This is your stack, honestly measured."
+        )}
       </p>
 
       {/* headline tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-xl p-3">
-          <div className="text-[10px] text-[var(--muted)] mb-1">The stack, per month</div>
-          <div className="font-serif text-base font-bold text-[var(--ink)]">SAR {fmt(totals.monthly)}</div>
+          <div className="text-[10px] text-[var(--muted)] mb-1">{L('المكدّس شهرياً', 'The stack, per month')}</div>
+          <div className="font-serif text-base font-bold text-[var(--ink)]">{money(totals.monthly)}</div>
         </div>
         <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-xl p-3">
-          <div className="text-[10px] text-[var(--muted)] mb-1">Yearly run-rate</div>
-          <div className="font-serif text-base font-bold text-[#E0922A]">SAR {fmt(totals.yearly)}</div>
+          <div className="text-[10px] text-[var(--muted)] mb-1">{L('المعدّل السنوي', 'Yearly run-rate')}</div>
+          <div className="font-serif text-base font-bold text-[#E0922A]">{money(totals.yearly)}</div>
         </div>
         <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-xl p-3">
-          <div className="text-[10px] text-[var(--muted)] mb-1">Paid over their lifetimes (est.)</div>
-          <div className="font-serif text-base font-bold text-[#E0559E]">SAR {fmt(totals.lifetime)}</div>
+          <div className="text-[10px] text-[var(--muted)] mb-1">{L('المدفوع مدى الحياة (تقديري)', 'Paid over their lifetimes (est.)')}</div>
+          <div className="font-serif text-base font-bold text-[#E0559E]">{money(totals.lifetime)}</div>
         </div>
         <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-xl p-3">
-          <div className="text-[10px] text-[var(--muted)] mb-1">Active subscriptions</div>
-          <div className="font-serif text-base font-bold text-[var(--ink)]">{enriched.length} · SAR {totals.daily.toFixed(1)}/day</div>
+          <div className="text-[10px] text-[var(--muted)] mb-1">{L('الاشتراكات النشطة', 'Active subscriptions')}</div>
+          <div className="font-serif text-base font-bold text-[var(--ink)]">{enriched.length} · {ar ? `${totals.daily.toFixed(1)} ريال` : `SAR ${totals.daily.toFixed(1)}`}{L('/يوم', '/day')}</div>
         </div>
       </div>
 
       {/* per-sub breakdown bars */}
-      <div className="text-[11px] tracking-[0.08em] uppercase text-[var(--muted)] mb-2">The breakdown</div>
+      <div className="text-[11px] tracking-[0.08em] uppercase text-[var(--muted)] mb-2">{L('التفصيل', 'The breakdown')}</div>
       <div className="flex flex-col gap-2 mb-5">
         {sorted.map((e) => (
           <div key={e.id} className="grid grid-cols-[110px_1fr_auto] gap-3 items-center">
             <div className="text-xs text-[var(--ink)] font-medium truncate" title={e.name}>{e.name}</div>
             <div className="h-5 bg-[var(--surface-1)] rounded overflow-hidden">
               <div
-                className="h-full rounded bg-[#17B8C9] flex items-center pl-2 text-[10px] text-white font-medium whitespace-nowrap"
+                className="h-full rounded bg-[#17B8C9] flex items-center ps-2 text-[10px] text-white font-medium whitespace-nowrap"
                 style={{ width: `${Math.max((e.monthlyEq / maxMonthly) * 100, 4)}%` }}
               >
-                {(e.monthlyEq / maxMonthly) * 100 > 25 ? `SAR ${fmt(e.monthlyEq)}/mo` : ''}
+                {(e.monthlyEq / maxMonthly) * 100 > 25 ? `${money(e.monthlyEq)}${L('/شهر', '/mo')}` : ''}
               </div>
             </div>
-            <div className="text-[10px] text-[var(--muted)] text-right whitespace-nowrap">
-              since {MONTHS_SHORT[e.start.getMonth()]} {e.start.getFullYear()} · <span className="text-[#E0559E] font-semibold">SAR {fmt(e.lifetime)} lifetime</span>
+            <div className="text-[10px] text-[var(--muted)] text-end whitespace-nowrap">
+              {L('منذ', 'since')} {MN[e.start.getMonth()]} {e.start.getFullYear()} · <span className="text-[#E0559E] font-semibold">{money(e.lifetime)} {L('مدى الحياة', 'lifetime')}</span>
             </div>
           </div>
         ))}
@@ -163,7 +172,7 @@ export default function SubscriptionStack({ version }: { version: number }) {
         <div className="flex flex-wrap gap-2 mb-5">
           {categories.map(([c, total]) => (
             <span key={c} className="text-[11px] bg-[var(--surface-1)] border border-[var(--border-default)] rounded-full px-3 py-1 text-[var(--ink-2)]">
-              {c} · SAR {fmt(total)}/mo
+              {c} · {money(total)}{L('/شهر', '/mo')}
             </span>
           ))}
         </div>
@@ -173,7 +182,7 @@ export default function SubscriptionStack({ version }: { version: number }) {
       {snowball.length >= 2 && (
         <>
           <div className="text-[11px] tracking-[0.08em] uppercase text-[var(--muted)] mb-2">
-            The snowball — everything the stack has cost you, cumulatively
+            {L('كرة الثلج — كل ما كلّفك إياه المكدّس، تراكمياً', 'The snowball — everything the stack has cost you, cumulatively')}
           </div>
           <div className="h-52 mb-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -181,15 +190,16 @@ export default function SubscriptionStack({ version }: { version: number }) {
                 <CartesianGrid stroke="var(--border-default)" />
                 <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--muted)' }} interval={Math.max(0, Math.floor(snowball.length / 10) - 1)} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => `${fmt(Number(v))}`} />
-                <Tooltip formatter={(v) => [`SAR ${fmt(Number(v))}`, 'Paid so far']} />
+                <Tooltip formatter={(v) => [money(Number(v)), L('المدفوع حتى الآن', 'Paid so far')]} />
                 <Area type="monotone" dataKey="cumulative" stroke="#E0559E" strokeWidth={2.5} fill="#E0559E" fillOpacity={0.15} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
           <p className="text-[11px] text-[var(--muted)] leading-relaxed max-w-xl">
-            None of this says cancel everything — a subscription that you use is some of the best money you spend.
-            The point is that the curve only bends one way, so each block in the stack should earn its place.
-            Add a start date to each subscription to make this curve exact.
+            {L(
+              'لا يعني هذا إلغاء كل شيء — فالاشتراك الذي تستخدمه من أفضل ما تنفق. المقصود أن المنحنى ينحني في اتجاه واحد فقط، فليستحقّ كل لبنة في المكدّس مكانها. أضِف تاريخ بدء لكل اشتراك ليصبح هذا المنحنى دقيقاً.',
+              'None of this says cancel everything — a subscription that you use is some of the best money you spend. The point is that the curve only bends one way, so each block in the stack should earn its place. Add a start date to each subscription to make this curve exact.'
+            )}
           </p>
         </>
       )}
