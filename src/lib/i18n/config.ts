@@ -6,7 +6,8 @@
 export type Locale = 'en' | 'ar';
 
 export const LOCALES: Locale[] = ['en', 'ar'];
-export const DEFAULT_LOCALE: Locale = 'en';
+// MalMind is Saudi-first: a visitor with no saved preference lands in Arabic.
+export const DEFAULT_LOCALE: Locale = 'ar';
 export const LOCALE_STORAGE_KEY = 'malmind-locale';
 
 // Right-to-left locales. Arabic is the only one today, but keeping this as a

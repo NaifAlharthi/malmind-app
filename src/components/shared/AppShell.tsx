@@ -128,8 +128,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* ── top bar ── */}
         <header className="sticky top-0 z-40 bg-[var(--surface-card)]/95 backdrop-blur border-b border-[var(--border-default)]">
           <div className="max-w-4xl mx-auto min-h-14 px-4 sm:px-6 flex items-center gap-2">
-            <Link href="/home" className="font-serif text-lg font-semibold tracking-tight shrink-0">
-              Mal<span className="text-[var(--green)]">Mind</span>
+            <Link href="/home" className="font-serif text-lg font-semibold tracking-tight shrink-0 flex items-center gap-1.5">
+              <span>Mal<span className="text-[var(--green)]">Mind</span></span>
+              <span className="text-[11px] leading-none" title={t('common.madeForSaudi')} aria-label={t('common.madeForSaudi')}>🇸🇦</span>
             </Link>
 
             {/* desktop nav: Home + the walking timeline + the Brain */}

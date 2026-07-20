@@ -48,9 +48,11 @@ export default function SignupPage() {
       <Splash />
       <div id="signup-form" className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6 py-16">
       <div className="max-w-sm w-full bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8">
-        <div className="font-serif text-xl font-semibold mb-1">
+        <div className="font-serif text-xl font-semibold mb-1 flex items-center gap-1.5">
           Mal<span className="text-[var(--green)]">Mind</span>
+          <span className="text-xs leading-none">🇸🇦</span>
         </div>
+        <div className="text-[11px] text-[var(--green-dark)] mb-4">{t('common.saudiFirst')}</div>
         <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
           {t('auth.signup.title')}
         </h1>

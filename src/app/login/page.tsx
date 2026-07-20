@@ -81,11 +81,13 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6">
       <div className="max-w-sm w-full bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8">
         <div className="flex items-center justify-between mb-1">
-          <div className="font-serif text-xl font-semibold">
+          <div className="font-serif text-xl font-semibold flex items-center gap-1.5">
             Mal<span className="text-[var(--green)]">Mind</span>
+            <span className="text-xs leading-none">🇸🇦</span>
           </div>
           <LanguageToggle />
         </div>
+        <div className="text-[11px] text-[var(--green-dark)] mb-4">{t('common.madeForSaudi')}</div>
 
         {sentTo ? (
           <MagicLinkSent email={sentTo} onReset={() => setSentTo(null)} onResend={() => handleMagicLink()} loading={loading} />

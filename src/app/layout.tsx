@@ -31,7 +31,7 @@ const LOCALE_INIT_SCRIPT = `
 (function() {
   try {
     var stored = localStorage.getItem('malmind-locale');
-    var locale = stored === 'ar' || stored === 'en' ? stored : 'en';
+    var locale = stored === 'ar' || stored === 'en' ? stored : 'ar';
     var el = document.documentElement;
     el.setAttribute('lang', locale);
     el.setAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col font-sans">
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_INIT_SCRIPT}
