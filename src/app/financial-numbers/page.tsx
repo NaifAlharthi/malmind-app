@@ -7,13 +7,33 @@ import {
   ReferenceArea,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import GoogleSheetSync from './GoogleSheetSync';
 import {
   bucketSeries, granularityOf, windowBucketsOf, metricStat, RANGE_VIEWS, DEFAULT_RANGE_VIEW,
   type RangeView, type SeriesPoint, type NumericKey,
 } from '@/lib/financialSeries';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Localized month + metric labels (both languages, one source of truth).
+function monthNames(ar: boolean): string[] {
+  return Array.from({ length: 12 }, (_, i) =>
+    new Intl.DateTimeFormat(ar ? 'ar' : 'en', { month: 'short' }).format(new Date(2020, i, 1))
+  );
+}
+const METRIC_LABELS: Record<'ar' | 'en', Record<string, string>> = {
+  ar: {
+    cash: 'نقد', stocks: 'أسهم', real_estate: 'عقارات', equity: 'حقوق ملكية', other_assets: 'أصول أخرى',
+    liabilities: 'الخصوم', income: 'الدخل', expenses: 'المصروفات', assets: 'الأصول', netWorth: 'صافي الثروة',
+  },
+  en: {
+    cash: 'Cash', stocks: 'Stocks', real_estate: 'Real estate', equity: 'Equity', other_assets: 'Other assets',
+    liabilities: 'Liabilities', income: 'Income', expenses: 'Expenses', assets: 'Assets', netWorth: 'Net worth',
+  },
+};
+const RANGE_LABELS: Record<'ar' | 'en', Record<string, string>> = {
+  ar: { months: 'أشهر', quarters: 'أرباع', annual: 'سنوي', '3y': '3 سنوات', '5y': '5 سنوات', all: 'الكل' },
+  en: Object.fromEntries(RANGE_VIEWS.map((v) => [v.key, v.label])),
+};
 
 // The asset components that stack up into total assets.
 const ASSET_METRICS = [
@@ -82,6 +102,13 @@ function emptyForm() {
 export default function FinancialNumbersPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const sar = ar ? 'ريال' : 'SAR';
+  const money = (n: number) => (ar ? `${fmt(n)} ${sar}` : `${sar} ${fmt(n)}`);
+  const ml = (k: string) => METRIC_LABELS[ar ? 'ar' : 'en'][k] ?? k;
+  const MN = monthNames(ar);
   const [userId, setUserId] = useState<string | null>(null);
   const [rows, setRows] = useState<Snapshot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,7 +241,7 @@ export default function FinancialNumbersPage() {
     const favourable = abs === 0 ? true : abs > 0 === good;
     const sign = abs > 0 ? '+' : abs < 0 ? '−' : '';
     return {
-      text: `${pct !== null ? signedPct(pct) + ' · ' : ''}${sign}SAR ${fmt(Math.abs(abs))}`,
+      text: `${pct !== null ? signedPct(pct) + ' · ' : ''}${sign}${money(Math.abs(abs))}`,
       color: abs === 0 ? '#9C9A92' : favourable ? '#1D9E75' : '#C0392B',
     };
   };
@@ -224,7 +251,7 @@ export default function FinancialNumbersPage() {
     const slice = chartData.slice(idx[0], idx[1] + 1);
     const net = slice.reduce((s, p) => s + p.income - p.expenses, 0);
     return {
-      text: `Net ${net < 0 ? '−' : '+'}SAR ${fmt(Math.abs(net))} saved`,
+      text: `${L('صافي', 'Net')} ${net < 0 ? '−' : '+'}${money(Math.abs(net))} ${L('مدّخر', 'saved')}`,
       color: net >= 0 ? '#1D9E75' : '#C0392B',
     };
   };
@@ -307,59 +334,60 @@ export default function FinancialNumbersPage() {
       .filter(Boolean) as Record<string, unknown>[];
 
     if (payloads.length === 0) {
-      setImportMsg('No valid rows found. Expected: year, month, cash, stocks, real estate, equity, other assets, liabilities, income, expenses.');
+      setImportMsg(L('لم يُعثر على صفوف صحيحة. المتوقّع: السنة، الشهر، النقد، الأسهم، العقارات، حقوق الملكية، الأصول الأخرى، الخصوم، الدخل، المصروفات.', 'No valid rows found. Expected: year, month, cash, stocks, real estate, equity, other assets, liabilities, income, expenses.'));
       return;
     }
     const { error } = await supabase.from('financial_snapshots').upsert(payloads, { onConflict: 'user_id,year,month' });
     if (error) {
-      setImportMsg(`Import failed: ${error.message}`);
+      setImportMsg(L(`فشل الاستيراد: ${error.message}`, `Import failed: ${error.message}`));
     } else {
-      setImportMsg(`Imported ${payloads.length} row${payloads.length === 1 ? '' : 's'}.`);
+      setImportMsg(L(`تم استيراد ${payloads.length} صف${payloads.length === 1 ? '' : 'اً'}.`, `Imported ${payloads.length} row${payloads.length === 1 ? '' : 's'}.`));
       setImportText('');
       load(userId);
     }
   }
 
   if (loading) {
-    return <div className="text-sm text-[var(--muted)]">Loading your financial numbers…</div>;
+    return <div className="text-sm text-[var(--muted)]">{L('جارٍ تحميل أرقامك المالية…', 'Loading your financial numbers…')}</div>;
   }
 
   return (
     <div>
-      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">My Financial Numbers</h1>
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">{L('أرقامي المالية', 'My Financial Numbers')}</h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-2xl">
-        Your financial statement over time. Log your balances month by month — cash, investments, property,
-        liabilities, income and spending — and watch your net worth, asset mix, and cash flow build into a real
-        timeline. Import a spreadsheet to start fast, or export yours anytime.
+        {L(
+          'قائمتك المالية عبر الزمن. سجّل أرصدتك شهراً بشهر — النقد والاستثمارات والعقارات والخصوم والدخل والإنفاق — وشاهد صافي ثروتك ومزيج أصولك وتدفّقك النقدي يتشكّل في خطٍّ زمني حقيقي. استورد جدولاً لتبدأ بسرعة، أو صدّر جدولك في أي وقت.',
+          'Your financial statement over time. Log your balances month by month — cash, investments, property, liabilities, income and spending — and watch your net worth, asset mix, and cash flow build into a real timeline. Import a spreadsheet to start fast, or export yours anytime.'
+        )}
       </p>
 
       {latest && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <StatTile label="Net worth" value={`SAR ${fmt(latestNetWorth)}`} accent="var(--green-dark)" />
-          <StatTile label="Total assets" value={`SAR ${fmt(latestAssets)}`} accent="#E0559E" />
-          <StatTile label="Liabilities" value={`SAR ${fmt(latest.liabilities)}`} accent="#17B8C9" />
-          <StatTile label="Months logged" value={String(rows.length)} accent="var(--ink)" />
+          <StatTile label={L('صافي الثروة', 'Net worth')} value={money(latestNetWorth)} accent="var(--green-dark)" />
+          <StatTile label={L('إجمالي الأصول', 'Total assets')} value={money(latestAssets)} accent="#E0559E" />
+          <StatTile label={L('الخصوم', 'Liabilities')} value={money(latest.liabilities)} accent="#17B8C9" />
+          <StatTile label={L('أشهر مسجّلة', 'Months logged')} value={String(rows.length)} accent="var(--ink)" />
         </div>
       )}
 
       {/* add / edit a month */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6">
-        <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">Log a month</div>
+        <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">{L('سجّل شهراً', 'Log a month')}</div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
-          <Field label="Year">
+          <Field label={L('السنة', 'Year')}>
             <input value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
               className="w-full bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--ink)] outline-none" />
           </Field>
-          <Field label="Month">
+          <Field label={L('الشهر', 'Month')}>
             <select value={form.month} onChange={(e) => setForm((f) => ({ ...f, month: e.target.value }))}
               className="w-full bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--ink)] outline-none">
-              {MONTHS.map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
+              {MN.map((m, i) => (
+                <option key={i} value={i + 1}>{m}</option>
               ))}
             </select>
           </Field>
           {ALL_METRICS.map((m) => (
-            <Field key={m.key} label={`${m.label} (SAR)`}>
+            <Field key={m.key} label={`${ml(m.key)} (${sar})`}>
               <input value={form[m.key]} onChange={(e) => setForm((f) => ({ ...f, [m.key]: e.target.value }))} placeholder="0"
                 className="w-full bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--green)]" />
             </Field>
@@ -367,24 +395,24 @@ export default function FinancialNumbersPage() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <button onClick={saveRow} className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium">
-            Save month
+            {L('احفظ الشهر', 'Save month')}
           </button>
-          <button onClick={() => setForm(emptyForm())} className="text-xs text-[var(--muted)]">Clear</button>
-          <span className="text-xs text-[var(--muted)]">Saving a month that already exists updates it.</span>
+          <button onClick={() => setForm(emptyForm())} className="text-xs text-[var(--muted)]">{L('مسح', 'Clear')}</button>
+          <span className="text-xs text-[var(--muted)]">{L('حفظ شهرٍ موجود مسبقاً يُحدّثه.', 'Saving a month that already exists updates it.')}</span>
         </div>
       </div>
 
       {rows.length === 0 ? (
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)] mb-6">
-          Log your first month above, or import a spreadsheet below, to start your financial timeline.
+          {L('سجّل شهرك الأول أعلاه، أو استورد جدولاً بالأسفل، لتبدأ خطك الزمني المالي.', 'Log your first month above, or import a spreadsheet below, to start your financial timeline.')}
         </div>
       ) : (
         <>
           <div data-tour="fn-charts">
           {/* time-range control shared by the charts below */}
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-            <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)]">Chart view</div>
-            <RangeSelector value={view} onChange={setView} />
+            <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)]">{L('عرض المخطط', 'Chart view')}</div>
+            <RangeSelector value={view} onChange={setView} ar={ar} />
           </div>
 
           {/* pan the visible window through history: arrows + range scrubber */}
@@ -393,7 +421,7 @@ export default function FinancialNumbersPage() {
               <button
                 onClick={() => setWinStart(Math.max(0, clampedStart - panStep))}
                 disabled={clampedStart <= 0}
-                title="Earlier"
+                title={L('أقدم', 'Earlier')}
                 className="w-7 h-7 rounded-lg border border-[var(--border-default)] text-[var(--ink-2)] hover:bg-[var(--surface-1)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 ‹
@@ -405,17 +433,17 @@ export default function FinancialNumbersPage() {
                 value={clampedStart}
                 onChange={(e) => setWinStart(Number(e.target.value))}
                 className="flex-1 accent-[var(--green)] cursor-pointer"
-                aria-label="Scroll date range"
+                aria-label={L('تمرير النطاق الزمني', 'Scroll date range')}
               />
               <button
                 onClick={() => setWinStart(Math.min(maxStart, clampedStart + panStep))}
                 disabled={clampedStart >= maxStart}
-                title="Later"
+                title={L('أحدث', 'Later')}
                 className="w-7 h-7 rounded-lg border border-[var(--border-default)] text-[var(--ink-2)] hover:bg-[var(--surface-1)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 ›
               </button>
-              <span className="text-xs text-[var(--muted)] whitespace-nowrap min-w-[7rem] text-right">
+              <span className="text-xs text-[var(--muted)] whitespace-nowrap min-w-[7rem] text-end">
                 {chartData[0]?.label} → {chartData[chartData.length - 1]?.label}
               </span>
               <button
@@ -423,7 +451,7 @@ export default function FinancialNumbersPage() {
                 disabled={clampedStart >= maxStart}
                 className="text-xs text-[var(--green-dark)] font-medium disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap"
               >
-                Latest ⇥
+                {L('الأحدث ⇤', 'Latest ⇥')}
               </button>
             </div>
           )}
@@ -433,30 +461,30 @@ export default function FinancialNumbersPage() {
             {sel ? (
               <>
                 <span className="inline-flex items-center gap-1.5 bg-[var(--green-bg)] border border-[var(--green-border)] text-[var(--green-dark)] rounded-full px-3 py-1 font-medium">
-                  Selected · {sel.start} → {sel.end}
+                  {L('محدَّد', 'Selected')} · {sel.start} → {sel.end}
                 </span>
                 <button onClick={() => setSel(null)} className="text-[var(--muted)] hover:text-[var(--ink)] underline">
-                  Clear
+                  {L('مسح', 'Clear')}
                 </button>
               </>
             ) : (
               <span className="text-[var(--muted)]">
-                Tip: click and drag across any chart to analyse a specific span — the shaded band and all stats update to it.
+                {L('تلميح: اسحب فوق أي مخطط لتحليل فترة محددة — يتحدّث النطاق المظلَّل وكل الإحصاءات وفقه.', 'Tip: click and drag across any chart to analyse a specific span — the shaded band and all stats update to it.')}
               </span>
             )}
           </div>
 
           {/* net worth / assets / liabilities */}
           <ChartCard
-            title="Net worth, assets & liabilities over time"
-            badge={!activeBand ? <MetricBadge points={statPoints} metricKey="netWorth" label="Net worth" good /> : null}
+            title={L('صافي الثروة والأصول والخصوم عبر الزمن', 'Net worth, assets & liabilities over time')}
+            badge={!activeBand ? <MetricBadge points={statPoints} metricKey="netWorth" label={ml('netWorth')} good /> : null}
             footer={
               <SeriesStats
                 points={statPoints}
                 metrics={[
-                  { key: 'netWorth', label: 'Net worth', good: true },
-                  { key: 'assets', label: 'Total assets', good: true },
-                  { key: 'liabilities', label: 'Liabilities', good: false },
+                  { key: 'netWorth', label: ml('netWorth'), good: true },
+                  { key: 'assets', label: L('إجمالي الأصول', 'Total assets'), good: true },
+                  { key: 'liabilities', label: ml('liabilities'), good: false },
                 ]}
               />
             }
@@ -466,11 +494,11 @@ export default function FinancialNumbersPage() {
                 <CartesianGrid stroke="var(--border-default)" />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={fmtCompact} />
-                <Tooltip formatter={(v) => `SAR ${fmt(Number(v))}`} />
+                <Tooltip formatter={(v) => money(Number(v))} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="assets" name="Assets" stroke="#E0559E" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="liabilities" name="Liabilities" stroke="#17B8C9" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="netWorth" name="Net worth" stroke="#1D9E75" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="assets" name={ml('assets')} stroke="#E0559E" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="liabilities" name={ml('liabilities')} stroke="#17B8C9" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="netWorth" name={ml('netWorth')} stroke="#1D9E75" strokeWidth={3} dot={false} />
                 {selectionBand(activeBand, balanceBubble('netWorth', true))}
               </ComposedChart>
             </ResponsiveContainer>
@@ -478,12 +506,12 @@ export default function FinancialNumbersPage() {
 
           {/* asset composition */}
           <ChartCard
-            title="Asset composition over time"
-            badge={!activeBand ? <MetricBadge points={statPoints} metricKey="assets" label="Total assets" good /> : null}
+            title={L('تكوين الأصول عبر الزمن', 'Asset composition over time')}
+            badge={!activeBand ? <MetricBadge points={statPoints} metricKey="assets" label={L('إجمالي الأصول', 'Total assets')} good /> : null}
             footer={
               <SeriesStats
                 points={statPoints}
-                metrics={ASSET_METRICS.map((m) => ({ key: m.key as NumericKey, label: m.label, good: true }))}
+                metrics={ASSET_METRICS.map((m) => ({ key: m.key as NumericKey, label: ml(m.key), good: true }))}
               />
             }
           >
@@ -492,10 +520,10 @@ export default function FinancialNumbersPage() {
                 <CartesianGrid stroke="var(--border-default)" />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={fmtCompact} />
-                <Tooltip formatter={(v) => `SAR ${fmt(Number(v))}`} />
+                <Tooltip formatter={(v) => money(Number(v))} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 {ASSET_METRICS.map((m) => (
-                  <Bar key={m.key} dataKey={m.key} name={m.label} stackId="a" fill={m.color} />
+                  <Bar key={m.key} dataKey={m.key} name={ml(m.key)} stackId="a" fill={m.color} />
                 ))}
                 {selectionBand(activeBand, balanceBubble('assets', true))}
               </BarChart>
@@ -504,7 +532,7 @@ export default function FinancialNumbersPage() {
 
           {/* income vs expenses */}
           <ChartCard
-            title="Income vs expenses"
+            title={L('الدخل مقابل المصروفات', 'Income vs expenses')}
             badge={!activeBand ? <SavingsBadge points={statPoints} /> : null}
             footer={<CashflowStats points={statPoints} />}
           >
@@ -513,10 +541,10 @@ export default function FinancialNumbersPage() {
                 <CartesianGrid stroke="var(--border-default)" />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={fmtCompact} />
-                <Tooltip formatter={(v) => `SAR ${fmt(Number(v))}`} />
+                <Tooltip formatter={(v) => money(Number(v))} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="income" name="Income" fill="#1D9E75" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="expenses" name="Expenses" fill="#E0922A" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="income" name={ml('income')} fill="#1D9E75" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="expenses" name={ml('expenses')} fill="#E0922A" radius={[3, 3, 0, 0]} />
                 {selectionBand(activeBand, cashflowBubble())}
               </BarChart>
             </ResponsiveContainer>
@@ -526,21 +554,21 @@ export default function FinancialNumbersPage() {
           {/* the spreadsheet */}
           <div data-tour="fn-sheet" className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)]">The spreadsheet</div>
+              <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)]">{L('الجدول', 'The spreadsheet')}</div>
               <button onClick={exportCsv} className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5">
-                Export CSV
+                {L('تصدير CSV', 'Export CSV')}
               </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs whitespace-nowrap">
                 <thead>
-                  <tr className="text-[var(--muted)] text-left">
-                    <th className="py-2 pr-4 font-medium">Month</th>
+                  <tr className="text-[var(--muted)] text-start">
+                    <th className="py-2 pe-4 font-medium text-start">{L('الشهر', 'Month')}</th>
                     {ALL_METRICS.map((m) => (
-                      <th key={m.key} className="py-2 px-3 font-medium text-right">{m.label}</th>
+                      <th key={m.key} className="py-2 px-3 font-medium text-end">{ml(m.key)}</th>
                     ))}
-                    <th className="py-2 px-3 font-medium text-right">Net worth</th>
-                    <th className="py-2 pl-3"></th>
+                    <th className="py-2 px-3 font-medium text-end">{ml('netWorth')}</th>
+                    <th className="py-2 ps-3"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -548,13 +576,13 @@ export default function FinancialNumbersPage() {
                     const assets = r.cash + r.stocks + r.real_estate + r.equity + r.other_assets;
                     return (
                       <tr key={r.id} className="border-t border-[var(--border-default)] hover:bg-[var(--surface-1)] cursor-pointer" onClick={() => editRow(r)}>
-                        <td className="py-2 pr-4 text-[var(--ink)] font-medium">{MONTHS[r.month - 1]} {r.year}</td>
+                        <td className="py-2 pe-4 text-[var(--ink)] font-medium">{MN[r.month - 1]} {r.year}</td>
                         {ALL_METRICS.map((m) => (
-                          <td key={m.key} className="py-2 px-3 text-right text-[var(--ink-2)]">{fmt(r[m.key])}</td>
+                          <td key={m.key} className="py-2 px-3 text-end text-[var(--ink-2)]">{fmt(r[m.key])}</td>
                         ))}
-                        <td className="py-2 px-3 text-right font-semibold text-[var(--green-dark)]">{fmt(assets - r.liabilities)}</td>
-                        <td className="py-2 pl-3 text-right">
-                          <button onClick={(e) => { e.stopPropagation(); deleteRow(r.id); }} className="text-[var(--muted)] hover:text-[#C0504D]" title="Delete">✕</button>
+                        <td className="py-2 px-3 text-end font-semibold text-[var(--green-dark)]">{fmt(assets - r.liabilities)}</td>
+                        <td className="py-2 ps-3 text-end">
+                          <button onClick={(e) => { e.stopPropagation(); deleteRow(r.id); }} className="text-[var(--muted)] hover:text-[#C0504D]" title={L('حذف', 'Delete')}>✕</button>
                         </td>
                       </tr>
                     );
@@ -562,7 +590,7 @@ export default function FinancialNumbersPage() {
                 </tbody>
               </table>
             </div>
-            <p className="text-[11px] text-[var(--muted)] mt-3">Tip: click any row to load it into the form above and edit it.</p>
+            <p className="text-[11px] text-[var(--muted)] mt-3">{L('تلميح: اضغط أي صف لتحميله في النموذج أعلاه وتعديله.', 'Tip: click any row to load it into the form above and edit it.')}</p>
           </div>
         </>
       )}
@@ -573,14 +601,14 @@ export default function FinancialNumbersPage() {
       {/* CSV import */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
         <button onClick={() => setImportOpen((o) => !o)} className="text-sm font-medium text-[var(--ink)]">
-          {importOpen ? '▾' : '▸'} Import from a spreadsheet
+          {importOpen ? '▾' : '▸'} {L('استيراد من جدول', 'Import from a spreadsheet')}
         </button>
         {importOpen && (
           <div className="mt-3">
             <p className="text-xs text-[var(--muted)] mb-2">
-              Paste rows (comma or tab separated), one month per line, in this column order:
-              <span className="block mt-1 font-mono text-[var(--ink-2)]">year, month, cash, stocks, real estate, equity, other assets, liabilities, income, expenses</span>
-              A header row is fine — it&apos;s skipped automatically.
+              {L('الصق الصفوف (مفصولة بفاصلة أو Tab)، شهر في كل سطر، بهذا الترتيب للأعمدة:', 'Paste rows (comma or tab separated), one month per line, in this column order:')}
+              <span className="block mt-1 font-mono text-[var(--ink-2)]" dir="ltr">year, month, cash, stocks, real estate, equity, other assets, liabilities, income, expenses</span>
+              {L('صف العناوين مقبول — يُتخطّى تلقائياً.', "A header row is fine — it's skipped automatically.")}
             </p>
             <textarea
               value={importText}
@@ -590,7 +618,7 @@ export default function FinancialNumbersPage() {
               className="w-full bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-xs font-mono text-[var(--ink)] outline-none focus:border-[var(--green)]"
             />
             <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <button onClick={importCsv} className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium">Import rows</button>
+              <button onClick={importCsv} className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium">{L('استيراد الصفوف', 'Import rows')}</button>
               {importMsg && <span className="text-xs text-[var(--ink-2)]">{importMsg}</span>}
             </div>
           </div>
@@ -618,7 +646,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function RangeSelector({ value, onChange }: { value: RangeView; onChange: (v: RangeView) => void }) {
+function RangeSelector({ value, onChange, ar }: { value: RangeView; onChange: (v: RangeView) => void; ar: boolean }) {
   return (
     <div className="flex flex-wrap gap-1 bg-[var(--surface-1)] rounded-lg p-1">
       {RANGE_VIEWS.map((v) => (
@@ -631,7 +659,7 @@ function RangeSelector({ value, onChange }: { value: RangeView; onChange: (v: Ra
               : 'text-[var(--muted)] hover:text-[var(--ink-2)]'
           }`}
         >
-          {v.label}
+          {RANGE_LABELS[ar ? 'ar' : 'en'][v.key] ?? v.label}
         </button>
       ))}
     </div>
@@ -724,6 +752,7 @@ function MetricBadge({
 
 // Always-on corner badge for the cash-flow chart: savings rate over the view.
 function SavingsBadge({ points }: { points: SeriesPoint[] }) {
+  const { locale } = useLocale();
   if (points.length === 0) return null;
   const inc = metricStat(points, 'income');
   const exp = metricStat(points, 'expenses');
@@ -735,7 +764,7 @@ function SavingsBadge({ points }: { points: SeriesPoint[] }) {
       className="flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 border"
       style={{ color, borderColor: color, background: 'var(--surface-card)' }}
     >
-      <span className="text-[9px] font-normal text-[var(--muted)]">Savings rate</span>
+      <span className="text-[9px] font-normal text-[var(--muted)]">{locale === 'ar' ? 'معدل الادخار' : 'Savings rate'}</span>
       {Math.round(rate)}%
     </div>
   );
@@ -750,15 +779,18 @@ function signedPct(pct: number): string {
 // A nominal (SAR) + percentage delta, coloured by whether the move is good.
 // `good` says which direction is favourable (up for net worth, down for debt).
 function DeltaText({ abs, pct, good }: { abs: number; pct: number | null; good: boolean }) {
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
   if (abs === 0) {
-    return <div className="text-[11px] text-[var(--muted)]">No change</div>;
+    return <div className="text-[11px] text-[var(--muted)]">{ar ? 'دون تغيير' : 'No change'}</div>;
   }
   const up = abs > 0;
   const favourable = up === good;
   const color = favourable ? 'var(--green-dark)' : 'var(--red-2)';
+  const amt = ar ? `${fmt(Math.abs(abs))} ريال` : `SAR ${fmt(Math.abs(abs))}`;
   return (
     <div className="text-[11px] font-medium" style={{ color }}>
-      {up ? '▲' : '▼'} SAR {fmt(Math.abs(abs))}
+      {up ? '▲' : '▼'} {amt}
       {pct !== null && <span className="opacity-80"> ({signedPct(pct)})</span>}
     </div>
   );
@@ -797,6 +829,8 @@ function SeriesStats({
   points: SeriesPoint[];
   metrics: { key: NumericKey; label: string; good: boolean }[];
 }) {
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
   if (points.length === 0) return null;
   const hasDelta = points.length >= 2;
   const firstLabel = points[0].label;
@@ -805,7 +839,7 @@ function SeriesStats({
   return (
     <div>
       <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--muted)] mb-2">
-        {hasDelta ? `Change · ${firstLabel} → ${lastLabel}` : `As of ${lastLabel}`}
+        {hasDelta ? `${ar ? 'التغيّر' : 'Change'} · ${firstLabel} → ${lastLabel}` : `${ar ? 'حتى' : 'As of'} ${lastLabel}`}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
         {metrics.map((m) => {
@@ -814,7 +848,7 @@ function SeriesStats({
             <StatPill
               key={m.key}
               label={m.label}
-              value={`SAR ${fmt(s.last)}`}
+              value={ar ? `${fmt(s.last)} ريال` : `SAR ${fmt(s.last)}`}
               delta={hasDelta ? { abs: s.deltaAbs, pct: s.deltaPct, good: m.good } : undefined}
             />
           );
@@ -826,38 +860,34 @@ function SeriesStats({
 
 // Cash-flow summary: totals, net saved and savings rate over the visible view.
 function CashflowStats({ points }: { points: SeriesPoint[] }) {
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
   if (points.length === 0) return null;
   const inc = metricStat(points, 'income');
   const exp = metricStat(points, 'expenses');
   const netSaved = inc.total - exp.total;
   const rate = inc.total > 0 ? (netSaved / inc.total) * 100 : null;
-  const per = points.length > 1 ? 'period' : 'month';
+  const per = points.length > 1 ? (ar ? 'فترة' : 'period') : (ar ? 'شهر' : 'month');
+  const m = (n: number) => (ar ? `${fmt(n)} ريال` : `SAR ${fmt(n)}`);
+  const avgLabel = (n: number) => (ar ? `متوسط ${m(n)}/${per}` : `avg ${m(n)}/${per}`);
   const firstLabel = points[0].label;
   const lastLabel = points[points.length - 1].label;
 
   return (
     <div>
       <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--muted)] mb-2">
-        Cash flow · {firstLabel} → {lastLabel}
+        {ar ? 'التدفّق النقدي' : 'Cash flow'} · {firstLabel} → {lastLabel}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+        <StatPill label={ar ? 'إجمالي الدخل' : 'Total income'} value={m(inc.total)} sub={avgLabel(inc.avg)} />
+        <StatPill label={ar ? 'إجمالي المصروفات' : 'Total expenses'} value={m(exp.total)} sub={avgLabel(exp.avg)} />
         <StatPill
-          label="Total income"
-          value={`SAR ${fmt(inc.total)}`}
-          sub={`avg SAR ${fmt(inc.avg)}/${per}`}
-        />
-        <StatPill
-          label="Total expenses"
-          value={`SAR ${fmt(exp.total)}`}
-          sub={`avg SAR ${fmt(exp.avg)}/${per}`}
-        />
-        <StatPill
-          label="Net saved"
-          value={`SAR ${fmt(netSaved)}`}
+          label={ar ? 'صافي الادخار' : 'Net saved'}
+          value={m(netSaved)}
           valueColor={netSaved >= 0 ? 'var(--green-dark)' : 'var(--red-2)'}
         />
         <StatPill
-          label="Savings rate"
+          label={ar ? 'معدل الادخار' : 'Savings rate'}
           value={rate !== null ? `${Math.round(rate)}%` : '—'}
           valueColor={rate !== null && rate >= 0 ? 'var(--green-dark)' : 'var(--red-2)'}
         />
