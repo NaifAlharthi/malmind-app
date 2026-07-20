@@ -4,6 +4,7 @@ import './globals.css';
 import AppShell from '@/components/shared/AppShell';
 import ThemeProvider from '@/components/shared/ThemeProvider';
 import LocaleProvider from '@/lib/i18n/LocaleProvider';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: 'MalMind — Your money, finally understood.',
@@ -58,6 +59,7 @@ export default function RootLayout({
             <AppShell>{children}</AppShell>
           </LocaleProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
