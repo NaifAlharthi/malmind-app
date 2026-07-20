@@ -14,6 +14,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { formatDual } from '@/lib/dates';
 import TodayDashboard from '@/components/today/TodayDashboard';
 
 const MiniBrain = dynamic(
@@ -246,7 +247,11 @@ export default function HubPage({ view }: { view: ViewKey }) {
       <h1 className="font-serif text-3xl font-semibold text-[var(--ink)] mb-1">
         {VIEW_ICON[view]} {t(`hub.${view}.title`)}
       </h1>
-      <p className="text-sm text-[var(--ink-2)] mb-6 max-w-2xl">{t(`hub.${view}.tagline`)}</p>
+      <p className="text-sm text-[var(--ink-2)] mb-1.5 max-w-2xl">{t(`hub.${view}.tagline`)}</p>
+      {view === 'today' && (
+        <p className="text-[11px] text-[var(--muted)] mb-6">📅 {formatDual(new Date(), locale)}</p>
+      )}
+      {view !== 'today' && <div className="mb-6" />}
 
       {view === 'today' ? (
         <TodayDashboard />

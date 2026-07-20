@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n/LocaleProvider';
 
 export interface FieldDef {
   key: string;
@@ -42,9 +43,10 @@ function initialValues(fields: FieldDef[]): Record<string, string> {
 }
 
 export default function CaptureSection({
-  icon, title, description, table, selectCols, fields, deriveInsert, summary, addLabel = 'Add', onChanged,
+  icon, title, description, table, selectCols, fields, deriveInsert, summary, addLabel, onChanged,
 }: Props) {
   const supabase = createClient();
+  const t = useT();
   const [userId, setUserId] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(fields));
@@ -145,7 +147,7 @@ export default function CaptureSection({
           disabled={saving}
           className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium disabled:opacity-50"
         >
-          {addLabel}
+          {addLabel ?? t('common.add')}
         </button>
       </div>
 
@@ -156,8 +158,8 @@ export default function CaptureSection({
               <span className="text-[var(--ink-2)]">{summary(r)}</span>
               <button
                 onClick={() => remove(r.id)}
-                className="text-xs text-[var(--muted)] hover:text-[#C0504D] ml-3 shrink-0"
-                title="Remove"
+                className="text-xs text-[var(--muted)] hover:text-[#C0504D] ms-3 shrink-0"
+                title={t('common.remove')}
               >
                 ✕
               </button>
@@ -165,7 +167,7 @@ export default function CaptureSection({
           ))}
         </div>
       ) : (
-        <p className="text-xs text-[var(--muted)]">Nothing logged yet.</p>
+        <p className="text-xs text-[var(--muted)]">{t('capture.empty')}</p>
       )}
     </div>
   );

@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { searchTickers, type TickerHit } from '@/lib/quotes';
 import { loadHoldings, valueHoldings, type Holding, type ValuedHolding } from '@/lib/livePortfolio';
 
@@ -18,10 +19,13 @@ function fmt(n: number) {
   return Math.round(n).toLocaleString();
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 export default function LivePortfolio() {
   const supabase = createClient();
+  const { t, locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const sar = t('common.sar');
+  const money = (n: number) => (ar ? `${fmt(n)} ${sar}` : `${sar} ${fmt(n)}`);
   const [userId, setUserId] = useState<string | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [valued, setValued] = useState<ValuedHolding[]>([]);
@@ -144,10 +148,14 @@ export default function LivePortfolio() {
         { user_id: userId, year: y, month: m, stocks: Math.round(total) },
         { onConflict: 'user_id,year,month' }
       );
+    const monthLabel = new Intl.DateTimeFormat(ar ? 'ar' : 'en', { month: 'long', year: 'numeric' }).format(now);
     setApplyMsg(
       error
-        ? `Couldn't update: ${error.message}`
-        : `Set ${MONTHS[m - 1]} ${y} investments to SAR ${fmt(total)} — it now flows into your net worth, ratios and projections.`
+        ? L(`تعذّر التحديث: ${error.message}`, `Couldn't update: ${error.message}`)
+        : L(
+            `تم ضبط استثمارات ${monthLabel} على ${money(total)} — وهي الآن تتدفّق إلى صافي ثروتك ونِسبك وتوقعاتك.`,
+            `Set ${monthLabel} investments to ${money(total)} — it now flows into your net worth, ratios and projections.`
+          )
     );
   }
 
@@ -160,11 +168,15 @@ export default function LivePortfolio() {
       <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
         <div>
           <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-1">
-            📈 Live investment portfolio
+            📈 {L('محفظة الاستثمار المباشرة', 'Live investment portfolio')}
           </div>
           <p className="text-xs text-[var(--muted)] max-w-md leading-relaxed">
-            Search a company or symbol and add your share count — MalMind prices it live from the market in SAR
-            and refreshes on its own. Tadawul uses a <span className="font-mono">.SR</span> suffix; US tickers are bare.
+            {L(
+              'ابحث عن شركة أو رمز وأضِف عدد أسهمك — يسعّرها مَالمايند مباشرة من السوق بالريال ويحدّثها تلقائياً. تداول يستخدم اللاحقة',
+              'Search a company or symbol and add your share count — MalMind prices it live from the market in SAR and refreshes on its own. Tadawul uses a'
+            )}{' '}
+            <span className="font-mono">.SR</span>{' '}
+            {L('؛ والرموز الأمريكية بلا لاحقة.', 'suffix; US tickers are bare.')}
           </p>
         </div>
         {holdings.length > 0 && (
@@ -173,7 +185,7 @@ export default function LivePortfolio() {
             disabled={loading}
             className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 disabled:opacity-50 whitespace-nowrap"
           >
-            {loading ? 'Refreshing…' : '↻ Refresh prices'}
+            {loading ? L('جارٍ التحديث…', 'Refreshing…') : L('↻ تحديث الأسعار', '↻ Refresh prices')}
           </button>
         )}
       </div>
@@ -183,7 +195,7 @@ export default function LivePortfolio() {
         <input
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          placeholder="Name (optional)"
+          placeholder={L('الاسم (اختياري)', 'Name (optional)')}
           className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
         />
         <div className="relative">
@@ -192,7 +204,7 @@ export default function LivePortfolio() {
             onChange={(e) => setForm((f) => ({ ...f, ticker: e.target.value }))}
             onFocus={() => hits.length > 0 && setShowHits(true)}
             onBlur={() => setTimeout(() => setShowHits(false), 150)}
-            placeholder="Search or ticker"
+            placeholder={L('ابحث أو الرمز', 'Search or ticker')}
             autoComplete="off"
             className="w-full sm:w-44 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
           />
@@ -220,7 +232,7 @@ export default function LivePortfolio() {
         <input
           value={form.quantity}
           onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
-          placeholder="Shares"
+          placeholder={L('الأسهم', 'Shares')}
           inputMode="decimal"
           className="w-24 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
         />
@@ -228,27 +240,28 @@ export default function LivePortfolio() {
           type="submit"
           className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium whitespace-nowrap"
         >
-          Add
+          {t('common.add')}
         </button>
       </form>
 
       {holdings.length === 0 ? (
         <div className="text-sm text-[var(--muted)] py-2">
-          No live holdings yet. Try searching <span className="font-mono">Aramco</span>, or type a symbol like{' '}
-          <span className="font-mono">2222.SR</span> or <span className="font-mono">AAPL</span>.
+          {L('لا توجد حيازات مباشرة بعد. جرّب البحث عن', 'No live holdings yet. Try searching')}{' '}
+          <span className="font-mono">{L('أرامكو', 'Aramco')}</span>{L('، أو اكتب رمزاً مثل', ', or type a symbol like')}{' '}
+          <span className="font-mono">2222.SR</span> {L('أو', 'or')} <span className="font-mono">AAPL</span>.
         </div>
       ) : (
         <>
           <div className="overflow-x-auto">
             <table className="w-full text-xs whitespace-nowrap">
               <thead>
-                <tr className="text-[var(--muted)] text-left">
-                  <th className="py-2 pr-3 font-medium">Holding</th>
-                  <th className="py-2 px-3 font-medium text-right">Shares</th>
-                  <th className="py-2 px-3 font-medium text-right">Price</th>
-                  <th className="py-2 px-3 font-medium text-right">Day</th>
-                  <th className="py-2 px-3 font-medium text-right">Market value</th>
-                  <th className="py-2 pl-3" />
+                <tr className="text-[var(--muted)] text-start">
+                  <th className="py-2 pe-3 font-medium text-start">{L('الحيازة', 'Holding')}</th>
+                  <th className="py-2 px-3 font-medium text-end">{L('الأسهم', 'Shares')}</th>
+                  <th className="py-2 px-3 font-medium text-end">{L('السعر', 'Price')}</th>
+                  <th className="py-2 px-3 font-medium text-end">{L('اليوم', 'Day')}</th>
+                  <th className="py-2 px-3 font-medium text-end">{L('القيمة السوقية', 'Market value')}</th>
+                  <th className="py-2 ps-3" />
                 </tr>
               </thead>
               <tbody>
@@ -263,7 +276,7 @@ export default function LivePortfolio() {
                     </td>
                     <td className="py-2 px-3 text-right text-[var(--ink-2)]">{v.quantity}</td>
                     <td className="py-2 px-3 text-right text-[var(--ink-2)]">
-                      {v.quote && v.quote.priceSar !== null ? `SAR ${fmt(v.quote.priceSar)}` : v.quote ? '—' : '…'}
+                      {v.quote && v.quote.priceSar !== null ? money(v.quote.priceSar) : v.quote ? '—' : '…'}
                     </td>
                     <td
                       className="py-2 px-3 text-right"
@@ -281,13 +294,13 @@ export default function LivePortfolio() {
                         : `${v.quote.changePct >= 0 ? '▲' : '▼'} ${Math.abs(v.quote.changePct).toFixed(1)}%`}
                     </td>
                     <td className="py-2 px-3 text-right font-semibold text-[var(--ink)]">
-                      {v.marketValue !== null ? `SAR ${fmt(v.marketValue)}` : '—'}
+                      {v.marketValue !== null ? money(v.marketValue) : '—'}
                     </td>
                     <td className="py-2 pl-3 text-right">
                       <button
                         onClick={() => del(v.id)}
                         className="text-[var(--muted)] hover:text-[#C0504D]"
-                        title="Remove"
+                        title={t('common.remove')}
                       >
                         ✕
                       </button>
@@ -301,17 +314,18 @@ export default function LivePortfolio() {
           <div className="flex items-center justify-between gap-3 flex-wrap mt-4 pt-4 border-t border-[var(--border-default)]">
             <div>
               <div className="text-[10px] text-[var(--muted)]">
-                Total market value{priced < holdings.length ? ` · ${priced}/${holdings.length} priced` : ''}
-                {asOfLabel ? ` · as of ${asOfLabel}` : ''}
+                {L('إجمالي القيمة السوقية', 'Total market value')}
+                {priced < holdings.length ? ` · ${L(`سُعّر ${priced}/${holdings.length}`, `${priced}/${holdings.length} priced`)}` : ''}
+                {asOfLabel ? ` · ${L(`حتى ${asOfLabel}`, `as of ${asOfLabel}`)}` : ''}
               </div>
-              <div className="font-serif text-2xl font-bold text-[var(--green-dark)]">SAR {fmt(total)}</div>
+              <div className="font-serif text-2xl font-bold text-[var(--green-dark)]">{money(total)}</div>
             </div>
             <button
               onClick={applyToMonth}
               disabled={total <= 0}
               className="text-sm font-medium bg-[var(--ink)] text-[var(--surface-0)] rounded-lg px-4 py-2 disabled:opacity-40"
             >
-              Apply to this month →
+              {L('طبّق على هذا الشهر ←', 'Apply to this month →')}
             </button>
           </div>
           {applyMsg && <p className="text-xs text-[var(--ink-2)] mt-3">{applyMsg}</p>}
