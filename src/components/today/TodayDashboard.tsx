@@ -1396,7 +1396,7 @@ function RiskTooltip({
   const risk = risks.find((r) => (AXIS_LABEL[r.id] ?? r.id) === axis);
   if (!risk) return null;
   return (
-    <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-lg px-3 py-2 max-w-[230px] shadow-xl">
+    <div className="mm-tooltip px-3 py-2 max-w-[230px]">
       <div className="text-[10px] font-semibold text-[var(--ink)] mb-0.5">{risk.icon} {risk.title}</div>
       <div className="text-[10px] text-[var(--ink-2)] leading-relaxed">
         {risk.level === 'unknown' ? risk.missingHint ?? risk.finding : risk.finding}

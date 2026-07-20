@@ -18,6 +18,7 @@
   --surface-1: #EFEDE8;
   --surface-card: #FFFFFF;
   --surface-input: #F5F4F0;
+  --tooltip-bg: rgba(255, 255, 255, 0.72);
 
   /* text */
   --ink: #141414;
@@ -96,6 +97,7 @@
   --surface-1: #1C1F1C;
   --surface-card: #181B18;
   --surface-input: #1C1F1C;
+  --tooltip-bg: rgba(26, 30, 26, 0.68);
 
   --ink: #F2F1ED;
   --ink-2: #C7C4BB;
@@ -172,6 +174,61 @@ body {
 
 .font-serif {
   font-family: var(--font-serif-stack);
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Chart tooltips — one glassy, translucent style everywhere. The
+   .mm-tooltip class is for our custom tooltips; the recharts-* rules
+   restyle every default tooltip in the product (overriding recharts'
+   inline styles, hence !important).
+   ─────────────────────────────────────────────────────────────── */
+.mm-tooltip {
+  background: var(--tooltip-bg);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  backdrop-filter: blur(12px) saturate(1.3);
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.45);
+  color: var(--ink);
+}
+
+.recharts-tooltip-wrapper {
+  outline: none;
+  z-index: 30;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--tooltip-bg) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  backdrop-filter: blur(12px) saturate(1.3);
+  border: 1px solid var(--border-medium) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.45) !important;
+  padding: 8px 12px !important;
+  white-space: nowrap;
+}
+.recharts-tooltip-label {
+  color: var(--muted) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em;
+  margin: 0 0 4px !important;
+}
+.recharts-tooltip-item-list .recharts-tooltip-item {
+  font-size: 11px !important;
+  padding: 1px 0 !important;
+}
+.recharts-tooltip-item-separator {
+  opacity: 0.45;
+}
+.recharts-tooltip-item-value {
+  font-weight: 700 !important;
+}
+/* the hover cursor behind the tooltip — keep it whisper-subtle */
+.recharts-tooltip-cursor {
+  fill: var(--ink) !important;
+  fill-opacity: 0.05 !important;
+  stroke: var(--border-strong) !important;
+  stroke-opacity: 0.5;
 }
 
 /* ───────────────────────────────────────────────────────────────
