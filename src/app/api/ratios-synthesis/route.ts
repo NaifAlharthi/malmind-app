@@ -25,18 +25,21 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as {
     ratiosSummary: string;
     messages: { role: 'user' | 'assistant'; content: string }[];
+    locale?: 'ar' | 'en';
   };
   const { ratiosSummary, messages } = body;
+  const ar = body.locale === 'ar';
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    const placeholder =
-      "The analyst isn't connected to a live model yet — set ANTHROPIC_API_KEY in your deployment environment to enable real responses.";
+    const placeholder = ar
+      ? 'المحلّل غير متّصل بنموذج حيّ بعد — اضبط ANTHROPIC_API_KEY في بيئة النشر لتفعيل الردود الحقيقية.'
+      : "The analyst isn't connected to a live model yet — set ANTHROPIC_API_KEY in your deployment environment to enable real responses.";
     return NextResponse.json({ reply: placeholder });
   }
 
   const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
-  const name = firstNameOf(profile?.name) || 'there';
+  const name = firstNameOf(profile?.name) || (ar ? 'صديقي' : 'there');
 
   const systemPrompt = `You are MalMind's financial ratio analyst, speaking with ${name}. You have been handed their complete set of real, computed financial ratios below - treat it the way a world-class analyst would treat a client's real financial statement.
 
@@ -49,7 +52,8 @@ Guidelines:
 - Never recommend a specific bank, investment platform, or institution by name.
 - Keep responses conversational and grounded - a few tight paragraphs unless asked for more detail.
 - This is informational and educational, not licensed financial advice - make that clear if asked for a specific recommendation.
-- Some ratios may be marked "not enough data yet" - don't fabricate a value for those, just note what logging would unlock the reading.`;
+- Some ratios may be marked "not enough data yet" - don't fabricate a value for those, just note what logging would unlock the reading.
+${ar ? '- Respond entirely in Modern Standard Arabic (فصحى), in a warm, professional Saudi register. Keep numbers and currency clear.' : '- Respond in English.'}`;
 
   const anthropic = new Anthropic({ apiKey });
 
@@ -65,13 +69,13 @@ Guidelines:
     const reply =
       textBlock && textBlock.type === 'text'
         ? textBlock.text
-        : "I couldn't generate a response just now — please try again.";
+        : ar ? 'لم أتمكّن من توليد ردّ الآن — يُرجى المحاولة مرة أخرى.' : "I couldn't generate a response just now — please try again.";
 
     return NextResponse.json({ reply });
   } catch (err) {
     console.error('Ratios synthesis API error:', err);
     return NextResponse.json(
-      { reply: 'Something went wrong reaching your analyst. Please try again.' },
+      { reply: ar ? 'حدث خطأ في الوصول إلى محلّلك. يُرجى المحاولة مرة أخرى.' : 'Something went wrong reaching your analyst. Please try again.' },
       { status: 500 }
     );
   }

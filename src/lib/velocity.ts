@@ -23,6 +23,17 @@ export const SCENARIOS: MortgageScenario[] = [
   { key: 'thirtyfour', label: '34% mortgage', install: 5072.29, color: 'var(--amber-2)' },
 ];
 
+const SCENARIO_LABELS_AR: Record<string, string> = {
+  none: 'بلا رهن',
+  sixtysix: 'رهن 66%',
+  fifty: 'رهن 50%',
+  thirtyfour: 'رهن 34%',
+};
+
+export function scenarioLabel(sc: MortgageScenario, locale: 'ar' | 'en' = 'en'): string {
+  return locale === 'ar' ? SCENARIO_LABELS_AR[sc.key] ?? sc.label : sc.label;
+}
+
 export function computeDisposable(salary: number, sideIncome: number, expense: number): number {
   return Math.max(0, salary + sideIncome - expense);
 }
@@ -36,10 +47,30 @@ export function timeToTargetMonths(target: number, disposable: number): number {
   return target / disposable;
 }
 
-export function monthsToWords(months: number): string {
-  if (!Number.isFinite(months)) return 'never, at this pace';
+function arMonths(n: number): string {
+  if (n === 1) return 'شهر';
+  if (n === 2) return 'شهران';
+  if (n >= 3 && n <= 10) return `${n} أشهر`;
+  return `${n} شهراً`;
+}
+
+function arYears(n: number): string {
+  if (n === 1) return 'سنة';
+  if (n === 2) return 'سنتان';
+  if (n >= 3 && n <= 10) return `${n} سنوات`;
+  return `${n} سنة`;
+}
+
+export function monthsToWords(months: number, locale: 'ar' | 'en' = 'en'): string {
+  const ar = locale === 'ar';
+  if (!Number.isFinite(months)) return ar ? 'أبداً، بهذه الوتيرة' : 'never, at this pace';
   const years = Math.floor(months / 12);
   const remMonths = Math.round(months % 12);
+  if (ar) {
+    if (years === 0) return arMonths(Math.round(months));
+    if (remMonths === 0) return arYears(years);
+    return `${arYears(years)} و${arMonths(remMonths)}`;
+  }
   if (years === 0) return `${Math.round(months)} months`;
   if (remMonths === 0) return `${years} year${years > 1 ? 's' : ''}`;
   return `${years} year${years > 1 ? 's' : ''} and ${remMonths} month${remMonths > 1 ? 's' : ''}`;
