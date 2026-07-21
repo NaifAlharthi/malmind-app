@@ -6,8 +6,9 @@ import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
-  PRESETS, targetFromMonthly, monthlyFromTarget, buildFundSeries, fundStatus, monthLabel,
+  PRESETS, PRESET_NAMES_AR, PRESET_CHIPS_AR, targetFromMonthly, monthlyFromTarget, buildFundSeries, fundStatus, monthLabel,
   type FundStatus,
 } from '@/lib/goalFund';
 
@@ -44,6 +45,13 @@ const STATUS_LABEL: Record<FundStatus, string> = {
   behind: 'Behind plan',
 };
 
+const STATUS_LABEL_AR: Record<FundStatus, string> = {
+  'not-started': 'لم يبدأ بعد',
+  ahead: 'متقدّم على الخطة',
+  ontrack: 'على المسار',
+  behind: 'متأخّر عن الخطة',
+};
+
 const STATUS_CLASS: Record<FundStatus, string> = {
   'not-started': 'bg-[var(--blue-bg)] text-[var(--blue-dark-text)]',
   ahead: 'bg-[var(--green-bg)] text-[var(--green-dark)]',
@@ -56,6 +64,10 @@ type Mode = 'monthly' | 'target';
 export default function GoalFundPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const money = (n: number) => (ar ? `${fmt(n)} ريال` : `SAR ${fmt(n)}`);
   const [userId, setUserId] = useState<string | null>(null);
   const [funds, setFunds] = useState<GoalFund[]>([]);
   const [activeFundId, setActiveFundId] = useState<string | null>(null);
@@ -122,7 +134,7 @@ export default function GoalFundPage() {
     if (!p) return;
     setSelectedPreset(id);
     setIcon(p.icon);
-    setName(p.name);
+    setName(ar ? PRESET_NAMES_AR[p.id] ?? p.name : p.name);
     setYears(String(p.years));
   }
 
@@ -195,7 +207,7 @@ export default function GoalFundPage() {
   const startDate = activeFund ? new Date(activeFund.start_date) : new Date();
 
   const chartData = series.map((s, i) => ({
-    label: monthLabel(startDate, i),
+    label: monthLabel(startDate, i, locale),
     cumTarget: s.cumTarget,
     cumActual: s.actualLogged !== null ? s.cumActual : null,
   }));
@@ -204,21 +216,22 @@ export default function GoalFundPage() {
   const bonus = activeFund ? activeFund.target_amount - simpleSum : 0;
 
   if (loading) {
-    return <div className="text-sm text-[var(--muted)]">Loading your goal funds…</div>;
+    return <div className="text-sm text-[var(--muted)]">{L('جارٍ تحميل صناديق أهدافك…', 'Loading your goal funds…')}</div>;
   }
 
   return (
     <div>
       <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--green)] font-semibold mb-1">
-        Decide
+        {L('قرّر', 'Decide')}
       </div>
       <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
-        Goal Fund
+        {L('صندوق الهدف', 'Goal Fund')}
       </h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
-        A house down payment, your child&apos;s 18th birthday, Hajj, a wedding — any goal with a
-        target and a date. Set it once, save monthly, and track exactly whether you&apos;re ahead,
-        on pace, or behind.
+        {L(
+          'دفعة تملّك منزل، عيد ميلاد طفلك الثامن عشر، الحج، زواج — أيّ هدف له مبلغ وتاريخ. اضبطه مرّة، ادّخر شهرياً، وتتبّع بدقّة هل أنت متقدّم أم على الوتيرة أم متأخّر.',
+          "A house down payment, your child's 18th birthday, Hajj, a wedding — any goal with a target and a date. Set it once, save monthly, and track exactly whether you're ahead, on pace, or behind."
+        )}
       </p>
 
       {/* fund selector */}
@@ -241,7 +254,7 @@ export default function GoalFundPage() {
           onClick={() => setCreating(true)}
           className="px-4 py-2 rounded-full text-sm font-medium bg-[var(--green-bg)] text-[var(--green-dark)] border border-[var(--green-border)]"
         >
-          + New fund
+          {L('+ صندوق جديد', '+ New fund')}
         </button>
       </div>
 
@@ -259,7 +272,7 @@ export default function GoalFundPage() {
                 }`}
               >
                 <span>{p.icon}</span>
-                {p.id === 'child' ? 'Child at 18' : p.name.replace(' Fund', '')}
+                {ar ? PRESET_CHIPS_AR[p.id] ?? p.name : (p.id === 'child' ? 'Child at 18' : p.name.replace(' Fund', ''))}
               </button>
             ))}
           </div>
@@ -280,20 +293,20 @@ export default function GoalFundPage() {
               onClick={() => setMode('monthly')}
               className={`px-4 py-2 text-xs font-medium ${mode === 'monthly' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
-              I know what I can save monthly
+              {L('أعرف كم أستطيع أن أدّخر شهرياً', 'I know what I can save monthly')}
             </button>
             <button
               onClick={() => setMode('target')}
               className={`px-4 py-2 text-xs font-medium ${mode === 'target' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
-              I know my target amount
+              {L('أعرف مبلغي المستهدَف', 'I know my target amount')}
             </button>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-4 mb-1">
             {mode === 'monthly' ? (
               <div>
-                <label className="text-xs text-[var(--muted)] block mb-1">Monthly saving (SAR)</label>
+                <label className="text-xs text-[var(--muted)] block mb-1">{L('الادّخار الشهري (ريال)', 'Monthly saving (SAR)')}</label>
                 <input
                   value={monthly}
                   onChange={(e) => setMonthly(e.target.value)}
@@ -302,7 +315,7 @@ export default function GoalFundPage() {
               </div>
             ) : (
               <div>
-                <label className="text-xs text-[var(--muted)] block mb-1">Target amount at maturity (SAR)</label>
+                <label className="text-xs text-[var(--muted)] block mb-1">{L('المبلغ المستهدَف عند الاستحقاق (ريال)', 'Target amount at maturity (SAR)')}</label>
                 <input
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
@@ -311,7 +324,7 @@ export default function GoalFundPage() {
               </div>
             )}
             <div>
-              <label className="text-xs text-[var(--muted)] block mb-1">Years to maturity</label>
+              <label className="text-xs text-[var(--muted)] block mb-1">{L('سنوات حتى الاستحقاق', 'Years to maturity')}</label>
               <input
                 value={years}
                 onChange={(e) => setYears(e.target.value)}
@@ -319,7 +332,7 @@ export default function GoalFundPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-[var(--muted)] block mb-1">Expected annual return (%)</label>
+              <label className="text-xs text-[var(--muted)] block mb-1">{L('العائد السنوي المتوقّع (%)', 'Expected annual return (%)')}</label>
               <input
                 value={roi}
                 onChange={(e) => setRoi(e.target.value)}
@@ -333,10 +346,10 @@ export default function GoalFundPage() {
               onClick={createFund}
               className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
             >
-              Create fund
+              {L('إنشاء الصندوق', 'Create fund')}
             </button>
             <button onClick={() => setCreating(false)} className="text-sm text-[var(--muted)] px-4 py-2">
-              Cancel
+              {L('إلغاء', 'Cancel')}
             </button>
           </div>
         </div>
@@ -344,7 +357,7 @@ export default function GoalFundPage() {
 
       {!activeFund && !creating && (
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
-          Create your first goal fund to get started.
+          {L('أنشئ صندوق هدفك الأول للبدء.', 'Create your first goal fund to get started.')}
         </div>
       )}
 
@@ -354,30 +367,30 @@ export default function GoalFundPage() {
           <div className="grid sm:grid-cols-[1.3fr_1fr] gap-3.5 mb-5">
             <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 text-white relative overflow-hidden">
               <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-2">
-                Target at maturity
+                {L('الهدف عند الاستحقاق', 'Target at maturity')}
               </div>
-              <div className="font-serif text-3xl font-bold mb-1">SAR {fmt(activeFund.target_amount)}</div>
+              <div className="font-serif text-3xl font-bold mb-1">{money(activeFund.target_amount)}</div>
               <div className="text-xs text-white/50 mb-4">
                 {icon || activeFund.icon} {activeFund.name}
               </div>
               <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/10">
                 <div>
-                  <div className="text-[10px] text-white/45 mb-1">Monthly saving</div>
-                  <div className="text-sm font-medium">SAR {fmt(activeFund.monthly_contribution)}</div>
+                  <div className="text-[10px] text-white/45 mb-1">{L('الادّخار الشهري', 'Monthly saving')}</div>
+                  <div className="text-sm font-medium">{money(activeFund.monthly_contribution)}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-white/45 mb-1">Duration</div>
-                  <div className="text-sm font-medium">{Math.round(activeFund.maturity_years * 12)} months</div>
+                  <div className="text-[10px] text-white/45 mb-1">{L('المدّة', 'Duration')}</div>
+                  <div className="text-sm font-medium">{L(`${Math.round(activeFund.maturity_years * 12)} شهراً`, `${Math.round(activeFund.maturity_years * 12)} months`)}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-white/45 mb-1">Expected return</div>
-                  <div className="text-sm font-medium">{activeFund.expected_return}%/yr</div>
+                  <div className="text-[10px] text-white/45 mb-1">{L('العائد المتوقّع', 'Expected return')}</div>
+                  <div className="text-sm font-medium">{activeFund.expected_return}%{L('/سنة', '/yr')}</div>
                 </div>
               </div>
             </div>
 
             <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 flex flex-col items-center justify-center">
-              <div className="text-[11px] tracking-[0.08em] uppercase text-[var(--muted)] mb-3">Current progress</div>
+              <div className="text-[11px] tracking-[0.08em] uppercase text-[var(--muted)] mb-3">{L('التقدّم الحالي', 'Current progress')}</div>
               <div className="relative w-36 h-36">
                 <svg viewBox="0 0 150 150" className="w-full h-full -rotate-90">
                   <circle cx="75" cy="75" r="60" fill="none" stroke="var(--surface-1)" strokeWidth="12" />
@@ -389,46 +402,46 @@ export default function GoalFundPage() {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <div className="font-serif text-2xl font-bold text-[var(--green-dark)]">{pctToGoal.toFixed(1)}%</div>
-                  <div className="text-[10px] text-[var(--muted)]">of goal</div>
+                  <div className="text-[10px] text-[var(--muted)]">{L('من الهدف', 'of goal')}</div>
                 </div>
               </div>
               <div className={`mt-3 text-xs font-medium px-3.5 py-1.5 rounded-full ${STATUS_CLASS[status]}`}>
-                {STATUS_LABEL[status]}
+                {ar ? STATUS_LABEL_AR[status] : STATUS_LABEL[status]}
               </div>
             </div>
           </div>
 
           <div className="text-xs text-[var(--green-dark)] font-medium mb-5 -mt-2">
             {activeFund.expected_return > 0 ? (
-              <>
-                SAR {fmt(simpleSum)} from your own contributions, plus SAR {fmt(bonus)} from the{' '}
-                {activeFund.expected_return}% return — that&apos;s the power of investing it, not just saving it.
-              </>
+              L(
+                `${money(simpleSum)} من مساهماتك أنت، إضافةً إلى ${money(bonus)} من عائد الـ${activeFund.expected_return}% — تلك هي قوّة استثماره، لا مجرّد ادّخاره.`,
+                `${money(simpleSum)} from your own contributions, plus ${money(bonus)} from the ${activeFund.expected_return}% return — that's the power of investing it, not just saving it.`
+              )
             ) : (
-              <>This is a pure savings total — set a return above 0% to see what investing this fund could add.</>
+              L('هذا إجمالي ادّخار صِرف — اضبط عائداً أعلى من 0% لترى ما يمكن أن يضيفه استثمار هذا الصندوق.', 'This is a pure savings total — set a return above 0% to see what investing this fund could add.')
             )}
           </div>
 
           {/* trajectory chart */}
           <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-5">
-            <div className="text-sm font-medium text-[var(--ink)]">Your fund over time</div>
+            <div className="text-sm font-medium text-[var(--ink)]">{L('صندوقك عبر الزمن', 'Your fund over time')}</div>
             <div className="text-xs text-[var(--muted)] mb-1">
-              The dashed line is your plan. The solid line is what you&apos;ve actually saved.
+              {L('الخطّ المتقطّع هو خطّتك. والخطّ المتّصل هو ما ادّخرته فعلاً.', "The dashed line is your plan. The solid line is what you've actually saved.")}
             </div>
             <div className="h-72 mt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData}>
                   <CartesianGrid stroke="var(--chart-grid)" />
                   <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--muted)' }} interval={Math.max(0, Math.floor(chartData.length / 8) - 1)} angle={-45} textAnchor="end" height={50} />
-                  <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => `SAR ${fmtCompact(Number(v))}`} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => ar ? `${fmtCompact(Number(v))} ريال` : `SAR ${fmtCompact(Number(v))}`} />
                   <Tooltip
                     formatter={(value, name) => {
                       if (value == null) return ['—', name];
-                      return [`SAR ${fmt(Number(value))}`, name];
+                      return [money(Number(value)), name];
                     }}
                   />
-                  <Line type="monotone" dataKey="cumTarget" name="Target" stroke="var(--ink)" strokeWidth={2} strokeDasharray="5 4" dot={false} />
-                  <Line type="monotone" dataKey="cumActual" name="Actual" stroke="var(--green)" strokeWidth={2.5} dot={false} connectNulls />
+                  <Line type="monotone" dataKey="cumTarget" name={L('الهدف', 'Target')} stroke="var(--ink)" strokeWidth={2} strokeDasharray="5 4" dot={false} />
+                  <Line type="monotone" dataKey="cumActual" name={L('الفعلي', 'Actual')} stroke="var(--green)" strokeWidth={2.5} dot={false} connectNulls />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -436,18 +449,18 @@ export default function GoalFundPage() {
 
           {/* monthly tracker */}
           <div className="mb-5">
-            <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">Monthly tracker</div>
+            <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">{L('المتتبّع الشهري', 'Monthly tracker')}</div>
             <div className="text-xs text-[var(--muted)] mb-3">
-              Log what you actually saved. MalMind tracks the difference automatically.
+              {L('سجّل ما ادّخرته فعلاً. يتتبّع مَالمايند الفرق تلقائياً.', 'Log what you actually saved. MalMind tracks the difference automatically.')}
             </div>
             <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden">
               <div className="grid grid-cols-[36px_1fr_90px_90px_80px_80px] gap-2.5 px-4 py-2.5 bg-[var(--surface-0)] text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
                 <span>#</span>
-                <span>Month</span>
-                <span>Target</span>
-                <span>Actual</span>
-                <span className="text-right">Diff.</span>
-                <span className="text-right">Accum.</span>
+                <span>{L('الشهر', 'Month')}</span>
+                <span>{L('الهدف', 'Target')}</span>
+                <span>{L('الفعلي', 'Actual')}</span>
+                <span className="text-end">{L('الفرق', 'Diff.')}</span>
+                <span className="text-end">{L('التراكمي', 'Accum.')}</span>
               </div>
               {series.slice(0, visibleMonths).map((s) => {
                 const hasActual = s.actualLogged !== null;
@@ -456,8 +469,8 @@ export default function GoalFundPage() {
                 return (
                   <div key={s.m} className="grid grid-cols-[36px_1fr_90px_90px_80px_80px] gap-2.5 px-4 py-2.5 items-center text-xs border-t border-[var(--border-faint)]">
                     <span className="text-[var(--muted)]">{s.m}</span>
-                    <span className="text-[var(--ink)] font-medium">{monthLabel(startDate, s.m - 1)}</span>
-                    <span className="text-[var(--ink-2)]">SAR {fmt(s.target)}</span>
+                    <span className="text-[var(--ink)] font-medium">{monthLabel(startDate, s.m - 1, locale)}</span>
+                    <span className="text-[var(--ink-2)]">{money(s.target)}</span>
                     <input
                       type="text"
                       defaultValue={hasActual ? fmt(s.actualLogged!) : ''}
@@ -468,10 +481,10 @@ export default function GoalFundPage() {
                       }}
                       className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1 text-xs outline-none focus:border-[var(--green)]"
                     />
-                    <span className={`text-right font-semibold ${diff === null ? 'text-[var(--muted)]' : diff >= 0 ? 'text-[var(--green-dark)]' : 'text-[var(--red)]'}`}>
+                    <span className={`text-end font-semibold ${diff === null ? 'text-[var(--muted)]' : diff >= 0 ? 'text-[var(--green-dark)]' : 'text-[var(--red)]'}`}>
                       {diff === null ? '—' : `${diff >= 0 ? '+' : ''}${fmt(diff)}`}
                     </span>
-                    <span className={`text-right ${!hasActual ? 'text-[var(--muted)]' : accumDiff >= 0 ? 'text-[var(--green-dark)]' : 'text-[var(--red)]'}`}>
+                    <span className={`text-end ${!hasActual ? 'text-[var(--muted)]' : accumDiff >= 0 ? 'text-[var(--green-dark)]' : 'text-[var(--red)]'}`}>
                       {hasActual ? `${accumDiff >= 0 ? '+' : ''}${fmt(accumDiff)}` : '—'}
                     </span>
                   </div>
@@ -482,7 +495,7 @@ export default function GoalFundPage() {
                   onClick={() => setVisibleMonths((v) => v + 24)}
                   className="w-full text-center py-3 text-xs font-medium text-[var(--green-dark)] border-t border-[var(--border-faint)]"
                 >
-                  Show more months
+                  {L('عرض أشهر أكثر', 'Show more months')}
                 </button>
               )}
             </div>
@@ -490,7 +503,7 @@ export default function GoalFundPage() {
 
           <div className="flex items-center justify-between mb-5">
             <button onClick={() => deleteFund(activeFund.id)} className="text-xs text-[var(--red-dark-text)]">
-              Delete this fund
+              {L('احذف هذا الصندوق', 'Delete this fund')}
             </button>
           </div>
 
@@ -500,9 +513,10 @@ export default function GoalFundPage() {
               M
             </div>
             <div className="text-xs text-[var(--gold-text-body)] leading-relaxed">
-              <strong className="text-[var(--gold-text-strong)]">This fund is now part of your plan.</strong> MalMind tracks it
-              alongside everything else — if a big decision would mean skipping a month here, I&apos;ll show you
-              what that costs against this exact goal, in these exact terms.
+              <strong className="text-[var(--gold-text-strong)]">{L('هذا الصندوق الآن جزء من خطتك.', 'This fund is now part of your plan.')}</strong> {L(
+                'يتتبّعه مَالمايند إلى جانب كل شيء آخر — وإن كان قرارٌ كبير يعني تفويت شهر هنا، سأريك ما يكلّفه ذلك مقابل هذا الهدف بالذات، بهذه المصطلحات بالذات.',
+                "MalMind tracks it alongside everything else — if a big decision would mean skipping a month here, I'll show you what that costs against this exact goal, in these exact terms."
+              )}
             </div>
           </div>
         </>

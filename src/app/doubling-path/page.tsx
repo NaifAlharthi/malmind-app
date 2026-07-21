@@ -7,8 +7,9 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
-  LIFE_EXPECTANCY, COMPARISON_HORIZON_YEARS, ROI_PRESETS,
+  LIFE_EXPECTANCY, COMPARISON_HORIZON_YEARS, ROI_PRESETS, ROI_PRESET_NOTES_AR,
   doublingYears, buildMilestones, comparisonValue, fmtMonthYear,
 } from '@/lib/doublingPath';
 
@@ -29,6 +30,11 @@ export default function DoublingPathPage() {
   const router = useRouter();
   const supabase = createClient();
   const { openEditProfile } = useProfileContext();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const money = (n: number) => (ar ? `${fmt(n)} ريال` : `SAR ${fmt(n)}`);
+  const presetNote = (roi: number, en: string) => (ar ? ROI_PRESET_NOTES_AR[roi] ?? en : en);
 
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -92,24 +98,24 @@ export default function DoublingPathPage() {
     iter: m.iter,
     value: m.value,
     age: Math.round(m.ageThen * 10) / 10,
-    label: fmtMonthYear(m.date),
+    label: fmtMonthYear(m.date, locale),
   }));
 
   if (loading) {
-    return <div className="text-sm text-[var(--muted)]">Loading…</div>;
+    return <div className="text-sm text-[var(--muted)]">{L('جارٍ التحميل…', 'Loading…')}</div>;
   }
 
   if (!age) {
     return (
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center">
         <p className="text-sm text-[var(--ink-2)] mb-4">
-          Set your age in your profile to see the doubling path.
+          {L('حدّد عمرك في ملفّك الشخصي لرؤية مسار المضاعفة.', 'Set your age in your profile to see the doubling path.')}
         </p>
         <button
           onClick={openEditProfile}
           className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
         >
-          Set your age →
+          {L('حدّد عمرك ←', 'Set your age →')}
         </button>
       </div>
     );
@@ -118,26 +124,28 @@ export default function DoublingPathPage() {
   return (
     <div>
       <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--blue)] font-semibold mb-1">
-        Think
+        {L('فكّر', 'Think')}
       </div>
       <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
-        The Doubling Path
+        {L('مسار المضاعفة', 'The Doubling Path')}
       </h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
-        Compounding is impossible to feel as a percentage. So instead, this shows you every time
-        your portfolio doubles — and exactly how old you&apos;ll be when it happens.
+        {L(
+          'يستحيل أن تشعر بالتراكم كنسبة مئوية. لذا يريك هذا بدلاً من ذلك كل مرّة تتضاعف فيها محفظتك — وكم سيكون عمرك بالضبط حين يحدث ذلك.',
+          "Compounding is impossible to feel as a percentage. So instead, this shows you every time your portfolio doubles — and exactly how old you'll be when it happens."
+        )}
       </p>
 
       {/* inputs */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-5">
         <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-4">
-          Your investment picture
+          {L('صورة استثمارك', 'Your investment picture')}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Current portfolio value</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">{L('قيمة المحفظة الحالية', 'Current portfolio value')}</label>
             <div className="flex items-center border border-[var(--border-default)] rounded-lg px-3 focus-within:border-[var(--green)]">
-              <span className="text-xs text-[var(--muted)] mr-1">SAR</span>
+              <span className="text-xs text-[var(--muted)] me-1">{L('ريال', 'SAR')}</span>
               <input
                 value={portfolioValue}
                 onChange={(e) => setPortfolioValue(e.target.value)}
@@ -147,13 +155,13 @@ export default function DoublingPathPage() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Your age today</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">{L('عمرك اليوم', 'Your age today')}</label>
             <div className="border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm bg-[var(--surface-0)] text-[var(--ink-2)]">
-              {age} years
+              {L(`${age} سنة`, `${age} years`)}
             </div>
           </div>
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Average annual return (ROI)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">{L('متوسّط العائد السنوي', 'Average annual return (ROI)')}</label>
             <div className="flex items-center border border-[var(--border-default)] rounded-lg px-3 focus-within:border-[var(--green)]">
               <input
                 value={roi}
@@ -161,7 +169,7 @@ export default function DoublingPathPage() {
                 onBlur={() => saveSettings()}
                 className="w-full py-2 text-sm outline-none"
               />
-              <span className="text-xs text-[var(--muted)] ml-1">%</span>
+              <span className="text-xs text-[var(--muted)] ms-1">%</span>
             </div>
             <div className="flex gap-1.5 flex-wrap mt-2">
               {ROI_PRESETS.map((p) => (
@@ -170,7 +178,7 @@ export default function DoublingPathPage() {
                   onClick={() => { setRoi(String(p.roi)); saveSettings(p.roi); }}
                   className="text-[11px] px-2.5 py-1 rounded-full border border-[var(--border-medium)] text-[var(--ink-2)] hover:border-[var(--green)] hover:text-[var(--green-dark)]"
                 >
-                  {p.roi}% <span className="text-[var(--muted)]">{p.note}</span>
+                  {p.roi}% <span className="text-[var(--muted)]">{presetNote(p.roi, p.note)}</span>
                 </button>
               ))}
             </div>
@@ -178,33 +186,31 @@ export default function DoublingPathPage() {
         </div>
         <div className="flex items-center gap-3 pt-3 mt-2 border-t border-[var(--border-default)]">
           <span className="text-xs text-[var(--muted)]">
-            Age comes from your profile — edit it from the home page.
+            {L('العمر يأتي من ملفّك الشخصي — عدّله من الصفحة الرئيسية.', 'Age comes from your profile — edit it from the home page.')}
           </span>
-          {saved && <span className="text-xs text-[var(--green)]">Saved.</span>}
+          {saved && <span className="text-xs text-[var(--green)]">{L('حُفظ.', 'Saved.')}</span>}
         </div>
       </div>
 
       {/* doubling readout */}
       <div className="flex items-baseline gap-2.5 flex-wrap bg-[var(--green-bg)] border border-[var(--green-border)] rounded-xl px-5 py-4 mb-5">
-        <span className="text-sm text-[var(--green-dark)]">At this return, your money doubles every</span>
+        <span className="text-sm text-[var(--green-dark)]">{L('بهذا العائد، يتضاعف مالك كل', 'At this return, your money doubles every')}</span>
         <span className="font-serif text-2xl font-semibold text-[var(--green-dark)]">
-          {Number.isFinite(dy) ? `${dy.toFixed(1)} years` : '—'}
+          {Number.isFinite(dy) ? L(`${dy.toFixed(1)} سنة`, `${dy.toFixed(1)} years`) : '—'}
         </span>
         {Number.isFinite(dy) && (
-          <span className="text-sm text-[var(--green-dark)]">(about every {Math.round(dy * 12)} months)</span>
+          <span className="text-sm text-[var(--green-dark)]">{L(`(نحو كل ${Math.round(dy * 12)} شهراً)`, `(about every ${Math.round(dy * 12)} months)`)}</span>
         )}
       </div>
 
       {/* hero statement */}
       {bigMilestone && firstDouble && (
         <div className="bg-[var(--surface-card)] border-[1.5px] border-[var(--green)] rounded-2xl p-6 mb-5">
-          <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--green)] mb-3">If you keep this up</div>
+          <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--green)] mb-3">{L('إن واصلت هكذا', 'If you keep this up')}</div>
           <div className="font-serif text-xl text-[var(--ink)] leading-relaxed">
-            Your portfolio first doubles to <strong className="text-[var(--green-dark)] font-semibold">SAR {fmt(firstDouble.value)}</strong>{' '}
-            by age <strong className="text-[var(--green-dark)] font-semibold">{Math.round(firstDouble.ageThen)}</strong>. Keep the same
-            return and it reaches <strong className="text-[var(--green-dark)] font-semibold">SAR {fmt(bigMilestone.value)}</strong> by age{' '}
-            <strong className="text-[var(--green-dark)] font-semibold">{Math.round(bigMilestone.ageThen)}</strong> — without you adding
-            another riyal. That&apos;s the quiet power of compounding.
+            {L('تتضاعف محفظتك أولاً إلى', 'Your portfolio first doubles to')} <strong className="text-[var(--green-dark)] font-semibold">{money(firstDouble.value)}</strong>{' '}
+            {L('في عمر', 'by age')} <strong className="text-[var(--green-dark)] font-semibold">{Math.round(firstDouble.ageThen)}</strong>. {L('حافِظ على العائد نفسه فتصل إلى', 'Keep the same return and it reaches')} <strong className="text-[var(--green-dark)] font-semibold">{money(bigMilestone.value)}</strong> {L('في عمر', 'by age')}{' '}
+            <strong className="text-[var(--green-dark)] font-semibold">{Math.round(bigMilestone.ageThen)}</strong> — {L('دون أن تضيف ريالاً آخر. تلك هي القوّة الهادئة للتراكم.', "without you adding another riyal. That's the quiet power of compounding.")}
           </div>
         </div>
       )}
@@ -213,11 +219,11 @@ export default function DoublingPathPage() {
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-5">
         <div className="flex justify-between items-start mb-1">
           <div>
-            <div className="text-sm font-medium text-[var(--ink)]">The doubling path</div>
-            <div className="text-xs text-[var(--muted)] mb-1">Each bar is a doubling. The line is your age.</div>
+            <div className="text-sm font-medium text-[var(--ink)]">{L('مسار المضاعفة', 'The doubling path')}</div>
+            <div className="text-xs text-[var(--muted)] mb-1">{L('كل عمود مضاعفة. والخطّ هو عمرك.', 'Each bar is a doubling. The line is your age.')}</div>
             <div className="flex gap-3.5 text-[11px] text-[var(--ink-2)]">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[var(--green)] inline-block" />Portfolio value</span>
-              <span className="flex items-center gap-1.5"><span className="w-3.5 h-0.5 rounded-sm bg-[var(--gold)] inline-block" />Your age</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[var(--green)] inline-block" />{L('قيمة المحفظة', 'Portfolio value')}</span>
+              <span className="flex items-center gap-1.5"><span className="w-3.5 h-0.5 rounded-sm bg-[var(--gold)] inline-block" />{L('عمرك', 'Your age')}</span>
             </div>
           </div>
           <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden shrink-0">
@@ -225,13 +231,13 @@ export default function DoublingPathPage() {
               onClick={() => setScale('log')}
               className={`px-3 py-1.5 text-xs font-medium ${scale === 'log' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
-              Log scale
+              {L('مقياس لوغاريتمي', 'Log scale')}
             </button>
             <button
               onClick={() => setScale('linear')}
               className={`px-3 py-1.5 text-xs font-medium ${scale === 'linear' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
             >
-              Linear
+              {L('خطّي', 'Linear')}
             </button>
           </div>
         </div>
@@ -255,8 +261,8 @@ export default function DoublingPathPage() {
               />
               <Tooltip
                 formatter={(value, name) => {
-                  if (name === 'age') return [`${value} years old`, 'Your age'];
-                  return [`SAR ${fmt(Number(value))}`, 'Portfolio value'];
+                  if (name === 'age') return [L(`${value} سنة`, `${value} years old`), L('عمرك', 'Your age')];
+                  return [money(Number(value)), L('قيمة المحفظة', 'Portfolio value')];
                 }}
               />
               <Bar yAxisId="value" dataKey="value" name="value" fill="var(--green)" radius={[3, 3, 0, 0]} />
@@ -269,7 +275,7 @@ export default function DoublingPathPage() {
       {/* milestone list */}
       <div className="mb-5">
         <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">
-          Every doubling, and how old you&apos;ll be
+          {L('كل مضاعفة، وكم سيكون عمرك', "Every doubling, and how old you'll be")}
         </div>
         <div className="flex flex-col">
           {shown.map((m, i) => (
@@ -289,17 +295,17 @@ export default function DoublingPathPage() {
                 {m.iter}
               </div>
               <div>
-                <div className="font-serif text-base font-semibold text-[var(--ink)]">SAR {fmt(m.value)}</div>
+                <div className="font-serif text-base font-semibold text-[var(--ink)]">{money(m.value)}</div>
                 <div className="text-xs text-[var(--muted)]">
-                  {fmtMonthYear(m.date)} · {m.yearsFromNow.toFixed(1)} years from now
+                  {fmtMonthYear(m.date, locale)} · {L(`بعد ${m.yearsFromNow.toFixed(1)} سنة`, `${m.yearsFromNow.toFixed(1)} years from now`)}
                 </div>
               </div>
-              <div className="text-xs text-[var(--muted)] text-right whitespace-nowrap">
+              <div className="text-xs text-[var(--muted)] text-end whitespace-nowrap">
                 {Math.pow(2, m.iter).toLocaleString()}×
               </div>
-              <div className="text-right">
+              <div className="text-end">
                 <div className="text-base font-semibold text-[var(--green-dark)]">{Math.round(m.ageThen)}</div>
-                <div className="text-[10px] text-[var(--muted)]">your age</div>
+                <div className="text-[10px] text-[var(--muted)]">{L('عمرك', 'your age')}</div>
               </div>
             </div>
           ))}
@@ -308,42 +314,54 @@ export default function DoublingPathPage() {
 
       {/* reality note */}
       <NudgeBanner>
-        <strong className="text-[var(--gold-text-strong)]">A note on keeping it real.</strong> This assumes you sustain{' '}
-        {roiNum.toFixed(1)}% every single year — which is hard. Markets have bad years, and the later
-        milestones sit beyond a normal lifetime. The point isn&apos;t the fantasy number at the end —
-        it&apos;s the <strong className="text-[var(--gold-text-strong)]">first three or four doublings</strong>, which
-        are very real and happen during your working life. That&apos;s where the focus belongs.
+        {ar ? (
+          <>
+            <strong className="text-[var(--gold-text-strong)]">ملاحظة لإبقاء الأمر واقعياً.</strong> يفترض هذا أنك تحافظ على {roiNum.toFixed(1)}% كل سنة — وهو صعب. للأسواق سنوات سيّئة، والمحطّات المتأخّرة تقع خارج عمرٍ طبيعي. المقصود ليس الرقم الخيالي في النهاية — بل <strong className="text-[var(--gold-text-strong)]">أول ثلاث أو أربع مضاعفات</strong>، وهي واقعية جداً وتحدث خلال حياتك العملية. وهناك ينبغي أن يكون التركيز.
+          </>
+        ) : (
+          <>
+            <strong className="text-[var(--gold-text-strong)]">A note on keeping it real.</strong> This assumes you sustain{' '}
+            {roiNum.toFixed(1)}% every single year — which is hard. Markets have bad years, and the later
+            milestones sit beyond a normal lifetime. The point isn&apos;t the fantasy number at the end —
+            it&apos;s the <strong className="text-[var(--gold-text-strong)]">first three or four doublings</strong>, which
+            are very real and happen during your working life. That&apos;s where the focus belongs.
+          </>
+        )}
       </NudgeBanner>
 
       {/* ROI comparison */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 my-5">
-        <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">Why the return rate is everything</div>
+        <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">{L('لماذا معدّل العائد هو كل شيء', 'Why the return rate is everything')}</div>
         <div className="text-sm text-[var(--ink-2)] mb-4">
-          Same SAR {fmt(amount)}, {COMPARISON_HORIZON_YEARS} years of growth. Only the return changes. This is
-          where you&apos;d land by age {Math.round(age + COMPARISON_HORIZON_YEARS)}.
+          {L(
+            `نفس ${money(amount)}، و${COMPARISON_HORIZON_YEARS} سنة من النموّ. العائد وحده يتغيّر. هذا حيث ستصل في عمر ${Math.round(age + COMPARISON_HORIZON_YEARS)}.`,
+            `Same ${money(amount)}, ${COMPARISON_HORIZON_YEARS} years of growth. Only the return changes. This is where you'd land by age ${Math.round(age + COMPARISON_HORIZON_YEARS)}.`
+          )}
         </div>
-        <ComparisonRows amount={amount} userRoi={roiNum} />
+        <ComparisonRows amount={amount} userRoi={roiNum} ar={ar} />
       </div>
 
       {/* levers */}
       <div className="mb-2">
-        <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">Bend the path</div>
+        <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">{L('اثنِ المسار', 'Bend the path')}</div>
         <div className="text-sm text-[var(--ink-2)] mb-4">
-          Each move becomes part of your holistic plan that MalMind tracks — and reminds you of when a
-          decision would slow you down.
+          {L(
+            'كل خطوة تصبح جزءاً من خطتك الشاملة التي يتتبّعها مَالمايند — ويذكّرك بها حين يُبطئك قرارٌ ما.',
+            'Each move becomes part of your holistic plan that MalMind tracks — and reminds you of when a decision would slow you down.'
+          )}
         </div>
         <div className="flex flex-col gap-2">
-          <LeverRow icon="➕" title="Keep adding to the portfolio" desc="This path assumes you never add a single riyal — monthly contributions reach every milestone sooner" tag="Add to plan" />
-          <LeverRow icon="📊" title="Improve your average return" desc="Even 2–3 extra points of ROI dramatically shortens the time between doublings" tag="Explore" />
-          <LeverRow icon="🛡" title="Protect against the downside" desc="A single bad year resets the clock — diversification keeps the compounding intact" tag="Add to plan" />
-          <LeverRow icon="💬" title="Build a real investment plan" desc="Let your advisor turn this projection into a Sharia-aware, diversified strategy" tag="Personalized" />
+          <LeverRow icon="➕" title={L('واصِل الإضافة إلى المحفظة', 'Keep adding to the portfolio')} desc={L('يفترض هذا المسار أنك لا تضيف ريالاً واحداً — المساهمات الشهرية تبلغ كل محطّة أسرع', 'This path assumes you never add a single riyal — monthly contributions reach every milestone sooner')} tag={L('أضِف للخطة', 'Add to plan')} />
+          <LeverRow icon="📊" title={L('حسّن متوسّط عائدك', 'Improve your average return')} desc={L('حتى 2–3 نقاط إضافية من العائد تُقصّر بشدّة الوقت بين المضاعفات', 'Even 2–3 extra points of ROI dramatically shortens the time between doublings')} tag={L('استكشف', 'Explore')} />
+          <LeverRow icon="🛡" title={L('احمِ نفسك من الجانب السلبي', 'Protect against the downside')} desc={L('سنة سيّئة واحدة تعيد ضبط الساعة — التنويع يُبقي التراكم سليماً', 'A single bad year resets the clock — diversification keeps the compounding intact')} tag={L('أضِف للخطة', 'Add to plan')} />
+          <LeverRow icon="💬" title={L('ابنِ خطة استثمار حقيقية', 'Build a real investment plan')} desc={L('دع مستشارك يحوّل هذا الإسقاط إلى استراتيجية متنوّعة متوافقة مع الشريعة', 'Let your advisor turn this projection into a Sharia-aware, diversified strategy')} tag={L('مخصّص', 'Personalized')} />
         </div>
       </div>
     </div>
   );
 }
 
-function ComparisonRows({ amount, userRoi }: { amount: number; userRoi: number }) {
+function ComparisonRows({ amount, userRoi, ar }: { amount: number; userRoi: number; ar: boolean }) {
   const rois = [...ROI_PRESETS.map((p) => p.roi), userRoi];
   const uniqueRois = Array.from(new Set(rois)).sort((a, b) => a - b);
   const results = uniqueRois.map((r) => ({ roi: r, value: comparisonValue(amount, r) }));
@@ -357,7 +375,7 @@ function ComparisonRows({ amount, userRoi }: { amount: number; userRoi: number }
         const isUser = Math.abs(r.roi - userRoi) < 0.05;
         const color = isUser ? 'var(--green-dark)' : colors[Math.round(r.roi)] || 'var(--green)';
         const preset = ROI_PRESETS.find((p) => p.roi === Math.round(r.roi));
-        const note = isUser ? 'your rate' : preset?.note ?? '';
+        const note = isUser ? (ar ? 'معدّلك' : 'your rate') : (ar ? ROI_PRESET_NOTES_AR[Math.round(r.roi)] ?? preset?.note ?? '' : preset?.note ?? '');
         return (
           <div key={r.roi} className="grid grid-cols-[90px_1fr_auto] gap-3.5 items-center">
             <div className="text-sm font-semibold text-[var(--ink)]">
@@ -366,14 +384,14 @@ function ComparisonRows({ amount, userRoi }: { amount: number; userRoi: number }
             </div>
             <div className="h-7 bg-[var(--surface-0)] rounded-md overflow-hidden relative">
               <div
-                className="h-full rounded-md flex items-center pl-2.5 text-[11px] text-white font-medium whitespace-nowrap"
+                className="h-full rounded-md flex items-center ps-2.5 text-[11px] text-white font-medium whitespace-nowrap"
                 style={{ width: `${pct}%`, background: color }}
               >
                 {fmtCompact(r.value)}
               </div>
             </div>
-            <div className="text-sm font-semibold text-[var(--green-dark)] whitespace-nowrap text-right">
-              SAR {fmt(r.value)}
+            <div className="text-sm font-semibold text-[var(--green-dark)] whitespace-nowrap text-end">
+              {ar ? `${fmt(r.value)} ريال` : `SAR ${fmt(r.value)}`}
             </div>
           </div>
         );

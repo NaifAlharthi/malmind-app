@@ -55,6 +55,17 @@ const MONTH_NAMES = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
-export function fmtMonthYear(d: Date): string {
+export function fmtMonthYear(d: Date, locale: 'ar' | 'en' = 'en'): string {
+  if (locale === 'ar') {
+    const name = new Intl.DateTimeFormat('ar', { month: 'short' }).format(d);
+    return `${name} ${d.getFullYear()}`;
+  }
   return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 }
+
+export const ROI_PRESET_NOTES_AR: Record<number, string> = {
+  5: 'نقد/صكوك',
+  8: 'متوازن',
+  12: 'أسهم',
+  20: 'جريء',
+};

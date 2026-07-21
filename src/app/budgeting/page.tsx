@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 interface BudgetItem {
   id: string;
@@ -14,18 +15,18 @@ interface BudgetItem {
 }
 
 const AREAS = [
-  { id: 'living', name: 'Living room', icon: '🛋️' },
-  { id: 'kitchen', name: 'Kitchen', icon: '🍳' },
-  { id: 'bedroom', name: 'Bedroom', icon: '🛏️' },
-  { id: 'bathroom', name: 'Bathroom', icon: '🚿' },
-  { id: 'entryway', name: 'Entryway', icon: '🚪' },
-  { id: 'balcony', name: 'Balcony', icon: '🌿' },
+  { id: 'living', name: 'Living room', nameAr: 'غرفة المعيشة', icon: '🛋️' },
+  { id: 'kitchen', name: 'Kitchen', nameAr: 'المطبخ', icon: '🍳' },
+  { id: 'bedroom', name: 'Bedroom', nameAr: 'غرفة النوم', icon: '🛏️' },
+  { id: 'bathroom', name: 'Bathroom', nameAr: 'الحمّام', icon: '🚿' },
+  { id: 'entryway', name: 'Entryway', nameAr: 'المدخل', icon: '🚪' },
+  { id: 'balcony', name: 'Balcony', nameAr: 'الشرفة', icon: '🌿' },
 ];
 
 const PHASES = [
-  { id: 1, name: 'Phase 1', desc: 'Move-in essentials', color: 'var(--red)' },
-  { id: 2, name: 'Phase 2', desc: 'Settling in', color: 'var(--gold-2)' },
-  { id: 3, name: 'Phase 3', desc: 'Nice to have', color: 'var(--green)' },
+  { id: 1, name: 'Phase 1', nameAr: 'المرحلة 1', desc: 'Move-in essentials', descAr: 'أساسيّات الانتقال', color: 'var(--red)' },
+  { id: 2, name: 'Phase 2', nameAr: 'المرحلة 2', desc: 'Settling in', descAr: 'الاستقرار', color: 'var(--gold-2)' },
+  { id: 3, name: 'Phase 3', nameAr: 'المرحلة 3', desc: 'Nice to have', descAr: 'مستحسَن لا أكثر', color: 'var(--green)' },
 ];
 
 function fmt(n: number) {
@@ -35,6 +36,12 @@ function fmt(n: number) {
 export default function BudgetingPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const money = (n: number) => (ar ? `${fmt(n)} ريال` : `SAR ${fmt(n)}`);
+  const areaName = (a: { name: string; nameAr: string }) => (ar ? a.nameAr : a.name);
+  const phaseName = (p: { name: string; nameAr: string }) => (ar ? p.nameAr : p.name);
   const [userId, setUserId] = useState<string | null>(null);
   const [items, setItems] = useState<BudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,39 +107,41 @@ export default function BudgetingPage() {
   const bought = items.filter((i) => i.bought).reduce((s, i) => s + i.cost, 0);
 
   if (loading) {
-    return <div className="text-sm text-[var(--muted)]">Loading your plan…</div>;
+    return <div className="text-sm text-[var(--muted)]">{L('جارٍ تحميل خطتك…', 'Loading your plan…')}</div>;
   }
 
   return (
     <div>
       <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--green)] font-semibold mb-1">
-        Decide
+        {L('قرّر', 'Decide')}
       </div>
       <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
-        Dynamic Budgeting and Prioritization
+        {L('الميزنة الديناميكية وترتيب الأولويات', 'Dynamic Budgeting and Prioritization')}
       </h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
-        Every item you need, by room, by urgency, or as one list — decide what
-        you actually need now versus later.
+        {L(
+          'كل غرض تحتاجه، حسب الغرفة، أو حسب الإلحاح، أو كقائمة واحدة — قرّر ما تحتاجه فعلاً الآن مقابل لاحقاً.',
+          'Every item you need, by room, by urgency, or as one list — decide what you actually need now versus later.'
+        )}
       </p>
 
       {/* metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-xl p-4 text-white">
-          <div className="text-[10px] text-[var(--gold)] mb-1">If buying everything</div>
-          <div className="font-serif text-lg font-bold">SAR {fmt(total)}</div>
+          <div className="text-[10px] text-[var(--gold)] mb-1">{L('إن اشتريت كل شيء', 'If buying everything')}</div>
+          <div className="font-serif text-lg font-bold">{money(total)}</div>
         </div>
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-4">
-          <div className="text-[10px] text-[var(--muted)] mb-1">Phase 1 essentials</div>
-          <div className="font-serif text-lg font-bold">SAR {fmt(phase1Total)}</div>
+          <div className="text-[10px] text-[var(--muted)] mb-1">{L('أساسيّات المرحلة 1', 'Phase 1 essentials')}</div>
+          <div className="font-serif text-lg font-bold">{money(phase1Total)}</div>
         </div>
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-4">
-          <div className="text-[10px] text-[var(--muted)] mb-1">Total items</div>
+          <div className="text-[10px] text-[var(--muted)] mb-1">{L('إجمالي الأغراض', 'Total items')}</div>
           <div className="font-serif text-lg font-bold">{items.length}</div>
         </div>
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-4">
-          <div className="text-[10px] text-[var(--muted)] mb-1">Committed</div>
-          <div className="font-serif text-lg font-bold">SAR {fmt(bought)}</div>
+          <div className="text-[10px] text-[var(--muted)] mb-1">{L('مُلتزَم به', 'Committed')}</div>
+          <div className="font-serif text-lg font-bold">{money(bought)}</div>
         </div>
       </div>
 
@@ -142,14 +151,14 @@ export default function BudgetingPage() {
           value={newItemName}
           onChange={(e) => setNewItemName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addItem()}
-          placeholder="Add an item, e.g. Sofa"
+          placeholder={L('أضِف غرضاً، مثال: أريكة', 'Add an item, e.g. Sofa')}
           className="flex-1 border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
         />
         <button
           onClick={addItem}
           className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
         >
-          + Add
+          {L('+ إضافة', '+ Add')}
         </button>
       </div>
 
@@ -163,14 +172,14 @@ export default function BudgetingPage() {
               view === v ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--muted)]'
             }`}
           >
-            {v === 'area' ? 'By room' : v === 'priority' ? 'By priority' : 'All items'}
+            {v === 'area' ? L('حسب الغرفة', 'By room') : v === 'priority' ? L('حسب الأولوية', 'By priority') : L('كل الأغراض', 'All items')}
           </button>
         ))}
       </div>
 
       {items.length === 0 && (
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
-          Add your first item above to get started.
+          {L('أضِف غرضك الأول أعلاه للبدء.', 'Add your first item above to get started.')}
         </div>
       )}
 
@@ -183,10 +192,10 @@ export default function BudgetingPage() {
               <div key={area.id} className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl overflow-hidden">
                 <div className="px-4 py-3 bg-[var(--surface-0)] flex justify-between items-center">
                   <span className="text-sm font-semibold">
-                    {area.icon} {area.name}
+                    {area.icon} {areaName(area)}
                   </span>
                   <span className="font-serif text-sm font-bold text-[var(--green-dark)]">
-                    SAR {fmt(areaTotal)}
+                    {money(areaTotal)}
                   </span>
                 </div>
                 <div className="max-h-56 overflow-y-auto">
@@ -200,11 +209,11 @@ export default function BudgetingPage() {
                       <span className={`flex-1 ${item.bought ? 'line-through text-[var(--muted)]' : ''}`}>
                         {item.name}
                       </span>
-                      <span className="text-xs text-[var(--ink-2)]">SAR {fmt(item.cost)}</span>
+                      <span className="text-xs text-[var(--ink-2)]">{money(item.cost)}</span>
                     </div>
                   ))}
                   {areaItems.length === 0 && (
-                    <div className="px-4 py-3 text-xs text-[var(--muted)] italic">No items yet</div>
+                    <div className="px-4 py-3 text-xs text-[var(--muted)] italic">{L('لا أغراض بعد', 'No items yet')}</div>
                   )}
                 </div>
               </div>
@@ -221,10 +230,10 @@ export default function BudgetingPage() {
             return (
               <div key={phase.id} className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl overflow-hidden">
                 <div className="px-4 py-3" style={{ backgroundColor: `${phase.color}18` }}>
-                  <div className="text-xs font-bold">{phase.name}</div>
-                  <div className="text-[10px] text-[var(--muted)] mb-1">{phase.desc}</div>
+                  <div className="text-xs font-bold">{phaseName(phase)}</div>
+                  <div className="text-[10px] text-[var(--muted)] mb-1">{ar ? phase.descAr : phase.desc}</div>
                   <div className="font-serif text-lg font-bold" style={{ color: phase.color }}>
-                    SAR {fmt(phaseTotal)}
+                    {money(phaseTotal)}
                   </div>
                 </div>
                 <div className="p-2 max-h-72 overflow-y-auto">
@@ -232,7 +241,7 @@ export default function BudgetingPage() {
                     <div key={item.id} className="bg-[var(--surface-0)] rounded-lg p-2 mb-1.5 text-xs">
                       <div className="flex justify-between mb-1">
                         <span className="font-medium">{item.name}</span>
-                        <span className="font-semibold text-[var(--green-dark)]">SAR {fmt(item.cost)}</span>
+                        <span className="font-semibold text-[var(--green-dark)]">{money(item.cost)}</span>
                       </div>
                       <select
                         value={item.phase}
@@ -241,7 +250,7 @@ export default function BudgetingPage() {
                       >
                         {PHASES.map((p) => (
                           <option key={p.id} value={p.id}>
-                            Move to {p.name}
+                            {L(`نقل إلى ${p.nameAr}`, `Move to ${p.name}`)}
                           </option>
                         ))}
                       </select>
@@ -258,10 +267,10 @@ export default function BudgetingPage() {
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl overflow-hidden">
           <div className="grid grid-cols-[24px_1.5fr_1fr_0.8fr_90px_28px] gap-2 px-4 py-2 bg-[var(--surface-0)] text-[10px] font-semibold text-[var(--muted)]">
             <span></span>
-            <span>Item</span>
-            <span>Room</span>
-            <span>Phase</span>
-            <span className="text-right">Cost</span>
+            <span>{L('الغرض', 'Item')}</span>
+            <span>{L('الغرفة', 'Room')}</span>
+            <span>{L('المرحلة', 'Phase')}</span>
+            <span className="text-end">{L('التكلفة', 'Cost')}</span>
             <span></span>
           </div>
           {items.map((item) => (
@@ -282,7 +291,7 @@ export default function BudgetingPage() {
               >
                 {AREAS.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.icon} {a.name}
+                    {a.icon} {areaName(a)}
                   </option>
                 ))}
               </select>
@@ -293,7 +302,7 @@ export default function BudgetingPage() {
               >
                 {PHASES.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {phaseName(p)}
                   </option>
                 ))}
               </select>
@@ -304,7 +313,7 @@ export default function BudgetingPage() {
                   const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
                   if (!isNaN(val)) updateItem(item.id, { cost: val });
                 }}
-                className="bg-[var(--surface-0)] border border-[var(--border-default)] rounded px-2 py-1 text-right outline-none"
+                className="bg-[var(--surface-0)] border border-[var(--border-default)] rounded px-2 py-1 text-end outline-none"
               />
               <button onClick={() => deleteItem(item.id)} className="text-[var(--muted)] hover:text-[var(--red-dark-text)]">
                 ×

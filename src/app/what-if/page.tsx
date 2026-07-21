@@ -12,8 +12,9 @@ import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
-  MOVE_META, runWhatIf, analyzeWhatIf, describeScenario,
+  MOVE_META, moveLabel, moveHint, runWhatIf, analyzeWhatIf, describeScenario,
   type Move, type MoveType, type WhatIfBaseline,
 } from '@/lib/whatIf';
 
@@ -45,6 +46,10 @@ const TONE_STYLE = {
 export default function WhatIfPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const money = (n: number) => (ar ? `${fmt(n)} ريال` : `SAR ${fmt(n)}`);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -132,7 +137,7 @@ export default function WhatIfPage() {
   );
 
   const result = useMemo(() => runWhatIf(baseline, moves, currentYear), [baseline, moves, currentYear]);
-  const insights = useMemo(() => analyzeWhatIf(baseline, moves, result), [baseline, moves, result]);
+  const insights = useMemo(() => analyzeWhatIf(baseline, moves, result, locale), [baseline, moves, result, locale]);
 
   function addMove() {
     const amount = num(mvAmount);
@@ -142,7 +147,7 @@ export default function WhatIfPage() {
       {
         id: crypto.randomUUID(),
         type: mvType,
-        label: mvLabel.trim() || MOVE_META[mvType].label,
+        label: mvLabel.trim() || moveLabel(mvType, locale),
         amount,
         atYear: Math.max(0, Math.min(years, parseInt(mvYear) || 0)),
       },
@@ -159,7 +164,7 @@ export default function WhatIfPage() {
       params: { baseline, moves },
     });
     setScenarioName('');
-    setSaveMsg('Saved.');
+    setSaveMsg(L('حُفظ.', 'Saved.'));
     setTimeout(() => setSaveMsg(null), 2000);
     loadSaved(userId);
   }
@@ -184,7 +189,7 @@ export default function WhatIfPage() {
   async function askAnalyst(text: string, fresh: boolean) {
     const summary = describeScenario(baseline, moves, result, currentYear);
     const next: ChatMessage[] = fresh
-      ? [{ role: 'user', content: 'Analyze this imagined scenario: what does it win, what does it cost, and what is most likely to break it?' }]
+      ? [{ role: 'user', content: L('حلّل هذا السيناريو المتخيَّل: ماذا يربح، وماذا يكلّف، وما الأرجح أن يكسره؟', 'Analyze this imagined scenario: what does it win, what does it cost, and what is most likely to break it?') }]
       : [...messages, { role: 'user', content: text }];
     setMessages(next);
     setChatInput('');
@@ -194,80 +199,83 @@ export default function WhatIfPage() {
       const res = await fetch('/api/what-if-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenarioSummary: summary, messages: next }),
+        body: JSON.stringify({ scenarioSummary: summary, messages: next, locale }),
       });
       const data = await res.json();
       setMessages([...next, { role: 'assistant', content: data.reply }]);
     } catch {
-      setMessages([...next, { role: 'assistant', content: 'Something went wrong reaching the analyst. Please try again.' }]);
+      setMessages([...next, { role: 'assistant', content: L('حدث خطأ في الوصول إلى المحلّل. يُرجى المحاولة مرة أخرى.', 'Something went wrong reaching the analyst. Please try again.') }]);
     }
     setAiLoading(false);
   }
 
   if (loading) {
-    return <div className="text-sm text-[var(--muted)]">Preparing your sandbox…</div>;
+    return <div className="text-sm text-[var(--muted)]">{L('جارٍ تجهيز صندوق تجاربك…', 'Preparing your sandbox…')}</div>;
   }
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--blue)] font-semibold mb-1">Think</div>
-      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">What if</h1>
+      <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--blue)] font-semibold mb-1">{L('فكّر', 'Think')}</div>
+      <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">{L('ماذا لو', 'What if')}</h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
-        A sandbox for financial imagination. Your real numbers are the starting point — stack moves on top (a raise,
-        a house, a career break, investing seriously) and watch the next {years} years diverge from the life
-        you&apos;re currently on. Nothing here changes your real data.
+        {L(
+          `صندوق تجارب للخيال المالي. أرقامك الحقيقية هي نقطة الانطلاق — كدّس خطوات فوقها (علاوة، منزل، انقطاع مهني، استثمار جادّ) وشاهِد السنوات الـ${years} القادمة تنحرف عن الحياة التي أنت عليها الآن. لا شيء هنا يغيّر بياناتك الحقيقية.`,
+          `A sandbox for financial imagination. Your real numbers are the starting point — stack moves on top (a raise, a house, a career break, investing seriously) and watch the next ${years} years diverge from the life you're currently on. Nothing here changes your real data.`
+        )}
       </p>
 
       {/* baseline */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-5">
         <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">
-          Your starting point — prefilled from your data, edit freely
+          {L('نقطة انطلاقك — معبّأة مسبقاً من بياناتك، عدّلها بحرّية', 'Your starting point — prefilled from your data, edit freely')}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-3">
-          <Field label="Cash (SAR)" value={startCash} onChange={setStartCash} />
-          <Field label="Invested (SAR)" value={startInvested} onChange={setStartInvested} />
-          <Field label="Income /mo (SAR)" value={income} onChange={setIncome} />
-          <Field label="Spending /mo (SAR)" value={expenses} onChange={setExpenses} />
-          <Field label="Return (%/yr)" value={returnPct} onChange={setReturnPct} />
+          <Field label={L('النقد (ريال)', 'Cash (SAR)')} value={startCash} onChange={setStartCash} />
+          <Field label={L('المستثمَر (ريال)', 'Invested (SAR)')} value={startInvested} onChange={setStartInvested} />
+          <Field label={L('الدخل/شهر (ريال)', 'Income /mo (SAR)')} value={income} onChange={setIncome} />
+          <Field label={L('الإنفاق/شهر (ريال)', 'Spending /mo (SAR)')} value={expenses} onChange={setExpenses} />
+          <Field label={L('العائد (%/سنة)', 'Return (%/yr)')} value={returnPct} onChange={setReturnPct} />
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[var(--muted)] whitespace-nowrap">Horizon: {years} years</span>
+          <span className="text-xs text-[var(--muted)] whitespace-nowrap">{L(`الأفق: ${years} سنة`, `Horizon: ${years} years`)}</span>
           <input type="range" min={5} max={40} value={years} onChange={(e) => setYears(parseInt(e.target.value))} className="flex-1 accent-[var(--green-dark)]" />
         </div>
         <p className="text-[11px] text-[var(--muted)] mt-2">
-          The sandbox models the money your decisions move — cash and investments. Property and other static assets
-          sit outside it.
+          {L(
+            'يحاكي الصندوق المال الذي تحرّكه قراراتك — النقد والاستثمارات. العقار والأصول الثابتة الأخرى خارجه.',
+            'The sandbox models the money your decisions move — cash and investments. Property and other static assets sit outside it.'
+          )}
         </p>
       </div>
 
       {/* moves builder */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-5">
-        <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">Imagine a move</div>
+        <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">{L('تخيّل خطوة', 'Imagine a move')}</div>
         <div className="flex flex-wrap items-end gap-2 mb-1">
           <div>
-            <label className="text-[11px] text-[var(--muted)] block mb-1">What happens</label>
+            <label className="text-[11px] text-[var(--muted)] block mb-1">{L('ماذا يحدث', 'What happens')}</label>
             <select
               value={mvType}
               onChange={(e) => setMvType(e.target.value as MoveType)}
               className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--ink)] outline-none"
             >
               {(Object.keys(MOVE_META) as MoveType[]).map((t) => (
-                <option key={t} value={t}>{MOVE_META[t].label}</option>
+                <option key={t} value={t}>{moveLabel(t, locale)}</option>
               ))}
             </select>
           </div>
           <div className="flex-1 min-w-[130px]">
-            <label className="text-[11px] text-[var(--muted)] block mb-1">Call it (optional)</label>
+            <label className="text-[11px] text-[var(--muted)] block mb-1">{L('سمِّها (اختياري)', 'Call it (optional)')}</label>
             <input
               value={mvLabel}
               onChange={(e) => setMvLabel(e.target.value)}
-              placeholder='e.g. "Buy the villa"'
+              placeholder={L('مثال: «شراء الفيلا»', 'e.g. "Buy the villa"')}
               className="w-full bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--green)]"
             />
           </div>
           <div>
             <label className="text-[11px] text-[var(--muted)] block mb-1">
-              {MOVE_META[mvType].recurring ? 'SAR / month' : 'SAR (once)'}
+              {MOVE_META[mvType].recurring ? L('ريال / شهر', 'SAR / month') : L('ريال (مرّة)', 'SAR (once)')}
             </label>
             <input
               value={mvAmount}
@@ -277,35 +285,35 @@ export default function WhatIfPage() {
             />
           </div>
           <div>
-            <label className="text-[11px] text-[var(--muted)] block mb-1">In year</label>
+            <label className="text-[11px] text-[var(--muted)] block mb-1">{L('في سنة', 'In year')}</label>
             <select
               value={mvYear}
               onChange={(e) => setMvYear(e.target.value)}
               className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--ink)] outline-none"
             >
               {Array.from({ length: years + 1 }, (_, i) => (
-                <option key={i} value={i}>{currentYear + i}{i === 0 ? ' (now)' : ''}</option>
+                <option key={i} value={i}>{currentYear + i}{i === 0 ? L(' (الآن)', ' (now)') : ''}</option>
               ))}
             </select>
           </div>
           <button onClick={addMove} className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium">
-            Add to the imagination
+            {L('أضِف إلى التخيّل', 'Add to the imagination')}
           </button>
         </div>
-        <p className="text-[11px] text-[var(--muted)] mb-3">{MOVE_META[mvType].hint}</p>
+        <p className="text-[11px] text-[var(--muted)] mb-3">{moveHint(mvType, locale)}</p>
 
         {moves.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {moves.map((m) => (
               <span key={m.id} className="flex items-center gap-2 text-xs bg-[var(--surface-1)] border border-[var(--border-default)] rounded-full px-3 py-1.5 text-[var(--ink-2)]">
                 <span className="font-medium text-[var(--ink)]">{m.label}</span>
-                {m.type === 'one_off_cost' ? `−SAR ${fmt(m.amount)}` : m.type === 'windfall' ? `+SAR ${fmt(m.amount)}` : `SAR ${fmt(m.amount)}/mo`}
+                {m.type === 'one_off_cost' ? `−${money(m.amount)}` : m.type === 'windfall' ? `+${money(m.amount)}` : `${money(m.amount)}${L('/شهر', '/mo')}`}
                 · {currentYear + m.atYear}
                 <button onClick={() => setMoves((prev) => prev.filter((x) => x.id !== m.id))} className="text-[var(--muted)] hover:text-[#C0504D]">✕</button>
               </span>
             ))}
             <button onClick={() => setMoves([])} className="text-[11px] text-[var(--muted)] hover:text-[#C0504D] px-2">
-              clear all
+              {L('مسح الكل', 'clear all')}
             </button>
           </div>
         )}
@@ -313,10 +321,12 @@ export default function WhatIfPage() {
 
       {/* trajectory chart */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-5">
-        <div className="text-sm font-medium text-[var(--ink)] mb-1">Two futures, side by side</div>
+        <div className="text-sm font-medium text-[var(--ink)] mb-1">{L('مستقبلان، جنباً إلى جنب', 'Two futures, side by side')}</div>
         <div className="text-xs text-[var(--muted)] mb-3">
-          The grey line is your life unchanged. The green line is the imagination. The dashed line is the cash inside
-          it — watch it: when it dips low, the plan needs financing.
+          {L(
+            'الخطّ الرمادي هو حياتك دون تغيير. والأخضر هو التخيّل. والمتقطّع هو النقد داخله — راقِبه: حين يهبط منخفضاً، تحتاج الخطة إلى تمويل.',
+            'The grey line is your life unchanged. The green line is the imagination. The dashed line is the cash inside it — watch it: when it dips low, the plan needs financing.'
+          )}
         </div>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
@@ -324,11 +334,11 @@ export default function WhatIfPage() {
               <CartesianGrid stroke="var(--border-default)" />
               <XAxis dataKey="year" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
               <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v) => fmtCompact(Number(v))} />
-              <Tooltip formatter={(v, name) => [`SAR ${fmt(Number(v))}`, String(name)]} />
+              <Tooltip formatter={(v, name) => [money(Number(v)), String(name)]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="baseline" name="Baseline (unchanged)" stroke="#8a99a8" strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="scenario" name="The imagination" stroke="#1D9E75" strokeWidth={3} dot={false} />
-              <Line type="monotone" dataKey="scenarioCash" name="Cash inside it" stroke="#D89A3E" strokeWidth={1.5} strokeDasharray="5 4" dot={false} />
+              <Line type="monotone" dataKey="baseline" name={L('خطّ الأساس (دون تغيير)', 'Baseline (unchanged)')} stroke="#8a99a8" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="scenario" name={L('التخيّل', 'The imagination')} stroke="#1D9E75" strokeWidth={3} dot={false} />
+              <Line type="monotone" dataKey="scenarioCash" name={L('النقد داخله', 'Cash inside it')} stroke="#D89A3E" strokeWidth={1.5} strokeDasharray="5 4" dot={false} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -349,33 +359,33 @@ export default function WhatIfPage() {
           onClick={() => askAnalyst('', true)}
           className="w-full bg-[var(--surface-card)] border-[1.5px] border-dashed border-[var(--green-border)] rounded-2xl p-5 mb-5 text-center hover:border-[var(--green)] hover:bg-[var(--green-bg)] transition-colors"
         >
-          <div className="font-serif text-base font-semibold text-[var(--ink)] mb-1">Put it in front of the analyst</div>
-          <div className="text-xs text-[var(--ink-2)]">What does this imagination win, what does it cost, and what breaks it?</div>
+          <div className="font-serif text-base font-semibold text-[var(--ink)] mb-1">{L('اعرِضه على المحلّل', 'Put it in front of the analyst')}</div>
+          <div className="text-xs text-[var(--ink-2)]">{L('ماذا يربح هذا التخيّل، وماذا يكلّف، وما الذي يكسره؟', 'What does this imagination win, what does it cost, and what breaks it?')}</div>
         </button>
       ) : (
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden mb-5">
           <div className="px-5 py-3 border-b border-[var(--border-default)] bg-[var(--surface-1)] text-xs font-semibold text-[var(--ink)]">
-            The analyst, on this scenario
+            {L('المحلّل، حول هذا السيناريو', 'The analyst, on this scenario')}
           </div>
           <div className="p-5 flex flex-col gap-4 max-h-[420px] overflow-y-auto">
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-2.5 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${m.role === 'user' ? 'bg-[var(--surface-1)] text-[var(--ink-2)]' : 'bg-[var(--green-dark)] text-[var(--gold)] font-serif'}`}>
-                  {m.role === 'user' ? 'You' : 'M'}
+                  {m.role === 'user' ? L('أنت', 'You') : 'M'}
                 </div>
                 <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-xs leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[var(--green-dark)] text-white rounded-tr-sm' : 'bg-[var(--surface-1)] text-[var(--ink-2)] rounded-tl-sm'}`}>
                   {m.content}
                 </div>
               </div>
             ))}
-            {aiLoading && <div className="text-xs text-[var(--muted)]">Reasoning over the scenario…</div>}
+            {aiLoading && <div className="text-xs text-[var(--muted)]">{L('يفكّر في السيناريو…', 'Reasoning over the scenario…')}</div>}
           </div>
           <div className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border-default)] bg-[var(--surface-1)]">
             <input
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && chatInput.trim()) askAnalyst(chatInput, false); }}
-              placeholder="Ask a follow-up about this scenario…"
+              placeholder={L('اسأل سؤالاً متابِعاً عن هذا السيناريو…', 'Ask a follow-up about this scenario…')}
               className="flex-1 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-full px-4 py-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--green)]"
             />
             <button
@@ -391,16 +401,16 @@ export default function WhatIfPage() {
 
       {/* save / load */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
-        <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">Keep this imagination</div>
+        <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">{L('احتفظ بهذا التخيّل', 'Keep this imagination')}</div>
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <input
             value={scenarioName}
             onChange={(e) => setScenarioName(e.target.value)}
-            placeholder='Name it — "The villa plan", "Quit & freelance"…'
+            placeholder={L('سمِّه — «خطة الفيلا»، «الاستقالة والعمل الحر»…', 'Name it — "The villa plan", "Quit & freelance"…')}
             className="flex-1 min-w-[180px] bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--green)]"
           />
           <button onClick={saveScenario} className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium">
-            Save scenario
+            {L('حفظ السيناريو', 'Save scenario')}
           </button>
           {saveMsg && <span className="text-xs text-[var(--green)]">{saveMsg}</span>}
         </div>

@@ -22,18 +22,22 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as {
     scenarioSummary: string;
     messages: { role: 'user' | 'assistant'; content: string }[];
+    locale?: 'ar' | 'en';
   };
   const { scenarioSummary, messages } = body;
+  const ar = body.locale === 'ar';
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json({
-      reply: "The analyst isn't connected to a live model yet — set ANTHROPIC_API_KEY in your deployment environment to enable real responses.",
+      reply: ar
+        ? 'المحلّل غير متّصل بنموذج حيّ بعد — اضبط ANTHROPIC_API_KEY في بيئة النشر لتفعيل الردود الحقيقية.'
+        : "The analyst isn't connected to a live model yet — set ANTHROPIC_API_KEY in your deployment environment to enable real responses.",
     });
   }
 
   const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
-  const name = firstNameOf(profile?.name) || 'there';
+  const name = firstNameOf(profile?.name) || (ar ? 'صديقي' : 'there');
 
   const systemPrompt = `You are MalMind's scenario analyst, speaking with ${name}. They are imagining a financial future in a sandbox, and you have their scenario below — treat it the way a sharp, warm advisor treats a client's "what if I..." question.
 
@@ -45,7 +49,8 @@ Guidelines:
 - If cash goes negative or thin, treat that as the headline — a plan that can't be financed isn't a plan yet.
 - Suggest at most one or two concrete variations worth trying in the sandbox.
 - Never recommend a specific bank, investment platform, or institution by name.
-- A few tight paragraphs. This is informational and educational, not licensed financial advice — say so if asked for a recommendation.`;
+- A few tight paragraphs. This is informational and educational, not licensed financial advice — say so if asked for a recommendation.
+${ar ? '- Respond entirely in Modern Standard Arabic (فصحى), in a warm, professional Saudi register.' : '- Respond in English.'}`;
 
   const anthropic = new Anthropic({ apiKey });
 
@@ -61,13 +66,13 @@ Guidelines:
     const reply =
       textBlock && textBlock.type === 'text'
         ? textBlock.text
-        : "I couldn't generate a response just now — please try again.";
+        : ar ? 'لم أتمكّن من توليد ردّ الآن — يُرجى المحاولة مرة أخرى.' : "I couldn't generate a response just now — please try again.";
 
     return NextResponse.json({ reply });
   } catch (err) {
     console.error('What-if analysis API error:', err);
     return NextResponse.json(
-      { reply: 'Something went wrong reaching the analyst. Please try again.' },
+      { reply: ar ? 'حدث خطأ في الوصول إلى المحلّل. يُرجى المحاولة مرة أخرى.' : 'Something went wrong reaching the analyst. Please try again.' },
       { status: 500 }
     );
   }

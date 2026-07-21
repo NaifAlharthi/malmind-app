@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 interface YearPlan {
   id: string;
@@ -23,6 +24,10 @@ function fmt(n: number) {
 export default function YearPlanPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const money = (n: number) => (ar ? `${fmt(n)} ريال` : `SAR ${fmt(n)}`);
   const [userId, setUserId] = useState<string | null>(null);
   const [plan, setPlan] = useState<YearPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,7 +90,7 @@ export default function YearPlanPage() {
   }
 
   if (loading || !plan) {
-    return <div className="text-sm text-[var(--muted)]">Loading your year plan…</div>;
+    return <div className="text-sm text-[var(--muted)]">{L('جارٍ تحميل خطتك السنوية…', 'Loading your year plan…')}</div>;
   }
 
   const disposable = plan.monthly_income - plan.monthly_expenses;
@@ -99,43 +104,45 @@ export default function YearPlanPage() {
   return (
     <div>
       <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--green)] font-semibold mb-1">
-        Decide
+        {L('قرّر', 'Decide')}
       </div>
       <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
-        Year Master Plan
+        {L('الخطة السنوية الرئيسية', 'Year Master Plan')}
       </h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
-        Your {plan.year} opening balance to your year-end target, with income
-        trickling through spending, saving, and investing.
+        {L(
+          `من رصيدك الافتتاحي لعام ${plan.year} إلى هدفك في نهاية السنة، بالدخل يتسرّب عبر الإنفاق والادّخار والاستثمار.`,
+          `Your ${plan.year} opening balance to your year-end target, with income trickling through spending, saving, and investing.`
+        )}
       </p>
 
       {/* hero */}
       <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 mb-6 text-white">
         <div className="grid grid-cols-2 gap-6 mb-4">
           <div>
-            <div className="text-[10px] text-[var(--gold)] mb-1">Opening balance</div>
-            <div className="font-serif text-2xl font-bold">SAR {fmt(plan.opening_balance)}</div>
+            <div className="text-[10px] text-[var(--gold)] mb-1">{L('الرصيد الافتتاحي', 'Opening balance')}</div>
+            <div className="font-serif text-2xl font-bold">{money(plan.opening_balance)}</div>
           </div>
           <div>
-            <div className="text-[10px] text-[var(--gold)] mb-1">Target by year end</div>
-            <div className="font-serif text-2xl font-bold">SAR {fmt(plan.target_balance)}</div>
+            <div className="text-[10px] text-[var(--gold)] mb-1">{L('الهدف بنهاية السنة', 'Target by year end')}</div>
+            <div className="font-serif text-2xl font-bold">{money(plan.target_balance)}</div>
           </div>
         </div>
         <div className="pt-4 border-t border-white/10">
           <div className="text-xs text-white/60">
             {gap > 0
-              ? `At this pace, you'll be SAR ${fmt(gap)} short of your target.`
-              : `At this pace, you'll exceed your target by SAR ${fmt(Math.abs(gap))}.`}
+              ? L(`بهذه الوتيرة، ستنقص عن هدفك بمقدار ${money(gap)}.`, `At this pace, you'll be ${money(gap)} short of your target.`)
+              : L(`بهذه الوتيرة، ستتجاوز هدفك بمقدار ${money(Math.abs(gap))}.`, `At this pace, you'll exceed your target by ${money(Math.abs(gap))}.`)}
           </div>
         </div>
       </div>
 
       {/* editable inputs */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
-        <div className="text-sm font-medium mb-4">Adjust your plan</div>
+        <div className="text-sm font-medium mb-4">{L('عدّل خطتك', 'Adjust your plan')}</div>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Opening balance (SAR)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">{L('الرصيد الافتتاحي (ريال)', 'Opening balance (SAR)')}</label>
             <input
               type="text"
               defaultValue={fmt(plan.opening_balance)}
@@ -147,7 +154,7 @@ export default function YearPlanPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Target balance (SAR)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">{L('الرصيد المستهدَف (ريال)', 'Target balance (SAR)')}</label>
             <input
               type="text"
               defaultValue={fmt(plan.target_balance)}
@@ -159,7 +166,7 @@ export default function YearPlanPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Monthly income (SAR)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">{L('الدخل الشهري (ريال)', 'Monthly income (SAR)')}</label>
             <input
               type="text"
               defaultValue={fmt(plan.monthly_income)}
@@ -171,7 +178,7 @@ export default function YearPlanPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Monthly expenses (SAR)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">{L('المصروفات الشهرية (ريال)', 'Monthly expenses (SAR)')}</label>
             <input
               type="text"
               defaultValue={fmt(plan.monthly_expenses)}
@@ -184,7 +191,7 @@ export default function YearPlanPage() {
           </div>
           <div>
             <label className="text-xs text-[var(--muted)] block mb-1">
-              Save rate ({plan.save_rate}% of disposable)
+              {L(`معدّل الادّخار (${plan.save_rate}% من المتاح)`, `Save rate (${plan.save_rate}% of disposable)`)}
             </label>
             <input
               type="range"
@@ -197,7 +204,7 @@ export default function YearPlanPage() {
           </div>
           <div>
             <label className="text-xs text-[var(--muted)] block mb-1">
-              Invest split ({plan.invest_split}% of savings)
+              {L(`تقسيم الاستثمار (${plan.invest_split}% من المدّخرات)`, `Invest split (${plan.invest_split}% of savings)`)}
             </label>
             <input
               type="range"
@@ -213,19 +220,19 @@ export default function YearPlanPage() {
 
       {/* trickle down */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 bg-[var(--surface-0)] text-sm font-medium">Monthly trickle-down</div>
+        <div className="px-5 py-3 bg-[var(--surface-0)] text-sm font-medium">{L('التسرّب الشهري', 'Monthly trickle-down')}</div>
         {[
-          { label: 'Income', value: plan.monthly_income, color: 'var(--ink)' },
-          { label: 'Expenses', value: -plan.monthly_expenses, color: 'var(--red-dark-text)' },
-          { label: 'Disposable', value: disposable, color: 'var(--ink-2)' },
-          { label: 'Saved', value: monthlySaved, color: 'var(--green-dark)' },
-          { label: '  → Invested', value: monthlyInvested, color: 'var(--green)' },
-          { label: '  → Cash', value: monthlyCash, color: 'var(--blue)' },
+          { label: L('الدخل', 'Income'), value: plan.monthly_income, color: 'var(--ink)' },
+          { label: L('المصروفات', 'Expenses'), value: -plan.monthly_expenses, color: 'var(--red-dark-text)' },
+          { label: L('المتاح', 'Disposable'), value: disposable, color: 'var(--ink-2)' },
+          { label: L('المُدَّخر', 'Saved'), value: monthlySaved, color: 'var(--green-dark)' },
+          { label: L('  ← المُستثمَر', '  → Invested'), value: monthlyInvested, color: 'var(--green)' },
+          { label: L('  ← النقد', '  → Cash'), value: monthlyCash, color: 'var(--blue)' },
         ].map((row) => (
           <div key={row.label} className="px-5 py-2.5 flex justify-between items-center text-sm border-t border-[var(--border-faint)]">
             <span style={{ color: row.color }}>{row.label}</span>
             <span className="font-medium" style={{ color: row.color }}>
-              {row.value >= 0 ? '+' : ''}SAR {fmt(row.value)}
+              {row.value >= 0 ? '+' : '-'}{money(Math.abs(row.value))}
             </span>
           </div>
         ))}

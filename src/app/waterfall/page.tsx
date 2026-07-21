@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 interface YearPlan {
   id: string;
@@ -23,6 +24,10 @@ function fmt(n: number) {
 export default function WaterfallPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const money = (n: number) => (ar ? `${fmt(n)} ريال` : `SAR ${fmt(n)}`);
   const [plan, setPlan] = useState<YearPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const currentYear = new Date().getFullYear();
@@ -48,14 +53,13 @@ export default function WaterfallPage() {
   }, [load]);
 
   if (loading) {
-    return <div className="text-sm text-[var(--muted)]">Loading your waterfall…</div>;
+    return <div className="text-sm text-[var(--muted)]">{L('جارٍ تحميل شلّالك…', 'Loading your waterfall…')}</div>;
   }
 
   if (!plan) {
     return (
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
-        Set up your Year Master Plan first — this view shows the same numbers,
-        as a flow.
+        {L('أعِدّ خطتك السنوية الرئيسية أولاً — تعرض هذه الشاشة الأرقام نفسها، كتدفّق.', 'Set up your Year Master Plan first — this view shows the same numbers, as a flow.')}
       </div>
     );
   }
@@ -76,32 +80,34 @@ export default function WaterfallPage() {
   return (
     <div>
       <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--green)] font-semibold mb-1">
-        Decide
+        {L('قرّر', 'Decide')}
       </div>
       <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
-        Money Waterfall
+        {L('شلّال المال', 'Money Waterfall')}
       </h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
-        Watch {plan.year}&apos;s money burn, save, invest, and fill the gap —
-        same numbers as your Year Master Plan, felt as a flow.
+        {L(
+          `شاهِد مال ${plan.year} يُحرَق ويُدَّخر ويُستثمَر ويسدّ الفجوة — الأرقام نفسها من خطتك السنوية الرئيسية، محسوسةً كتدفّق.`,
+          `Watch ${plan.year}'s money burn, save, invest, and fill the gap — same numbers as your Year Master Plan, felt as a flow.`
+        )}
       </p>
 
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 overflow-x-auto">
         <div className="flex items-end gap-4 min-w-[600px]" style={{ height: 260 }}>
           {[
-            { label: 'Opening', value: plan.opening_balance, color: 'var(--chart-neutral-1)' },
-            { label: 'Income', value: annualIncome, color: 'var(--ink)' },
-            { label: 'Burned', value: -annualExpenses, color: 'var(--red)' },
-            { label: 'Saved', value: saved, color: 'var(--green-dark)' },
-            { label: 'Invested', value: invested, color: 'var(--green)' },
-            { label: 'Cash', value: cash, color: 'var(--blue)' },
-            { label: 'Return', value: investReturn, color: 'var(--gold)' },
-            { label: 'Year end', value: yearEnd, color: 'var(--ink)' },
-            { label: 'Target', value: plan.target_balance, color: 'var(--muted)' },
+            { label: L('الافتتاحي', 'Opening'), value: plan.opening_balance, color: 'var(--chart-neutral-1)' },
+            { label: L('الدخل', 'Income'), value: annualIncome, color: 'var(--ink)' },
+            { label: L('المحروق', 'Burned'), value: -annualExpenses, color: 'var(--red)' },
+            { label: L('المُدَّخر', 'Saved'), value: saved, color: 'var(--green-dark)' },
+            { label: L('المُستثمَر', 'Invested'), value: invested, color: 'var(--green)' },
+            { label: L('النقد', 'Cash'), value: cash, color: 'var(--blue)' },
+            { label: L('العائد', 'Return'), value: investReturn, color: 'var(--gold)' },
+            { label: L('نهاية السنة', 'Year end'), value: yearEnd, color: 'var(--ink)' },
+            { label: L('الهدف', 'Target'), value: plan.target_balance, color: 'var(--muted)' },
           ].map((bar) => (
             <div key={bar.label} className="flex flex-col items-center flex-1">
               <div className="text-[10px] font-semibold mb-1" style={{ color: bar.color }}>
-                {bar.value >= 0 ? '' : '-'}SAR {fmt(Math.abs(bar.value))}
+                {bar.value >= 0 ? '' : '-'}{money(Math.abs(bar.value))}
               </div>
               <div
                 className="w-full rounded-t-md"
@@ -124,8 +130,8 @@ export default function WaterfallPage() {
       >
         <div className="font-serif text-lg font-medium mb-1">
           {gap <= 0
-            ? `You're projected to exceed your target by SAR ${fmt(Math.abs(gap))}.`
-            : `There's a gap of SAR ${fmt(gap)} to your target — consider raising your save rate on the Year Master Plan.`}
+            ? L(`يُتوقّع أن تتجاوز هدفك بمقدار ${money(Math.abs(gap))}.`, `You're projected to exceed your target by ${money(Math.abs(gap))}.`)
+            : L(`توجد فجوة قدرها ${money(gap)} حتى هدفك — فكّر في رفع معدّل ادّخارك في الخطة السنوية الرئيسية.`, `There's a gap of ${money(gap)} to your target — consider raising your save rate on the Year Master Plan.`)}
         </div>
       </div>
     </div>

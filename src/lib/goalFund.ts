@@ -19,6 +19,25 @@ export const PRESETS: GoalPreset[] = [
   { id: 'custom', icon: '🎯', name: 'Custom Goal', years: 10 },
 ];
 
+// Full Arabic names (used as the default fund name) and short chip labels.
+export const PRESET_NAMES_AR: Record<string, string> = {
+  child: 'صندوق عيد ميلاد طفلي الـ18',
+  hajj: 'صندوق الحج والعمرة',
+  wedding: 'صندوق الزواج',
+  home: 'دفعة تملّك المنزل',
+  retirement: 'تعزيز التقاعد',
+  custom: 'هدف مخصّص',
+};
+
+export const PRESET_CHIPS_AR: Record<string, string> = {
+  child: 'الطفل عند 18',
+  hajj: 'الحج والعمرة',
+  wedding: 'الزواج',
+  home: 'دفعة المنزل',
+  retirement: 'التقاعد',
+  custom: 'مخصّص',
+};
+
 export function targetFromMonthly(monthly: number, years: number, roiPct: number): number {
   const totalMonths = Math.round(years * 12);
   const monthlyRoi = roiPct / 100 / 12;
@@ -95,7 +114,11 @@ const MONTH_NAMES_SHORT = [
 ];
 
 // offsetMonths=0 returns startDate's own month.
-export function monthLabel(startDate: Date, offsetMonths: number): string {
+export function monthLabel(startDate: Date, offsetMonths: number, locale: 'ar' | 'en' = 'en'): string {
   const d = new Date(startDate.getFullYear(), startDate.getMonth() + offsetMonths, 1);
+  if (locale === 'ar') {
+    const name = new Intl.DateTimeFormat('ar', { month: 'short' }).format(d);
+    return `${name} ${d.getFullYear()}`;
+  }
   return `${MONTH_NAMES_SHORT[d.getMonth()]} ${d.getFullYear()}`;
 }
