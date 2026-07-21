@@ -31,14 +31,6 @@ function getSteps(ar: boolean): TourStep[] {
       ),
     },
     {
-      path: '/home', selector: '[data-tour="world"]',
-      title: L('حياتها، في فضاء', 'Her life, in space'),
-      body: L(
-        'هذه سارة — حرفياً. تقف صورتها الرمزية على مربّع اليوم في خطّ زمني ثلاثي الأبعاد يمتدّ إلى عمر 100. كومة النقد، الحقيبة، المباني بجانبها؟ تلك أرصدتها الحقيقية، مصوَّرةً كأجسام. اسحب لتنظر حولك، وانزلق عبر السنوات، وشاهِد حياتها المالية تصير مكاناً يمكنك زيارته.',
-        "This is Sara — literally. Her avatar stands on today's square in a 3D timeline that runs to age 100. The cash pile, the briefcase, the buildings beside her? Those are her real balances, rendered as objects. Drag to look around, slide through the years, and watch her financial life become a place you can visit."
-      ),
-    },
-    {
       path: '/home', selector: '[data-tour="profile-card"]',
       title: L('الأرقام في لمحة', 'The numbers at a glance'),
       body: L(

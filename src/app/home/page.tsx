@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
 import { useTheme } from '@/components/shared/ThemeProvider';
@@ -11,15 +10,6 @@ import { firstNameOf } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
 import { isDemoActive } from '@/lib/demoSupabase';
-
-const Metaverse3D = dynamic(() => import('./Metaverse3D'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[380px] rounded-2xl bg-[var(--surface-1)] border border-[var(--border-default)] flex items-center justify-center text-sm text-[var(--muted)] mb-6">
-      Loading your world…
-    </div>
-  ),
-});
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -240,8 +230,6 @@ export default function HomePage() {
         </div>
         <button onClick={handleSignOut} className="text-xs text-[var(--muted)]">{t('common.signOut')}</button>
       </div>
-
-      <Metaverse3D />
 
       {/* ── personal snapshot ── */}
       <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
