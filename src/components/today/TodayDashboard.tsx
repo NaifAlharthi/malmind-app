@@ -21,7 +21,10 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { computeRisks, type RiskInputs, type RiskResult } from '@/lib/risks';
 import { computeFreedom } from '@/lib/financialFreedom';
 import { BANDS, SCORE_MIN, SCORE_MAX, bandFor, bandLabel } from '@/lib/creditScore';
-import { tierFromIncome, tierIndex, tierLabel, getLifestyle, TIERS, TIER_COLOR } from '@/lib/standardOfLiving';
+import {
+  tierFromIncome, tierIndex, tierLabel, getLifestyle, buildYearSeries,
+  TIERS, TIER_COLOR, type Tier, type Phase,
+} from '@/lib/standardOfLiving';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
 import { BENCHMARK_START_AGE, buildBenchmarkCurves, buildYouSeries } from '@/lib/positioningBenchmarks';
 import { buildProjection } from '@/lib/lifetimeProjection';
@@ -52,6 +55,18 @@ interface DebtItem {
 function isLeverageDebt(name: string, tag: string | null): boolean {
   const s = `${name} ${tag ?? ''}`.toLowerCase();
   return /mortgage|home\s?loan|house|real\s?estate|property|land|apartment|villa|business|invest|company|project|educat|student|tuition|study|degree/.test(s);
+}
+
+// A life phase as stored — end_year may be null while the user is drafting it.
+interface SolPhaseRow {
+  id: string;
+  phase_name: string;
+  start_year: number;
+  end_year: number | null;
+  target_tier: Tier;
+  theme: string[] | null;
+  todo: string[] | null;
+  net_worth_goal: string | null;
 }
 
 // Net-worth milestones the wealth-pace ladder counts toward.
@@ -133,6 +148,7 @@ export default function TodayDashboard() {
   const { t, locale } = useLocale();
   const [data, setData] = useState<Data | null>(null);
   const [credit, setCredit] = useState<{ score: number | null; prev: number | null } | null>(null);
+  const [sol, setSol] = useState<{ phases: SolPhaseRow[]; actualsByYear: Record<number, Tier> } | null>(null);
   const [selRisk, setSelRisk] = useState<string | null>(null);
   const [cashView, setCashView] = useState<'six' | 'ytd'>('six');
   const [srcInfo, setSrcInfo] = useState(false);
@@ -227,6 +243,26 @@ export default function TodayDashboard() {
         score: scored[scored.length - 1].molim_score,
         prev: scored.length >= 2 ? scored[scored.length - 2].molim_score : null,
       });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Life phases for the standard-of-living staircase, loaded on their own.
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const [{ data: ph }, { data: ac }] = await Promise.all([
+        supabase.from('life_phases')
+          .select('id, phase_name, start_year, end_year, target_tier, theme, todo, net_worth_goal')
+          .eq('user_id', user.id).order('start_year', { ascending: true }),
+        supabase.from('living_standard_actuals').select('year, actual_tier').eq('user_id', user.id),
+      ]);
+      const actualsByYear: Record<number, Tier> = {};
+      ((ac ?? []) as { year: number; actual_tier: Tier | null }[]).forEach((r) => {
+        if (r.actual_tier) actualsByYear[r.year] = r.actual_tier;
+      });
+      setSol({ phases: (ph ?? []) as SolPhaseRow[], actualsByYear });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -827,27 +863,97 @@ export default function TodayDashboard() {
         const tier = tierFromIncome(avgIncome);
         const life = getLifestyle(tier, locale);
         const nextTier = tierIndex(tier) < TIERS.length - 1 ? TIERS[tierIndex(tier) + 1] : null;
+        const phasesForSeries: Phase[] = (sol?.phases ?? [])
+          .filter((p) => p.end_year != null)
+          .map((p) => ({
+            id: p.id, phase_name: p.phase_name, start_year: p.start_year, end_year: p.end_year!,
+            target_tier: p.target_tier, theme: p.theme ?? [], todo: p.todo ?? [], net_worth_goal: p.net_worth_goal,
+          }));
+        const hasPhases = phasesForSeries.length > 0;
+        const chartData = hasPhases
+          ? buildYearSeries(phasesForSeries, sol?.actualsByYear ?? {}).map((s) => ({ year: s.year, target: s.target, actual: s.actual }))
+          : [];
         return (
           <Card title={t('today.sol.title')} href="/standard-of-living" explain={EX.sol}>
             <div className="flex items-baseline gap-2.5 flex-wrap mb-3">
-              <span className="font-serif text-lg font-semibold" style={{ color: TIER_COLOR[tier] }}>{tierLabel(tier, locale)}</span>
+              <span className="text-[11px] text-[var(--muted)]">{t('today.sol.youreAt')}</span>
+              <span className="font-serif text-base font-semibold" style={{ color: TIER_COLOR[tier] }}>{tierLabel(tier, locale)}</span>
               <span className="text-[11px] text-[var(--muted)]">{t('today.sol.typically')} {life.income}</span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-              {life.items.map((it, i) => (
-                <div key={i} className="flex gap-2 items-start">
-                  <span className="text-base shrink-0 leading-none mt-0.5">{it.icon}</span>
-                  <div className="text-[11px] leading-relaxed min-w-0">
-                    <strong className="text-[var(--ink)] font-medium block">{it.label}</strong>
-                    <span className="text-[var(--muted)]">{it.desc}</span>
-                  </div>
+
+            {hasPhases ? (
+              <>
+                {/* the life staircase: target vs actual standard of living */}
+                <div className="h-44" dir="ltr">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={chartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                      <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                      <XAxis dataKey="year" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                      <YAxis
+                        domain={[0, 3]} ticks={[0, 1, 2, 3]}
+                        tick={{ fontSize: 9, fill: 'var(--ink-2)' }}
+                        tickFormatter={(v) => tierLabel(TIERS[v], locale)}
+                        width={locale === 'ar' ? 82 : 96} axisLine={false} tickLine={false}
+                      />
+                      <Tooltip
+                        formatter={(value, name) => [value == null ? '—' : tierLabel(TIERS[Math.round(Number(value))], locale), name]}
+                        labelFormatter={(v) => String(v)}
+                      />
+                      <Line type="stepAfter" dataKey="target" name={t('today.sol.target')} stroke="var(--ink)" strokeWidth={2.5} dot={false} />
+                      <Line type="monotone" dataKey="actual" name={t('today.sol.actual')} stroke="var(--blue)" strokeWidth={2.5} dot={{ r: 2.5 }} connectNulls />
+                    </ComposedChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
-            {nextTier && (
-              <div className="mt-3 pt-2.5 border-t border-[var(--border-faint)] text-[11px] text-[var(--ink-2)]">
-                {t('today.sol.next')} <strong style={{ color: TIER_COLOR[nextTier] }}>{tierLabel(nextTier, locale)}</strong> — {getLifestyle(nextTier, locale).income}
-              </div>
+                <div className="flex gap-4 justify-center text-[10px] text-[var(--ink-2)] mb-1">
+                  <span className="flex items-center gap-1.5"><span className="w-3.5 h-0.5 bg-[var(--ink)] inline-block" />{t('today.sol.target')}</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3.5 h-0.5 bg-[var(--blue)] inline-block" />{t('today.sol.actual')}</span>
+                </div>
+
+                {/* phases table: theme · what needs doing · quantified growth */}
+                <div className="overflow-x-auto mt-3">
+                  <table className="w-full text-[11px] border-collapse min-w-[440px]">
+                    <thead>
+                      <tr>
+                        <th className="p-1.5 w-14"></th>
+                        {phasesForSeries.map((p) => (
+                          <th key={p.id} className="text-start p-1.5 align-bottom">
+                            <div className="font-semibold text-[var(--ink)]">{p.phase_name}</div>
+                            <div className="text-[10px] text-[var(--muted)] font-normal">
+                              {p.start_year}–{p.end_year} · <span style={{ color: TIER_COLOR[p.target_tier] }}>{tierLabel(p.target_tier, locale)}</span>
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="align-top">
+                      <SolRow label={t('today.sol.theme')} cells={phasesForSeries.map((p) => p.theme ?? [])} />
+                      <SolRow label={t('today.sol.todo')} cells={phasesForSeries.map((p) => p.todo ?? [])} />
+                      <SolRowText label={t('today.sol.growth')} cells={phasesForSeries.map((p) => p.net_worth_goal ?? '')} />
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* no phases yet — show what this income tier affords, and nudge */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+                  {life.items.map((it, i) => (
+                    <div key={i} className="flex gap-2 items-start">
+                      <span className="text-base shrink-0 leading-none mt-0.5">{it.icon}</span>
+                      <div className="text-[11px] leading-relaxed min-w-0">
+                        <strong className="text-[var(--ink)] font-medium block">{it.label}</strong>
+                        <span className="text-[var(--muted)]">{it.desc}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {nextTier && (
+                  <div className="mt-3 pt-2.5 border-t border-[var(--border-faint)] text-[11px] text-[var(--ink-2)]">
+                    {t('today.sol.next')} <strong style={{ color: TIER_COLOR[nextTier] }}>{tierLabel(nextTier, locale)}</strong> — {getLifestyle(nextTier, locale).income}
+                  </div>
+                )}
+                <p className="text-[11px] text-[var(--green-dark)] font-medium mt-3">{t('today.sol.designHint')}</p>
+              </>
             )}
           </Card>
         );
@@ -1480,6 +1586,43 @@ function ForecastBandLabel({ viewBox, text }: { viewBox?: { x: number; y: number
     >
       {text}
     </text>
+  );
+}
+
+// One row of the standard-of-living phase table: a labelled left cell, then a
+// bullet list per phase.
+function SolRow({ label, cells }: { label: string; cells: string[][] }) {
+  return (
+    <tr className="border-t border-[var(--border-faint)]">
+      <td className="p-1.5 text-[10px] text-[var(--muted)] font-medium whitespace-nowrap">{label}</td>
+      {cells.map((items, i) => (
+        <td key={i} className="p-1.5 text-[var(--ink-2)]">
+          {items.length ? (
+            <ul className="space-y-0.5">
+              {items.map((s, j) => (
+                <li key={j} className="flex gap-1"><span className="text-[var(--muted)] shrink-0">·</span><span>{s}</span></li>
+              ))}
+            </ul>
+          ) : (
+            <span className="text-[var(--muted)]">—</span>
+          )}
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+// Single-value row (the quantified growth goal), one cell per phase.
+function SolRowText({ label, cells }: { label: string; cells: string[] }) {
+  return (
+    <tr className="border-t border-[var(--border-faint)]">
+      <td className="p-1.5 text-[10px] text-[var(--muted)] font-medium whitespace-nowrap">{label}</td>
+      {cells.map((s, i) => (
+        <td key={i} className="p-1.5">
+          {s ? <span className="text-[var(--green-dark)] font-medium">{s}</span> : <span className="text-[var(--muted)]">—</span>}
+        </td>
+      ))}
+    </tr>
   );
 }
 
