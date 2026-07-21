@@ -781,17 +781,19 @@ export default function TodayDashboard() {
                   />
                 )}
                 <ReferenceLine y={0} stroke="var(--border-strong)" />
-                <Bar dataKey="income" name="Income" radius={[3, 3, 0, 0]}>
+                {/* fill on each Bar sets its legend swatch colour; the Cells
+                    still override the per-bar rendering */}
+                <Bar dataKey="income" name="Income" fill="var(--green)" radius={[3, 3, 0, 0]}>
                   {cfData.map((e, i) => (
                     <Cell key={i} fill="var(--green)" fillOpacity={e.forecast ? 0.35 : 1} stroke={e.forecast ? 'var(--green)' : 'none'} strokeDasharray={e.forecast ? '2 2' : undefined} />
                   ))}
                 </Bar>
-                <Bar dataKey="expensesDown" name="Expenses" radius={[0, 0, 3, 3]}>
+                <Bar dataKey="expensesDown" name="Expenses" fill="var(--amber)" radius={[0, 0, 3, 3]}>
                   {cfData.map((e, i) => (
                     <Cell key={i} fill="var(--amber)" fillOpacity={e.forecast ? 0.35 : 1} stroke={e.forecast ? 'var(--amber)' : 'none'} strokeDasharray={e.forecast ? '2 2' : undefined} />
                   ))}
                 </Bar>
-                <Bar dataKey="net" name={t('today.cash.net')} radius={[3, 3, 0, 0]}>
+                <Bar dataKey="net" name={t('today.cash.net')} fill="var(--blue-2)" radius={[3, 3, 0, 0]}>
                   {cfData.map((e, i) => (
                     <Cell
                       key={i}
