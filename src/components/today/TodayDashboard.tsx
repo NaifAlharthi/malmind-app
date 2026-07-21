@@ -20,6 +20,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { computeRisks, type RiskInputs, type RiskResult } from '@/lib/risks';
 import { computeFreedom } from '@/lib/financialFreedom';
+import { BANDS, SCORE_MIN, SCORE_MAX, bandFor, bandLabel } from '@/lib/creditScore';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
 import { BENCHMARK_START_AGE, buildBenchmarkCurves, buildYouSeries } from '@/lib/positioningBenchmarks';
 import { buildProjection } from '@/lib/lifetimeProjection';
@@ -130,6 +131,7 @@ export default function TodayDashboard() {
   const supabase = createClient();
   const { t, locale } = useLocale();
   const [data, setData] = useState<Data | null>(null);
+  const [credit, setCredit] = useState<{ score: number | null; prev: number | null } | null>(null);
   const [selRisk, setSelRisk] = useState<string | null>(null);
   const [cashView, setCashView] = useState<'six' | 'ytd'>('six');
   const [srcInfo, setSrcInfo] = useState(false);
@@ -201,6 +203,28 @@ export default function TodayDashboard() {
           year: r.year,
           value: Number(r.amount),
         })),
+      });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Latest SIMAH score, loaded on its own so a missing migration just hides
+  // the tile instead of breaking the whole dashboard.
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: rows, error } = await supabase
+        .from('credit_snapshots')
+        .select('report_date, molim_score')
+        .eq('user_id', user.id)
+        .order('report_date', { ascending: true });
+      if (error || !rows) return; // table absent → no tile
+      const scored = rows.filter((r) => r.molim_score != null) as { molim_score: number }[];
+      if (scored.length === 0) return; // nothing worth showing yet
+      setCredit({
+        score: scored[scored.length - 1].molim_score,
+        prev: scored.length >= 2 ? scored[scored.length - 2].molim_score : null,
       });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -534,6 +558,13 @@ export default function TodayDashboard() {
       how: 'Computed from your real numbers — income sources, liquid savings vs spending, insurance answer, asset mix, and debt payments. Nothing is fabricated; missing data reads as unknown.',
       action: 'Fix the reddest axis first — usually runway or insurance. The Risks page maps each one to concrete mitigations.',
       ask: 'Walk me through my top financial risks right now and the most effective mitigations, in order.',
+    },
+    credit: {
+      title: t('today.credit.title'),
+      what: 'Your SIMAH MOLIM score (300–900) and how far it has moved since the previous report you recorded.',
+      how: 'The official number you entered on the Credit Standing page; the band and pointer place it on the 300–900 scale.',
+      action: 'Two levers move it most: every payment on time, and keeping card utilisation under 30%.',
+      ask: 'How can I improve my SIMAH credit score fastest given my current debts?',
     },
     debt: {
       title: t('today.debt.title'),
@@ -931,6 +962,53 @@ export default function TodayDashboard() {
           )}
         </Card>
       </div>
+
+      {/* ── SIMAH credit standing (only when a score has been recorded) ── */}
+      {credit && (
+        <Card title={t('today.credit.title')} href="/credit" explain={EX.credit}>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="text-center shrink-0">
+              <div className="font-serif text-4xl font-bold leading-none" style={{ color: bandFor(credit.score!).color }}>{credit.score}</div>
+              <div className="text-[10px] text-[var(--muted)] mt-1">{t('today.credit.of900')}</div>
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-semibold" style={{ color: bandFor(credit.score!).color }}>
+                  {bandLabel(bandFor(credit.score!).key, locale)}
+                </span>
+                {credit.prev != null && credit.score != null && credit.score !== credit.prev && (
+                  <span className={`text-[11px] font-semibold ${credit.score - credit.prev >= 0 ? 'text-[var(--green-dark)]' : 'text-[var(--red-dark-text)]'}`}>
+                    {credit.score - credit.prev >= 0 ? '▲' : '▼'} {Math.abs(credit.score - credit.prev)} {t('today.credit.vsPrev')}
+                  </span>
+                )}
+              </div>
+              {/* five-band scale with a pointer at the score */}
+              <div className="relative">
+                <div className="flex h-2 rounded-full overflow-hidden">
+                  {BANDS.map((b) => (
+                    <div key={b.key} style={{ flex: b.max - b.min, background: b.color, opacity: bandFor(credit.score!).key === b.key ? 1 : 0.35 }} />
+                  ))}
+                </div>
+                <div
+                  className="absolute -top-1 w-0 h-0"
+                  style={{
+                    // logical offset so the pointer tracks the bands, which
+                    // flip under RTL
+                    insetInlineStart: `${((Math.max(SCORE_MIN, Math.min(SCORE_MAX, credit.score!)) - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * 100}%`,
+                    transform: 'translateX(-50%)',
+                    borderLeft: '4px solid transparent',
+                    borderRight: '4px solid transparent',
+                    borderTop: '5px solid var(--ink)',
+                  }}
+                />
+                <div className="flex justify-between text-[9px] text-[var(--muted)] mt-1">
+                  <span>{SCORE_MIN}</span><span>{SCORE_MAX}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* ── Row 3: debt load — each liability, paid vs remaining ── */}
       <Card title={t('today.debt.title')} href="/commitments" explain={EX.debt}>
