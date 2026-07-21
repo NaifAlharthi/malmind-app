@@ -46,8 +46,12 @@ export default function SignupPage() {
     <div>
       <LanguageToggle className="fixed top-4 right-4 z-50 shadow-md" />
       <Splash />
-      <div id="signup-form" className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6 py-16">
-      <div className="max-w-sm w-full bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8">
+      <div id="signup-form" className="relative min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6 py-16 overflow-hidden">
+      {/* soft brand glow tying the form to the splash above */}
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[560px] h-[360px] rounded-full blur-[130px] opacity-40 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, var(--green) 0%, transparent 70%)' }} aria-hidden />
+      <div className="relative max-w-sm w-full bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 shadow-2xl shadow-black/10 overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-1" style={{ background: 'linear-gradient(90deg, #1D9E75, #17B8C9, #C9A84C)' }} aria-hidden />
         <div className="font-serif text-xl font-semibold mb-1 flex items-center gap-1.5">
           Mal<span className="text-[var(--green)]">Mind</span>
           <span className="text-xs leading-none">🇸🇦</span>

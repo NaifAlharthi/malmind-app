@@ -128,7 +128,7 @@ export default function Splash() {
   return (
     <section
       className="relative min-h-screen flex flex-col overflow-hidden"
-      style={{ background: 'linear-gradient(150deg, #0A3B29 0%, #06301F 52%, #04231A 100%)' }}
+      style={{ background: 'radial-gradient(120% 90% at 50% 0%, #0C4531 0%, #073626 45%, #041F17 100%)' }}
     >
       <style>{`
         @keyframes mmFloat { 0%,100% { transform: translateY(0) rotate(var(--rot,0deg)); } 50% { transform: translateY(-14px) rotate(var(--rot,0deg)); } }
@@ -136,17 +136,38 @@ export default function Splash() {
         @keyframes mmPop { 0% { opacity: 0; transform: translateY(16px) scale(0.94); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes mmFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes mmPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(93,202,165,0.35); } 50% { box-shadow: 0 0 0 12px rgba(93,202,165,0); } }
-        @keyframes mmTwinkle { 0%,100% { opacity: 0.25; } 50% { opacity: 0.9; } }
+        @keyframes mmTwinkle { 0%,100% { opacity: 0.2; transform: scale(0.85); } 50% { opacity: 0.95; transform: scale(1); } }
+        @keyframes mmAurora { 0%,100% { transform: translate3d(0,0,0) scale(1); } 33% { transform: translate3d(6%,-4%,0) scale(1.12); } 66% { transform: translate3d(-5%,3%,0) scale(0.94); } }
+        @keyframes mmSheen { 0% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+        @keyframes mmGlow { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
         .mm-fade { animation: mmFade 0.7s ease both; }
         .mm-pop { animation: mmPop 0.6s ease both; }
       `}</style>
 
-      {/* stars + decorative rings */}
+      {/* ambient aurora — slow-drifting light fields give the AI-grade atmosphere */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
+        <div className="absolute -top-40 -start-24 w-[560px] h-[560px] rounded-full blur-[110px] opacity-50"
+          style={{ background: 'radial-gradient(circle, #17B8C9 0%, transparent 68%)', animation: 'mmAurora 20s ease-in-out infinite' }} />
+        <div className="absolute top-[-6rem] end-[-8rem] w-[520px] h-[520px] rounded-full blur-[120px] opacity-40"
+          style={{ background: 'radial-gradient(circle, #1D9E75 0%, transparent 66%)', animation: 'mmAurora 26s ease-in-out -6s infinite' }} />
+        <div className="absolute bottom-[10%] start-[35%] w-[440px] h-[440px] rounded-full blur-[120px] opacity-25"
+          style={{ background: 'radial-gradient(circle, #C9A84C 0%, transparent 70%)', animation: 'mmAurora 30s ease-in-out -12s infinite' }} />
+      </div>
+
+      {/* fine tech grid, radially masked so it fades into the dark */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden
+        style={{
+          backgroundImage: 'linear-gradient(rgba(93,202,165,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(93,202,165,0.06) 1px, transparent 1px)',
+          backgroundSize: '46px 46px',
+          maskImage: 'radial-gradient(120% 80% at 50% 12%, #000 0%, transparent 62%)',
+          WebkitMaskImage: 'radial-gradient(120% 80% at 50% 12%, #000 0%, transparent 62%)',
+        }} />
+
+      {/* stars */}
       {STARS.map((s, i) => (
         <span key={i} className="absolute rounded-full bg-white pointer-events-none"
-          style={{ left: s.x, top: s.y, width: s.r, height: s.r, animation: `mmTwinkle ${s.d}s ease-in-out ${s.delay}s infinite` }} />
+          style={{ left: s.x, top: s.y, width: s.r, height: s.r, boxShadow: '0 0 6px rgba(255,255,255,0.6)', animation: `mmTwinkle ${s.d}s ease-in-out ${s.delay}s infinite` }} />
       ))}
-      <div className="absolute -top-32 end-[-8rem] w-[420px] h-[420px] rounded-full border border-[#C9A84C]/15 pointer-events-none" />
 
       {/* Riyadh skyline along the bottom */}
       <RiyadhSkyline />
@@ -167,14 +188,16 @@ export default function Splash() {
           <div className="mm-fade flex flex-wrap items-center gap-3" style={{ animationDelay: '0.45s' }}>
             <button
               onClick={scrollToForm}
-              className="text-sm font-semibold bg-[#1D9E75] hover:bg-[#178a65] text-white rounded-xl px-6 py-3 transition-colors"
-              style={{ animation: 'mmPulse 2.6s ease-in-out infinite' }}
+              className="group relative overflow-hidden text-sm font-semibold text-white rounded-xl px-6 py-3 transition-transform hover:-translate-y-0.5"
+              style={{ background: 'linear-gradient(120deg, #1D9E75 0%, #17B8C9 100%)', boxShadow: '0 12px 34px -8px rgba(23,184,201,0.55)', animation: 'mmPulse 2.6s ease-in-out infinite' }}
             >
-              {c.ctaCreate}
+              <span className="relative z-10">{c.ctaCreate}</span>
+              <span className="absolute inset-y-0 -inset-x-2 w-1/3 skew-x-[-20deg] bg-white/25 blur-md pointer-events-none"
+                style={{ animation: 'mmSheen 3.4s ease-in-out 1.2s infinite' }} />
             </button>
             <button
               onClick={startDemo}
-              className="text-sm font-medium text-[#5DCAA5] border border-[#5DCAA5]/40 hover:border-[#5DCAA5] rounded-xl px-6 py-3 transition-colors"
+              className="text-sm font-medium text-[#5DCAA5] rounded-xl px-6 py-3 transition-colors bg-white/[0.04] border border-[#5DCAA5]/35 hover:border-[#5DCAA5] hover:bg-white/[0.07] backdrop-blur-sm"
             >
               {c.ctaDemo}
             </button>
@@ -245,47 +268,127 @@ function SaudiBadge({ tag }: { tag: string }) {
   );
 }
 
-// A stylised Riyadh skyline — Al Faisaliah (ball) and Kingdom Tower (top arch)
-// among the towers — as a low silhouette behind the content.
+// A refined, multi-layer Riyadh skyline. A distant haze layer sets depth; the
+// near layer carries the real landmarks — the Kingdom Tower's sky-bridge arch,
+// Al Faisaliah's golden orb and spire, the twisting KAFD/PIF towers and Burj
+// Rafal — with soft gradient fills, a horizon glow, and scattered window
+// lights so the city reads as alive and modern rather than a flat cut-out.
 function RiyadhSkyline() {
+  // Deterministic little window lights sprinkled over the near towers.
+  const windows = [
+    [366, 150, 'g'], [366, 170, 't'],                                   // Al Faisaliah
+    [452, 100, 't'], [452, 140, 'g'], [500, 110, 't'], [500, 150, 'g'], [470, 182, 't'], // Kingdom
+    [560, 140, 'g'], [606, 152, 't'],                                   // KAFD twist
+    [670, 150, 'g'], [670, 180, 't'],                                   // Burj Rafal
+    [878, 172, 't'], [878, 202, 'g'], [944, 162, 't'], [1010, 200, 'g'], [1116, 190, 't'],
+    [128, 222, 'g'], [250, 202, 't'], [820, 160, 'g'], [1160, 172, 't'],
+  ] as const;
+
   return (
-    <div className="absolute inset-x-0 bottom-0 h-56 z-0 pointer-events-none opacity-60" dir="ltr">
-      <svg viewBox="0 0 1200 240" preserveAspectRatio="xMidYMax slice" className="w-full h-full">
+    <div className="absolute inset-x-0 bottom-0 h-[42vh] min-h-[280px] z-0 pointer-events-none" dir="ltr">
+      {/* horizon glow lifting the city off the dark */}
+      <div className="absolute inset-x-0 bottom-0 h-2/3"
+        style={{ background: 'radial-gradient(120% 130% at 50% 100%, rgba(23,184,201,0.20) 0%, rgba(29,158,117,0.10) 34%, transparent 68%)' }} />
+
+      <svg viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 w-full h-full">
         <defs>
-          <linearGradient id="mmSky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0E5238" />
-            <stop offset="100%" stopColor="#052018" />
+          <linearGradient id="mmFar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0B4832" />
+            <stop offset="100%" stopColor="#062B20" />
           </linearGradient>
+          <linearGradient id="mmNear" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0E5A3E" />
+            <stop offset="55%" stopColor="#083A2A" />
+            <stop offset="100%" stopColor="#04211A" />
+          </linearGradient>
+          <radialGradient id="mmOrb" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0%" stopColor="#FBE9B0" />
+            <stop offset="45%" stopColor="#E4C465" />
+            <stop offset="100%" stopColor="#B98B2C" />
+          </radialGradient>
+          <filter id="mmSoft" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="7" />
+          </filter>
         </defs>
-        <g fill="url(#mmSky)">
-          {/* left cluster */}
-          <rect x="20" y="150" width="46" height="90" />
-          <rect x="74" y="118" width="34" height="122" />
-          <rect x="120" y="168" width="40" height="72" />
-          {/* Al Faisaliah — tapering tower with a ball */}
-          <polygon points="182,240 214,86 224,86 256,240" />
-          <circle cx="219" cy="80" r="11" />
-          <polygon points="214,72 219,44 224,72" />
-          <rect x="272" y="140" width="40" height="100" />
-          <rect x="320" y="176" width="30" height="64" />
-          {/* Kingdom Tower — the sky-bridge arch */}
-          <path d="M372,240 L372,64 L410,64 Q432,104 454,64 L492,64 L492,240 Z" />
-          <rect x="508" y="150" width="42" height="90" />
-          <rect x="558" y="122" width="30" height="118" />
-          {/* PIF-ish twins */}
-          <rect x="600" y="96" width="34" height="144" />
-          <rect x="642" y="112" width="30" height="128" />
-          <rect x="686" y="160" width="44" height="80" />
-          <rect x="740" y="132" width="30" height="108" />
-          <polygon points="784,240 806,110 812,110 834,240" />
-          <rect x="850" y="156" width="40" height="84" />
-          <rect x="900" y="120" width="34" height="120" />
-          <rect x="946" y="170" width="36" height="70" />
-          <rect x="992" y="140" width="30" height="100" />
-          <rect x="1032" y="168" width="44" height="72" />
-          <rect x="1086" y="128" width="30" height="112" />
-          <rect x="1128" y="158" width="48" height="82" />
+
+        {/* ── far haze layer ── */}
+        <g fill="url(#mmFar)" opacity="0.5">
+          <rect x="-20" y="176" width="60" height="124" />
+          <rect x="96" y="150" width="42" height="150" />
+          <path d="M300,300 322,150 332,150 354,300Z" />
+          <rect x="430" y="160" width="52" height="140" />
+          <rect x="540" y="140" width="40" height="160" />
+          <rect x="654" y="168" width="48" height="132" />
+          <rect x="792" y="150" width="44" height="150" />
+          <rect x="910" y="176" width="40" height="124" />
+          <rect x="1030" y="150" width="56" height="150" />
+          <rect x="1150" y="170" width="70" height="130" />
         </g>
+
+        {/* ── near landmark layer — the three signatures sit near centre so
+             they never crop; generic modern towers flank them ── */}
+        <g fill="url(#mmNear)">
+          {/* left generic cluster */}
+          <rect x="10" y="184" width="36" height="116" rx="2" />
+          <path d="M64,300 68,150 96,142 100,300Z" />
+          <rect x="122" y="196" width="30" height="104" rx="2" />
+          <path d="M172,300 188,150 208,142 224,300Z" />
+          <rect x="246" y="172" width="30" height="128" rx="2" />
+
+          {/* Al Faisaliah — four-sided tapering tower + spire (orb drawn above) */}
+          <path d="M330,300 352,114 366,114 388,300Z" />
+          <rect x="354" y="68" width="10" height="30" />
+
+          {/* mid block */}
+          <rect x="408" y="200" width="24" height="100" rx="2" />
+
+          {/* Kingdom Tower (Burj Al-Mamlaka) — the parabolic sky-bridge opening */}
+          <path d="M440,300 L440,74 Q440,62 452,62 L512,62 Q524,62 524,74 L524,300 L498,300 L498,138 Q491,156 476,156 Q468,156 464,148 L464,300 Z" />
+          <rect x="464" y="124" width="60" height="7" rx="3" fill="#0E5A3E" />
+
+          {/* KAFD twisting towers (parallelogram slices for the twist illusion) */}
+          <path d="M548,300 552,100 580,92 584,300Z" />
+          <path d="M552,100 580,92 578,108 554,116Z" fill="#0A4632" />
+          <path d="M596,300 598,124 622,116 624,300Z" />
+
+          {/* Burj Rafal-style crowned tower */}
+          <path d="M648,300 658,120 664,96 684,96 690,120 700,300Z" />
+          <path d="M668,96 674,80 680,96Z" />
+
+          {/* wide podium block */}
+          <rect x="722" y="186" width="50" height="114" rx="2" />
+
+          {/* right generic cluster */}
+          <path d="M792,300 808,128 826,120 842,300Z" />
+          <rect x="864" y="152" width="42" height="148" rx="2" />
+          <path d="M926,300 942,132 960,132 976,300Z" />
+          <rect x="996" y="176" width="34" height="124" rx="2" />
+          <path d="M1046,300 1050,146 1076,138 1080,300Z" />
+          <rect x="1102" y="164" width="36" height="136" rx="2" />
+          <path d="M1152,300 1168,146 1190,146 1206,300Z" />
+        </g>
+
+        {/* edge rim-light along the near towers' tops (subtle teal catch-light) */}
+        <g stroke="#5DCAA5" strokeWidth="1.5" strokeOpacity="0.35" fill="none" strokeLinecap="round">
+          <path d="M352,114 366,114" />
+          <path d="M440,74 Q440,62 452,62 L512,62 Q524,62 524,74" />
+          <path d="M658,120 664,96 684,96 690,120" />
+          <path d="M808,128 826,120" />
+        </g>
+
+        {/* Al Faisaliah golden orb — a glowing beacon (the tower's signature) */}
+        <circle cx="359" cy="60" r="26" fill="url(#mmOrb)" filter="url(#mmSoft)" opacity="0.7" style={{ animation: 'mmGlow 4s ease-in-out infinite' }} />
+        <circle cx="359" cy="60" r="10.5" fill="url(#mmOrb)" />
+        <circle cx="359" cy="60" r="10.5" fill="none" stroke="#FBE9B0" strokeWidth="1" strokeOpacity="0.7" />
+        <circle cx="355.5" cy="56.5" r="3" fill="#FFF7E0" opacity="0.95" />
+
+        {/* window lights */}
+        {windows.map(([x, y, kind], i) => (
+          <rect key={i} x={x} y={y} width="3.4" height="3.4" rx="0.6"
+            fill={kind === 'g' ? '#E4C465' : '#5DCAA5'}
+            opacity={0.5 + (i % 3) * 0.18}
+            style={{ animation: `mmTwinkle ${3 + (i % 4)}s ease-in-out ${(i % 5) * 0.4}s infinite` }} />
+        ))}
       </svg>
     </div>
   );
@@ -324,18 +427,35 @@ function SceneChaos({ chips }: { chips: string[] }) {
 function ScenePicture({ label, stats }: { label: string; stats: [string, string][] }) {
   return (
     <div className="absolute inset-0 flex flex-col justify-center">
-      <div className="bg-white/[0.05] border border-white/15 rounded-2xl p-5 backdrop-blur-sm">
+      <div className="rounded-2xl p-5 backdrop-blur-md"
+        style={{ background: 'linear-gradient(160deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))', border: '1px solid rgba(255,255,255,0.14)', boxShadow: '0 20px 60px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)' }}>
         <div className="text-[10px] tracking-[0.12em] uppercase text-[#C9A84C] mb-3">{label}</div>
         <svg viewBox="0 0 360 140" className="w-full h-32">
+          <defs>
+            <linearGradient id="mmLine" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#17B8C9" />
+              <stop offset="100%" stopColor="#5DCAA5" />
+            </linearGradient>
+            <linearGradient id="mmArea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#5DCAA5" stopOpacity="0.30" />
+              <stop offset="100%" stopColor="#5DCAA5" stopOpacity="0" />
+            </linearGradient>
+            <filter id="mmLineGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3.5" result="b" />
+              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
           {[0, 35, 70, 105, 140].map((y) => (
             <line key={y} x1="0" y1={y} x2="360" y2={y} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
           ))}
+          <path d="M4,128 C60,120 80,112 120,98 C160,84 180,80 220,60 C260,40 300,30 356,10 L356,140 L4,140 Z"
+            fill="url(#mmArea)" opacity="0" style={{ animation: 'mmFade 1s ease 1.6s both' }} />
           <path
             d="M4,128 C60,120 80,112 120,98 C160,84 180,80 220,60 C260,40 300,30 356,10"
-            fill="none" stroke="#5DCAA5" strokeWidth="3" strokeLinecap="round"
+            fill="none" stroke="url(#mmLine)" strokeWidth="3" strokeLinecap="round" filter="url(#mmLineGlow)"
             strokeDasharray="620" style={{ animation: 'mmDraw 2.4s ease-out 0.2s both' }}
           />
-          <circle cx="356" cy="10" r="4" fill="#5DCAA5" style={{ animation: 'mmPop 0.4s ease 2.4s both' }} />
+          <circle cx="356" cy="10" r="5" fill="#EAFBF3" stroke="#5DCAA5" strokeWidth="2" style={{ animation: 'mmPop 0.4s ease 2.4s both' }} />
         </svg>
         <div className="grid grid-cols-3 gap-2 mt-3">
           {stats.map(([k, v], i) => (
