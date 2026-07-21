@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 interface Chapter {
   id: string;
@@ -16,6 +17,9 @@ interface Chapter {
 export default function StoryPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,10 +60,10 @@ export default function StoryPage() {
       .from('story_chapters')
       .insert({
         user_id: userId,
-        title: 'New chapter',
+        title: L('فصل جديد', 'New chapter'),
         start_year: lastYear,
         end_year: lastYear + 1,
-        note: 'Describe what happened here.',
+        note: L('صِف ما حدث هنا.', 'Describe what happened here.'),
         vividness: 'sketch',
       })
       .select()
@@ -85,7 +89,7 @@ export default function StoryPage() {
   }
 
   if (loading) {
-    return <div className="text-sm text-[var(--muted)]">Loading your story…</div>;
+    return <div className="text-sm text-[var(--muted)]">{L('جارٍ تحميل قصّتك…', 'Loading your story…')}</div>;
   }
 
   const minYear = chapters.length > 0 ? chapters[0].start_year : 2020;
@@ -96,34 +100,36 @@ export default function StoryPage() {
   return (
     <div>
       <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
-        My Financial Story
+        {L('قصّتي المالية', 'My Financial Story')}
       </h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
-        This is your real, saved story — stored under your account, feeding
-        your positioning chart and your advisor.
+        {L(
+          'هذه قصّتك الحقيقية المحفوظة — مخزَّنة تحت حسابك، تُغذّي مخطّط مركزك المالي ومستشارك.',
+          'This is your real, saved story — stored under your account, feeding your positioning chart and your advisor.'
+        )}
       </p>
 
       {chapters.length === 0 ? (
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center mb-6">
           <div className="text-2xl mb-2">📖</div>
           <div className="font-serif text-lg font-medium mb-1">
-            Your story is empty so far
+            {L('قصّتك فارغة حتى الآن', 'Your story is empty so far')}
           </div>
           <div className="text-sm text-[var(--muted)] mb-4">
-            Add your first chapter — even one line is a real start.
+            {L('أضِف فصلك الأول — حتى سطر واحد بدايةٌ حقيقية.', 'Add your first chapter — even one line is a real start.')}
           </div>
           <button
             onClick={handleAddChapter}
             className="text-sm text-white bg-[var(--green-dark)] rounded-lg px-4 py-2 font-medium"
           >
-            + Add your first chapter
+            {L('+ أضِف فصلك الأول', '+ Add your first chapter')}
           </button>
         </div>
       ) : (
         <>
           <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
             <div className="text-xs text-[var(--muted)] mb-4">
-              Tap a chapter below to edit it
+              {L('اضغط على فصل أدناه لتحريره', 'Tap a chapter below to edit it')}
             </div>
             <div className="relative h-14 bg-[var(--surface-1)] rounded-full overflow-hidden flex">
               {chapters.map((c) => {
@@ -188,7 +194,7 @@ export default function StoryPage() {
                   <div className="mt-3 pt-3 border-t border-[var(--border-default)] grid sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[10px] text-[var(--muted)] block mb-1">
-                        Title
+                        {L('العنوان', 'Title')}
                       </label>
                       <input
                         className="w-full text-xs bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5"
@@ -201,7 +207,7 @@ export default function StoryPage() {
                     <div className="flex gap-2">
                       <div className="flex-1">
                         <label className="text-[10px] text-[var(--muted)] block mb-1">
-                          Start year
+                          {L('سنة البداية', 'Start year')}
                         </label>
                         <input
                           type="number"
@@ -217,7 +223,7 @@ export default function StoryPage() {
                       </div>
                       <div className="flex-1">
                         <label className="text-[10px] text-[var(--muted)] block mb-1">
-                          End year
+                          {L('سنة النهاية', 'End year')}
                         </label>
                         <input
                           type="number"
@@ -233,7 +239,7 @@ export default function StoryPage() {
                     </div>
                     <div className="sm:col-span-2">
                       <label className="text-[10px] text-[var(--muted)] block mb-1">
-                        What happened
+                        {L('ما الذي حدث', 'What happened')}
                       </label>
                       <textarea
                         className="w-full text-xs bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5"
@@ -252,7 +258,7 @@ export default function StoryPage() {
                         onClick={() => handleDeleteChapter(c.id)}
                         className="text-xs text-[var(--red-dark-text)]"
                       >
-                        Delete this chapter
+                        {L('احذف هذا الفصل', 'Delete this chapter')}
                       </button>
                     </div>
                   </div>
@@ -265,7 +271,7 @@ export default function StoryPage() {
             onClick={handleAddChapter}
             className="mt-4 text-sm text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-4 py-2 font-medium hover:bg-[var(--green)] hover:text-white transition-colors"
           >
-            + Add a chapter
+            {L('+ أضِف فصلاً', '+ Add a chapter')}
           </button>
         </>
       )}

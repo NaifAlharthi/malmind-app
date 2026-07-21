@@ -25,7 +25,11 @@ const MONTH_NAMES = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
-export function monthLabel(p: { year: number; month: number }): string {
+export function monthLabel(p: { year: number; month: number }, locale: 'ar' | 'en' = 'en'): string {
+  if (locale === 'ar') {
+    const name = new Intl.DateTimeFormat('ar', { month: 'short' }).format(new Date(2020, p.month, 1));
+    return `${name} ${p.year}`;
+  }
   return `${MONTH_NAMES[p.month]} ${p.year}`;
 }
 
