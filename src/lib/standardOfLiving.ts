@@ -20,6 +20,28 @@ export const TIER_SHORT_LABEL: Record<Tier, string> = {
   lavish: 'Lavish',
 };
 
+export const TIER_LABEL_AR: Record<Tier, string> = {
+  national_average: 'المتوسط الوطني',
+  basic: 'أساسي',
+  decent: 'لائق',
+  lavish: 'مرفَّه',
+};
+
+export const TIER_SHORT_LABEL_AR: Record<Tier, string> = {
+  national_average: 'المتوسط',
+  basic: 'أساسي',
+  decent: 'لائق',
+  lavish: 'مرفَّه',
+};
+
+export function tierLabel(t: Tier, locale: 'ar' | 'en' = 'en'): string {
+  return locale === 'ar' ? TIER_LABEL_AR[t] : TIER_LABEL[t];
+}
+
+export function tierShortLabel(t: Tier, locale: 'ar' | 'en' = 'en'): string {
+  return locale === 'ar' ? TIER_SHORT_LABEL_AR[t] : TIER_SHORT_LABEL[t];
+}
+
 export function tierIndex(t: Tier): number {
   return TIERS.indexOf(t);
 }
@@ -87,6 +109,57 @@ export const LIFESTYLE: Record<Tier, LifestyleTier> = {
     ],
   },
 };
+
+export const LIFESTYLE_AR: Record<Tier, LifestyleTier> = {
+  national_average: {
+    income: 'نحو 5,000–9,000 ريال/شهر',
+    items: [
+      { icon: '🏠', label: 'السكن', desc: 'شقّة مشتركة أو إيجار متواضع في حيّ طرفيّ' },
+      { icon: '🚗', label: 'التنقّل', desc: 'مواصلات عامّة، أو سيارة اقتصادية واحدة قديمة' },
+      { icon: '✈️', label: 'السفر', desc: 'نادر — ربما رحلة داخلية واحدة في السنة' },
+      { icon: '🎓', label: 'التعليم', desc: 'مدارس حكومية' },
+      { icon: '🍽', label: 'الحياة اليومية', desc: 'ميزنة حذِرة؛ الأكل بالخارج مناسبات قليلة' },
+      { icon: '💾', label: 'الادّخار', desc: 'يبقى القليل بعد الأساسيّات' },
+    ],
+  },
+  basic: {
+    income: 'نحو 10,000–16,000 ريال/شهر',
+    items: [
+      { icon: '🏠', label: 'السكن', desc: 'شقّتك المتواضعة الخاصّة، إيجاراً أو تمويلاً' },
+      { icon: '🚗', label: 'التنقّل', desc: 'سيارة واحدة موثوقة متوسّطة الفئة' },
+      { icon: '✈️', label: 'السفر', desc: 'رحلة داخلية وربما رحلة إقليمية قصيرة' },
+      { icon: '🎓', label: 'التعليم', desc: 'مدارس حكومية، أو خاصّة منخفضة التكلفة' },
+      { icon: '🍽', label: 'الحياة اليومية', desc: 'أساسيّات مريحة؛ مطاعم عادية أسبوعياً' },
+      { icon: '💾', label: 'الادّخار', desc: 'يصبح صندوق طوارئ حقيقي ممكناً' },
+    ],
+  },
+  decent: {
+    income: 'نحو 18,000–35,000 ريال/شهر',
+    items: [
+      { icon: '🏠', label: 'السكن', desc: 'شقّة جيّدة أو فيلا مبدئية في حيّ متين' },
+      { icon: '🚗', label: 'التنقّل', desc: 'سيارتان متوسّطتا الفئة للأسرة' },
+      { icon: '✈️', label: 'السفر', desc: 'رحلة دولية واحدة سنوياً (تركيا، أوروبا، آسيا)' },
+      { icon: '🎓', label: 'التعليم', desc: 'يصبح التعليم الخاصّ واقعياً للأبناء' },
+      { icon: '🍽', label: 'الحياة اليومية', desc: 'أكل بالخارج بحرّية، نمط حياة مريح' },
+      { icon: '📈', label: 'الثروة', desc: 'ادّخار ملموس مع محفظة استثمارية متنامية' },
+    ],
+  },
+  lavish: {
+    income: '40,000+ ريال/شهر أو دخل أصول قويّ',
+    items: [
+      { icon: '🏠', label: 'السكن', desc: 'فيلا كبيرة في حيّ راقٍ، وربما عقار ثانٍ' },
+      { icon: '🚗', label: 'التنقّل', desc: 'مركبات فاخرة، تُستبدَل كثيراً، دون عناء' },
+      { icon: '✈️', label: 'السفر', desc: 'سفر دولي متكرّر، درجة رجال الأعمال' },
+      { icon: '🎓', label: 'التعليم', desc: 'أفضل المدارس الدولية؛ التعليم مموَّل بالكامل' },
+      { icon: '🧑‍🍳', label: 'الحياة اليومية', desc: 'مساعدة منزلية، مطاعم راقية، قيود مالية قليلة' },
+      { icon: '💼', label: 'الثروة', desc: 'استثمارات تولّد دخلاً بذاتها' },
+    ],
+  },
+};
+
+export function getLifestyle(t: Tier, locale: 'ar' | 'en' = 'en'): LifestyleTier {
+  return locale === 'ar' ? LIFESTYLE_AR[t] : LIFESTYLE[t];
+}
 
 export interface Phase {
   id: string;

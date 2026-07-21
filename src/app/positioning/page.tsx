@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { firstNameOf } from '@/lib/name';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import UnderstandPositioning from './UnderstandPositioning';
 
 type PageMode = 'log' | 'understand';
@@ -25,6 +26,9 @@ interface NetWorthRow {
 export default function PositioningPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
   const [rows, setRows] = useState<NetWorthRow[]>([]);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -84,16 +88,16 @@ export default function PositioningPage() {
   const chartData = rows.map((r) => ({ year: r.year, you: r.amount }));
 
   if (loading) {
-    return <div className="text-sm text-[var(--muted)]">Loading your positioning…</div>;
+    return <div className="text-sm text-[var(--muted)]">{L('جارٍ تحميل مركزك المالي…', 'Loading your positioning…')}</div>;
   }
 
   return (
     <div>
       <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
-        Financial Positioning
+        {L('المركز المالي', 'Financial Positioning')}
       </h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
-        {name ? `${name}'s` : 'Your'} real net worth history, logged by you.
+        {L(`سجلّ صافي الثروة الحقيقي ${name ? `لـ${name}` : 'الخاص بك'}، مسجَّلاً بيدك.`, `${name ? `${name}'s` : 'Your'} real net worth history, logged by you.`)}
       </p>
 
       <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-6">
@@ -101,13 +105,13 @@ export default function PositioningPage() {
           onClick={() => setMode('log')}
           className={`px-4 py-2 text-xs font-medium ${mode === 'log' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
-          Log your net worth
+          {L('سجّل صافي ثروتك', 'Log your net worth')}
         </button>
         <button
           onClick={() => setMode('understand')}
           className={`px-4 py-2 text-xs font-medium ${mode === 'understand' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}
         >
-          Understand your positioning
+          {L('افهم مركزك', 'Understand your positioning')}
         </button>
       </div>
 
@@ -118,7 +122,7 @@ export default function PositioningPage() {
       {/* add a real snapshot */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6 flex flex-wrap gap-3 items-end">
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Year</label>
+          <label className="text-xs text-[var(--muted)] block mb-1">{L('السنة', 'Year')}</label>
           <input
             type="number"
             value={newYear}
@@ -128,13 +132,13 @@ export default function PositioningPage() {
         </div>
         <div>
           <label className="text-xs text-[var(--muted)] block mb-1">
-            Net worth (SAR)
+            {L('صافي الثروة (ريال)', 'Net worth (SAR)')}
           </label>
           <input
             type="text"
             value={newAmount}
             onChange={(e) => setNewAmount(e.target.value)}
-            placeholder="e.g. 250,000"
+            placeholder={L('مثال: 250,000', 'e.g. 250,000')}
             className="w-40 border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none"
           />
         </div>
@@ -142,22 +146,22 @@ export default function PositioningPage() {
           onClick={addSnapshot}
           className="text-sm bg-[var(--green-dark)] text-white rounded-lg px-4 py-2 font-medium"
         >
-          Save snapshot
+          {L('حفظ اللقطة', 'Save snapshot')}
         </button>
       </div>
 
       {chartData.length === 0 ? (
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
-          Add a net worth snapshot above to see your real positioning chart.
+          {L('أضِف لقطة صافي ثروة أعلاه لرؤية مخطّط مركزك الحقيقي.', 'Add a net worth snapshot above to see your real positioning chart.')}
         </div>
       ) : (
         <>
           <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
             <div className="text-sm font-medium text-[var(--ink)] mb-1">
-              Net worth over time
+              {L('صافي الثروة عبر الزمن', 'Net worth over time')}
             </div>
             <div className="text-xs text-[var(--muted)] mb-4">
-              Your real logged snapshots
+              {L('لقطاتك الحقيقية المسجَّلة', 'Your real logged snapshots')}
             </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -173,12 +177,12 @@ export default function PositioningPage() {
                     }
                   />
                   <Tooltip
-                    formatter={(value) => `SAR ${Number(value).toLocaleString()}`}
+                    formatter={(value) => (ar ? `${Number(value).toLocaleString()} ريال` : `SAR ${Number(value).toLocaleString()}`)}
                   />
                   <Line
                     type="monotone"
                     dataKey="you"
-                    name="You"
+                    name={L('أنت', 'You')}
                     stroke="var(--green)"
                     strokeWidth={3}
                   />
@@ -188,11 +192,11 @@ export default function PositioningPage() {
           </div>
 
           <div className="text-xs text-[var(--muted)]">
-            Want to see how this compares to peers? Check the{' '}
+            {L('تريد أن ترى كيف يقارَن هذا بالأقران؟ اطّلع على تبويب', 'Want to see how this compares to peers? Check the')}{' '}
             <button onClick={() => setMode('understand')} className="text-[var(--green-dark)] font-medium">
-              Understand your positioning
+              {L('افهم مركزك', 'Understand your positioning')}
             </button>{' '}
-            tab.
+            {L('.', 'tab.')}
           </div>
         </>
       )}
