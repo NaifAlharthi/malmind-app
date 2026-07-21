@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { splitName, joinName } from '@/lib/name';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export interface EditableProfile {
   name: string;
@@ -37,41 +38,41 @@ const DIAL_CODES = [
 ];
 
 const CURRENCIES = [
-  { code: 'SAR', label: 'SAR — Saudi Riyal' },
-  { code: 'AED', label: 'AED — UAE Dirham' },
-  { code: 'KWD', label: 'KWD — Kuwaiti Dinar' },
-  { code: 'BHD', label: 'BHD — Bahraini Dinar' },
-  { code: 'QAR', label: 'QAR — Qatari Riyal' },
-  { code: 'OMR', label: 'OMR — Omani Rial' },
-  { code: 'USD', label: 'USD — US Dollar' },
-  { code: 'EUR', label: 'EUR — Euro' },
-  { code: 'GBP', label: 'GBP — British Pound' },
-  { code: 'EGP', label: 'EGP — Egyptian Pound' },
-  { code: 'TRY', label: 'TRY — Turkish Lira' },
-  { code: 'INR', label: 'INR — Indian Rupee' },
+  { code: 'SAR', label: 'SAR — Saudi Riyal', labelAr: 'ريال سعودي — SAR' },
+  { code: 'AED', label: 'AED — UAE Dirham', labelAr: 'درهم إماراتي — AED' },
+  { code: 'KWD', label: 'KWD — Kuwaiti Dinar', labelAr: 'دينار كويتي — KWD' },
+  { code: 'BHD', label: 'BHD — Bahraini Dinar', labelAr: 'دينار بحريني — BHD' },
+  { code: 'QAR', label: 'QAR — Qatari Riyal', labelAr: 'ريال قطري — QAR' },
+  { code: 'OMR', label: 'OMR — Omani Rial', labelAr: 'ريال عُماني — OMR' },
+  { code: 'USD', label: 'USD — US Dollar', labelAr: 'دولار أمريكي — USD' },
+  { code: 'EUR', label: 'EUR — Euro', labelAr: 'يورو — EUR' },
+  { code: 'GBP', label: 'GBP — British Pound', labelAr: 'جنيه إسترليني — GBP' },
+  { code: 'EGP', label: 'EGP — Egyptian Pound', labelAr: 'جنيه مصري — EGP' },
+  { code: 'TRY', label: 'TRY — Turkish Lira', labelAr: 'ليرة تركية — TRY' },
+  { code: 'INR', label: 'INR — Indian Rupee', labelAr: 'روبية هندية — INR' },
 ];
 
 const GENDERS = [
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
+  { value: 'male', label: 'Male', labelAr: 'ذكر' },
+  { value: 'female', label: 'Female', labelAr: 'أنثى' },
 ];
 
 const MARITAL = [
-  { value: 'single', label: 'Single' },
-  { value: 'married', label: 'Married' },
-  { value: 'divorced', label: 'Divorced' },
-  { value: 'widowed', label: 'Widowed' },
+  { value: 'single', label: 'Single', labelAr: 'أعزب' },
+  { value: 'married', label: 'Married', labelAr: 'متزوّج' },
+  { value: 'divorced', label: 'Divorced', labelAr: 'مطلَّق' },
+  { value: 'widowed', label: 'Widowed', labelAr: 'أرمل' },
 ];
 
 const LIFE_STAGES = [
-  { value: 'student', label: 'Student' },
-  { value: 'employed', label: 'Employed' },
-  { value: 'self_employed', label: 'Self-employed' },
-  { value: 'business_owner', label: 'Business owner' },
-  { value: 'unemployed', label: 'Unemployed' },
-  { value: 'retired', label: 'Retired' },
-  { value: 'homemaker', label: 'Homemaker' },
-  { value: 'other', label: 'Other' },
+  { value: 'student', label: 'Student', labelAr: 'طالب' },
+  { value: 'employed', label: 'Employed', labelAr: 'موظّف' },
+  { value: 'self_employed', label: 'Self-employed', labelAr: 'يعمل لحسابه' },
+  { value: 'business_owner', label: 'Business owner', labelAr: 'صاحب عمل' },
+  { value: 'unemployed', label: 'Unemployed', labelAr: 'عاطل عن العمل' },
+  { value: 'retired', label: 'Retired', labelAr: 'متقاعد' },
+  { value: 'homemaker', label: 'Homemaker', labelAr: 'ربّ/ربّة منزل' },
+  { value: 'other', label: 'Other', labelAr: 'أخرى' },
 ];
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -111,6 +112,9 @@ export default function EditProfileModal({
   onSaved: (profile: EditableProfile) => void;
 }) {
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -249,38 +253,38 @@ export default function EditProfileModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-serif text-xl font-semibold text-[var(--ink)]">Edit profile</h2>
+          <h2 className="font-serif text-xl font-semibold text-[var(--ink)]">{L('تعديل الملف الشخصي', 'Edit profile')}</h2>
           <button
             onClick={onClose}
             className="text-[var(--muted)] hover:text-[var(--ink)] text-sm"
-            aria-label="Close"
+            aria-label={L('إغلاق', 'Close')}
           >
             ✕
           </button>
         </div>
 
         {loading ? (
-          <div className="text-sm text-[var(--muted)] py-8 text-center">Loading…</div>
+          <div className="text-sm text-[var(--muted)] py-8 text-center">{L('جارٍ التحميل…', 'Loading…')}</div>
         ) : (
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>First name</label>
+                <label className={labelCls}>{L('الاسم الأول', 'First name')}</label>
                 <input type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>Last name</label>
+                <label className={labelCls}>{L('اسم العائلة', 'Last name')}</label>
                 <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputCls} />
               </div>
             </div>
 
             <div>
-              <label className={labelCls}>Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className={inputCls} />
+              <label className={labelCls}>{L('البريد الإلكتروني', 'Email')}</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className={inputCls} dir="ltr" />
             </div>
 
             <div>
-              <label className={labelCls}>Phone number</label>
+              <label className={labelCls}>{L('رقم الجوال', 'Phone number')}</label>
               <div className="flex gap-2">
                 <select value={dial} onChange={(e) => setDial(e.target.value)} className={`${fieldBase} w-24 shrink-0`}>
                   {DIAL_CODES.map((d) => (
@@ -293,13 +297,14 @@ export default function EditProfileModal({
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="5X XXX XXXX"
                   className={`${fieldBase} flex-1 min-w-0`}
+                  dir="ltr"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Birthday</label>
+                <label className={labelCls}>{L('تاريخ الميلاد', 'Birthday')}</label>
                 <input
                   type="date"
                   value={birthday}
@@ -309,15 +314,15 @@ export default function EditProfileModal({
                   className={inputCls}
                 />
                 {birthday && ageFromBirthday(birthday) !== null && (
-                  <div className="text-[11px] text-[var(--muted)] mt-1">Age {ageFromBirthday(birthday)}</div>
+                  <div className="text-[11px] text-[var(--muted)] mt-1">{L('العمر', 'Age')} {ageFromBirthday(birthday)}</div>
                 )}
               </div>
               <div>
-                <label className={labelCls}>Gender</label>
+                <label className={labelCls}>{L('الجنس', 'Gender')}</label>
                 <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputCls}>
-                  <option value="">Select…</option>
+                  <option value="">{L('اختر…', 'Select…')}</option>
                   {GENDERS.map((g) => (
-                    <option key={g.value} value={g.value}>{g.label}</option>
+                    <option key={g.value} value={g.value}>{ar ? g.labelAr : g.label}</option>
                   ))}
                 </select>
               </div>
@@ -325,18 +330,18 @@ export default function EditProfileModal({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>City</label>
+                <label className={labelCls}>{L('المدينة', 'City')}</label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Riyadh"
+                  placeholder={L('مثال: الرياض', 'e.g. Riyadh')}
                   className={inputCls}
                 />
               </div>
               <div>
                 <label className={labelCls}>
-                  Country {detectingCountry && <span className="text-[var(--gold)]">· detecting…</span>}
+                  {L('الدولة', 'Country')} {detectingCountry && <span className="text-[var(--gold)]">· {L('يُكتشَف…', 'detecting…')}</span>}
                 </label>
                 <input
                   type="text"
@@ -345,38 +350,38 @@ export default function EditProfileModal({
                     countryEdited.current = true;
                     setCountry(e.target.value);
                   }}
-                  placeholder="Auto-filled from city"
+                  placeholder={L('يُملأ تلقائياً من المدينة', 'Auto-filled from city')}
                   className={inputCls}
                 />
               </div>
             </div>
 
             <div>
-              <label className={labelCls}>Main currency</label>
+              <label className={labelCls}>{L('العملة الرئيسية', 'Main currency')}</label>
               <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={inputCls}>
                 {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>{c.label}</option>
+                  <option key={c.code} value={c.code}>{ar ? c.labelAr : c.label}</option>
                 ))}
               </select>
-              <div className="text-[11px] text-[var(--muted)] mt-1">Used across your financial details.</div>
+              <div className="text-[11px] text-[var(--muted)] mt-1">{L('تُستخدَم في كل تفاصيلك المالية.', 'Used across your financial details.')}</div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Marital status</label>
+                <label className={labelCls}>{L('الحالة الاجتماعية', 'Marital status')}</label>
                 <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} className={inputCls}>
-                  <option value="">Select…</option>
+                  <option value="">{L('اختر…', 'Select…')}</option>
                   {MARITAL.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
+                    <option key={m.value} value={m.value}>{ar ? m.labelAr : m.label}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Point in life</label>
+                <label className={labelCls}>{L('المرحلة في الحياة', 'Point in life')}</label>
                 <select value={lifeStage} onChange={(e) => setLifeStage(e.target.value)} className={inputCls}>
-                  <option value="">Select…</option>
+                  <option value="">{L('اختر…', 'Select…')}</option>
                   {LIFE_STAGES.map((l) => (
-                    <option key={l.value} value={l.value}>{l.label}</option>
+                    <option key={l.value} value={l.value}>{ar ? l.labelAr : l.label}</option>
                   ))}
                 </select>
               </div>
@@ -394,14 +399,14 @@ export default function EditProfileModal({
                 onClick={onClose}
                 className="flex-1 border border-[var(--border-default)] text-[var(--ink-2)] rounded-lg py-2.5 text-sm font-medium"
               >
-                Cancel
+                {L('إلغاء', 'Cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="flex-1 bg-[var(--green-dark)] text-white rounded-lg py-2.5 text-sm font-medium disabled:opacity-50"
               >
-                {saving ? 'Saving…' : 'Save changes'}
+                {saving ? L('جارٍ الحفظ…', 'Saving…') : L('حفظ التغييرات', 'Save changes')}
               </button>
             </div>
           </form>
