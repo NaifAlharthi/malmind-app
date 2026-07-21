@@ -6,6 +6,12 @@ import { OrbitControls, Sky, Text, Billboard } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { createClient } from '@/lib/supabase/client';
 import { firstNameOf } from '@/lib/name';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+
+// WebGL text (troika) can't shape Arabic with the default Latin font, so
+// in Arabic we hand the in-scene <Text> a Cairo web font that carries both
+// Arabic and Latin glyphs. Latin/digits still render fine through it.
+const ARABIC_FONT = 'https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.14/files/cairo-arabic-600-normal.woff2';
 
 const AGE_START = 18;
 const AGE_END = 100;
@@ -31,7 +37,7 @@ function scaleFor(value: number) {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // ── Avatar in Saudi attire, with a "P1"-style floating name tag ──────
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, ar }: { name: string; ar: boolean }) {
   const thobe = '#F7F5EF';
   const skin = '#C68E5A';
   const shemagh = '#C0392B';
@@ -59,8 +65,8 @@ function Avatar({ name }: { name: string }) {
       {/* P1-style name tag: a billboarded pill + a downward pointer */}
       <Billboard position={[0, 2.95, 0]}>
         <mesh><planeGeometry args={[Math.max(1.2, name.length * 0.26 + 0.5), 0.5]} /><meshBasicMaterial color="#085041" /></mesh>
-        <Text position={[0, 0, 0.01]} fontSize={0.3} color="#F7F5EF" anchorX="center" anchorY="middle">
-          {name || 'You'}
+        <Text position={[0, 0, 0.01]} fontSize={0.3} color="#F7F5EF" anchorX="center" anchorY="middle" font={ar ? ARABIC_FONT : undefined}>
+          {name || (ar ? 'أنت' : 'You')}
         </Text>
       </Billboard>
       <mesh position={[0, 2.5, 0]} rotation={[Math.PI, 0, 0]}>
@@ -108,7 +114,7 @@ function RiyadhSkyline() {
 
 // ── The platform: one perfect-square tile per year, painted with its
 // year, gently checkerboarded, with today's tile highlighted green. ──
-function Timeline({ currentYear, currentAge, todayLabel }: { currentYear: number; currentAge: number; todayLabel: string }) {
+function Timeline({ currentYear, currentAge, todayLabel, ar }: { currentYear: number; currentAge: number; todayLabel: string; ar: boolean }) {
   const tiles = [];
   for (let age = AGE_START; age <= AGE_END; age++) {
     const z = zForAge(age);
@@ -144,8 +150,11 @@ function Timeline({ currentYear, currentAge, todayLabel }: { currentYear: number
           color={isToday ? '#085041' : '#A8A49A'}
           anchorX="center"
           anchorY="middle"
+          font={ar ? ARABIC_FONT : undefined}
         >
-          {isToday ? `▸ TODAY · age ${age} · ${todayLabel}` : `age ${age}`}
+          {isToday
+            ? (ar ? `◂ اليوم · العمر ${age} · ${todayLabel}` : `▸ TODAY · age ${age} · ${todayLabel}`)
+            : (ar ? `العمر ${age}` : `age ${age}`)}
         </Text>
       </group>
     );
@@ -243,13 +252,16 @@ function AssetShape({ kind, scale }: { kind: AssetType; scale: number }) {
   }
 }
 
-function WorldObjectMesh({ obj, x, z }: { obj: WorldObject; x: number; z: number }) {
+function WorldObjectMesh({ obj, x, z, ar }: { obj: WorldObject; x: number; z: number; ar: boolean }) {
   const scale = scaleFor(obj.value);
-  const label = `${obj.label} — SAR ${Math.round(obj.value).toLocaleString()}`;
+  const money = ar
+    ? `${Math.round(obj.value).toLocaleString('en-US')} ريال`
+    : `SAR ${Math.round(obj.value).toLocaleString()}`;
+  const label = `${obj.label} — ${money}`;
   return (
     <group position={[x, 0, z]}>
       {obj.kind === 'portfolio' ? <PortfolioObject scale={scale} /> : <AssetShape kind={obj.kind} scale={scale} />}
-      <Text position={[0, 1.5 * scale + 0.15, 0]} fontSize={0.22} color="#141414" anchorX="center" anchorY="middle" outlineWidth={0.012} outlineColor="#F5F4F0">
+      <Text position={[0, 1.5 * scale + 0.15, 0]} fontSize={0.22} color="#141414" anchorX="center" anchorY="middle" outlineWidth={0.012} outlineColor="#F5F4F0" font={ar ? ARABIC_FONT : undefined}>
         {label}
       </Text>
     </group>
@@ -281,6 +293,9 @@ function CameraRig({ viewAge, controlsRef }: { viewAge: number; controlsRef: Rea
 
 export default function Metaverse3D() {
   const supabase = createClient();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const [name, setName] = useState('');
   const [currentAge, setCurrentAge] = useState(25);
@@ -291,7 +306,9 @@ export default function Metaverse3D() {
 
   const now = new Date();
   const currentYear = now.getFullYear();
-  const todayLabel = `${MONTHS[now.getMonth()]} ${currentYear}`;
+  const todayLabel = ar
+    ? `${new Intl.DateTimeFormat('ar', { month: 'short' }).format(now)} ${currentYear}`
+    : `${MONTHS[now.getMonth()]} ${currentYear}`;
 
   const load = useCallback(async () => {
     const {
@@ -321,11 +338,12 @@ export default function Metaverse3D() {
 
   const worldObjects = useMemo<WorldObject[]>(() => {
     const list: WorldObject[] = [];
-    if (liquidSavings && liquidSavings > 0) list.push({ key: 'cash', kind: 'cash', label: 'Cash', value: liquidSavings });
-    if (portfolioValue && portfolioValue > 0) list.push({ key: 'portfolio', kind: 'portfolio', label: 'Investment portfolio', value: portfolioValue });
+    if (liquidSavings && liquidSavings > 0) list.push({ key: 'cash', kind: 'cash', label: L('النقد', 'Cash'), value: liquidSavings });
+    if (portfolioValue && portfolioValue > 0) list.push({ key: 'portfolio', kind: 'portfolio', label: L('محفظة الاستثمار', 'Investment portfolio'), value: portfolioValue });
     assets.forEach((a) => list.push({ key: a.id, kind: a.asset_type, label: a.name, value: a.value }));
     return list;
-  }, [liquidSavings, portfolioValue, assets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liquidSavings, portfolioValue, assets, ar]);
 
   // Lay the wealth objects in a neat row in front of the avatar, centered
   // and spaced to fit within the current square tile.
@@ -341,11 +359,13 @@ export default function Metaverse3D() {
 
   return (
     <div data-tour="world" className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-6">
-      <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--gold)] font-semibold mb-1">Prototype</div>
-      <h2 className="font-serif text-lg font-semibold text-[var(--ink)] mb-1">Your life, in space</h2>
+      <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--gold)] font-semibold mb-1">{L('نموذج أوّلي', 'Prototype')}</div>
+      <h2 className="font-serif text-lg font-semibold text-[var(--ink)] mb-1">{L('حياتك، في فضاء', 'Your life, in space')}</h2>
       <p className="text-xs text-[var(--muted)] mb-4 max-w-lg">
-        You&apos;re standing on today&apos;s square — age {currentAge}, {currentYear}, in Riyadh. Your cash, portfolio
-        and logged assets stand beside you. Slide through the years below; drag inside the scene to look around.
+        {L(
+          `تقف على مربّع اليوم — العمر ${currentAge}، عام ${currentYear}، في الرياض. نقدك ومحفظتك وأصولك المسجَّلة تقف بجانبك. انزلق عبر السنوات أدناه؛ واسحب داخل المشهد لتنظر حولك.`,
+          `You're standing on today's square — age ${currentAge}, ${currentYear}, in Riyadh. Your cash, portfolio and logged assets stand beside you. Slide through the years below; drag inside the scene to look around.`
+        )}
       </p>
 
       <div className="h-[440px] rounded-xl overflow-hidden bg-[var(--surface-1)] border border-[var(--border-default)]">
@@ -353,16 +373,16 @@ export default function Metaverse3D() {
           <Sky sunPosition={[80, 25, 60]} turbidity={6} rayleigh={1.2} />
           <ambientLight intensity={0.75} />
           <directionalLight position={[8, 12, 6]} intensity={1.1} castShadow />
-          <Timeline currentYear={currentYear} currentAge={currentAge} todayLabel={todayLabel} />
+          <Timeline currentYear={currentYear} currentAge={currentAge} todayLabel={todayLabel} ar={ar} />
           <group position={[0, 0, zForAge(currentAge)]}>
-            <Avatar name={name} />
+            <Avatar name={name} ar={ar} />
             <SaudiFlag />
             <group position={[-SQUARE / 2 - 3.4, 0, 0]}>
               <RiyadhSkyline />
             </group>
           </group>
           {placed.map(({ obj, x, z }) => (
-            <WorldObjectMesh key={obj.key} obj={obj} x={x} z={z} />
+            <WorldObjectMesh key={obj.key} obj={obj} x={x} z={z} ar={ar} />
           ))}
           <OrbitControls ref={controlsRef} minDistance={2} maxDistance={80} />
           <CameraRig viewAge={viewAge} controlsRef={controlsRef} />
@@ -371,7 +391,7 @@ export default function Metaverse3D() {
 
       {/* year scrubber (the only control — the scene itself stays clean) */}
       <div className="flex items-center gap-4 mt-4 flex-wrap">
-        <span className="text-xs text-[var(--muted)] whitespace-nowrap">Age {AGE_START}</span>
+        <span className="text-xs text-[var(--muted)] whitespace-nowrap">{L('العمر', 'Age')} {AGE_START}</span>
         <input
           type="range"
           min={AGE_START}
@@ -381,13 +401,13 @@ export default function Metaverse3D() {
           onChange={(e) => setViewAge(parseInt(e.target.value))}
           className="flex-1 min-w-[160px] accent-[var(--green-dark)]"
         />
-        <span className="text-xs text-[var(--muted)] whitespace-nowrap">Age {AGE_END}</span>
+        <span className="text-xs text-[var(--muted)] whitespace-nowrap">{L('العمر', 'Age')} {AGE_END}</span>
         <span className="text-xs font-semibold text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-full px-3 py-1.5 whitespace-nowrap">
-          Viewing age {viewAge} · {viewYear}
+          {L(`تعرض العمر ${viewAge} · ${viewYear}`, `Viewing age ${viewAge} · ${viewYear}`)}
         </span>
         {viewAge !== currentAge && (
           <button onClick={() => setViewAge(currentAge)} className="text-xs text-[var(--green-dark)] font-medium whitespace-nowrap">
-            Back to today
+            {L('العودة إلى اليوم', 'Back to today')}
           </button>
         )}
       </div>
