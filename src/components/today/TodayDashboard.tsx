@@ -21,6 +21,7 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { computeRisks, type RiskInputs, type RiskResult } from '@/lib/risks';
 import { computeFreedom } from '@/lib/financialFreedom';
 import { BANDS, SCORE_MIN, SCORE_MAX, bandFor, bandLabel } from '@/lib/creditScore';
+import { tierFromIncome, tierIndex, tierLabel, getLifestyle, TIERS, TIER_COLOR } from '@/lib/standardOfLiving';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
 import { BENCHMARK_START_AGE, buildBenchmarkCurves, buildYouSeries } from '@/lib/positioningBenchmarks';
 import { buildProjection } from '@/lib/lifetimeProjection';
@@ -559,6 +560,13 @@ export default function TodayDashboard() {
       action: 'Fix the reddest axis first — usually runway or insurance. The Risks page maps each one to concrete mitigations.',
       ask: 'Walk me through my top financial risks right now and the most effective mitigations, in order.',
     },
+    sol: {
+      title: t('today.sol.title'),
+      what: 'The standard of living your income currently supports, in real Saudi terms — what housing, transport, travel, schooling and daily life actually look like at this level.',
+      how: 'Your tier is placed from your average monthly income against illustrative Saudi-context bands. The items describe a typical lifestyle at that tier, not your exact spending.',
+      action: 'Design the phases of the life you want on the Standard of Living page — and see what it takes to climb to the next tier.',
+      ask: 'What standard of living does my income support, and what would it take to reach the next level?',
+    },
     credit: {
       title: t('today.credit.title'),
       what: 'Your SIMAH MOLIM score (300–900) and how far it has moved since the previous report you recorded.',
@@ -812,6 +820,38 @@ export default function TodayDashboard() {
           )}
         </Card>
       </div>
+
+      {/* ── Standard of living — the life this income affords, next to
+             "where you stand" ── */}
+      {(() => {
+        const tier = tierFromIncome(avgIncome);
+        const life = getLifestyle(tier, locale);
+        const nextTier = tierIndex(tier) < TIERS.length - 1 ? TIERS[tierIndex(tier) + 1] : null;
+        return (
+          <Card title={t('today.sol.title')} href="/standard-of-living" explain={EX.sol}>
+            <div className="flex items-baseline gap-2.5 flex-wrap mb-3">
+              <span className="font-serif text-lg font-semibold" style={{ color: TIER_COLOR[tier] }}>{tierLabel(tier, locale)}</span>
+              <span className="text-[11px] text-[var(--muted)]">{t('today.sol.typically')} {life.income}</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+              {life.items.map((it, i) => (
+                <div key={i} className="flex gap-2 items-start">
+                  <span className="text-base shrink-0 leading-none mt-0.5">{it.icon}</span>
+                  <div className="text-[11px] leading-relaxed min-w-0">
+                    <strong className="text-[var(--ink)] font-medium block">{it.label}</strong>
+                    <span className="text-[var(--muted)]">{it.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {nextTier && (
+              <div className="mt-3 pt-2.5 border-t border-[var(--border-faint)] text-[11px] text-[var(--ink-2)]">
+                {t('today.sol.next')} <strong style={{ color: TIER_COLOR[nextTier] }}>{tierLabel(nextTier, locale)}</strong> — {getLifestyle(nextTier, locale).income}
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* ── Row 2: income sources (pie) + risk radar ── */}
       <div className="grid sm:grid-cols-2 gap-3">

@@ -50,6 +50,23 @@ export function tierAt(index: number): Tier {
   return TIERS[Math.max(0, Math.min(TIERS.length - 1, Math.round(index)))];
 }
 
+// Map a real monthly income onto a tier, using the same illustrative
+// Saudi-context bands as the LIFESTYLE reference below.
+export function tierFromIncome(monthlyIncome: number): Tier {
+  if (monthlyIncome >= 40000) return 'lavish';
+  if (monthlyIncome >= 18000) return 'decent';
+  if (monthlyIncome >= 10000) return 'basic';
+  return 'national_average';
+}
+
+// A colour per tier for compact readouts (the full page doesn't need these).
+export const TIER_COLOR: Record<Tier, string> = {
+  national_average: '#8a99a8',
+  basic: '#4A78C4',
+  decent: '#1D9E75',
+  lavish: '#C9A84C',
+};
+
 export interface LifestyleItem {
   icon: string;
   label: string;

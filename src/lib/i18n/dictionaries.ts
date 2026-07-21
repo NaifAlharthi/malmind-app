@@ -335,6 +335,9 @@ const en: Dict = {
   'today.pace.stalled': 'Net worth isn’t growing yet — log a rising month to project milestones.',
 
   'today.sources.title': 'Income sources',
+  'today.sol.title': 'Your standard of living',
+  'today.sol.typically': 'typically',
+  'today.sol.next': 'Next level:',
   'today.credit.title': 'Credit standing',
   'today.credit.of900': 'MOLIM · of 900',
   'today.credit.vsPrev': 'vs last report',
@@ -714,6 +717,9 @@ const ar: Dict = {
   'today.pace.stalled': 'صافي الثروة لا ينمو بعد — سجّل شهراً صاعداً لتوقّع المحطات.',
 
   'today.sources.title': 'مصادر الدخل',
+  'today.sol.title': 'مستوى معيشتك',
+  'today.sol.typically': 'عادةً',
+  'today.sol.next': 'المستوى التالي:',
   'today.credit.title': 'الوضع الائتماني',
   'today.credit.of900': 'مولِم · من 900',
   'today.credit.vsPrev': 'عن آخر تقرير',
