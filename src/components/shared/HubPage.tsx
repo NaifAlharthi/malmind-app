@@ -43,6 +43,7 @@ const TOOLS: Record<ViewKey, HubTool[]> = {
     { href: '/positioning', icon: '📊', titleKey: 'home.card.positioning.title', descKey: 'home.card.positioning.desc' },
     { href: '/ratios', icon: '🩺', titleKey: 'home.card.ratios.title', descKey: 'home.card.ratios.desc' },
     { href: '/risks', icon: '🛡', titleKey: 'hub.card.risks.title', descKey: 'hub.card.risks.desc' },
+    { href: '/credit', icon: '📇', titleKey: 'hub.card.credit.title', descKey: 'hub.card.credit.desc' },
     { href: '/velocity', icon: '⏱', titleKey: 'home.card.velocity.title', descKey: 'home.card.velocity.desc' },
     { href: '/standard-of-living?mode=track', icon: '🪜', titleKey: 'hub.card.solTracked.title', descKey: 'hub.card.solTracked.desc' },
   ],
