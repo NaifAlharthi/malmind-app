@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { joinName } from '@/lib/name';
 import { useT } from '@/lib/i18n/LocaleProvider';
 import LanguageToggle from '@/components/shared/LanguageToggle';
+import ContactModal from '@/components/shared/ContactModal';
 import Splash from './Splash';
 import PersonaPicker from './PersonaPicker';
 
@@ -19,6 +20,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -129,6 +131,10 @@ export default function SignupPage() {
           <a href="/login" className="text-[var(--green-dark)] font-medium">
             {t('auth.loginLink')}
           </a>
+          <span className="mx-2">·</span>
+          <button type="button" onClick={() => setContactOpen(true)} className="text-[var(--green-dark)] font-medium">
+            {t('common.contactUs')}
+          </button>
         </div>
 
         {/* guest demo entry */}
@@ -151,6 +157,7 @@ export default function SignupPage() {
         </div>
       </div>
       </div>
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} source="signup" />
     </div>
   );
 }

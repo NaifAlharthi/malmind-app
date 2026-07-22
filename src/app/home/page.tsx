@@ -10,6 +10,7 @@ import { firstNameOf } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
 import { isDemoActive } from '@/lib/demoSupabase';
+import ContactModal from '@/components/shared/ContactModal';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -70,6 +71,7 @@ export default function HomePage() {
   const [account, setAccount] = useState<Account | null>(null);
   const [integ, setInteg] = useState<Integrations | null>(null);
   const [loading, setLoading] = useState(true);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -429,8 +431,26 @@ export default function HomePage() {
               </div>
             </div>
           </SpaceTile>
+
+          {/* help & contact */}
+          <SpaceTile icon="💬" title={L('المساعدة والتواصل', 'Help & contact')}>
+            <p className="text-xs text-[var(--ink-2)] leading-relaxed mb-3">
+              {L(
+                'سؤال، ملاحظة، استفسار استثماري، أو فرصة شراكة؟ يسعدنا أن نسمع منك.',
+                'A question, feedback, an investment inquiry, or a partnership? We’d love to hear from you.'
+              )}
+            </p>
+            <button
+              onClick={() => setContactOpen(true)}
+              className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5"
+            >
+              {t('common.contactUs')}
+            </button>
+          </SpaceTile>
         </div>
       </div>
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} source="home" />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n/LocaleProvider';
 import LanguageToggle from '@/components/shared/LanguageToggle';
+import ContactModal from '@/components/shared/ContactModal';
 import { applyLoginPrefs, rememberedEmail } from '@/lib/authPrefs';
 
 type Mode = 'password' | 'link';
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null); // magic-link confirmation
+  const [contactOpen, setContactOpen] = useState(false);
 
   // Prefill the email we remembered last time (and reflect that as "remembered").
   useEffect(() => {
@@ -213,7 +215,19 @@ export default function LoginPage() {
             {t('auth.signUpLink')}
           </a>
         </div>
+
+        <div className="text-xs text-center mt-3 pt-3 border-t border-[var(--border-default)]">
+          <button
+            type="button"
+            onClick={() => setContactOpen(true)}
+            className="text-[var(--muted)] hover:text-[var(--green-dark)]"
+          >
+            {t('common.contactUs')}
+          </button>
+        </div>
       </div>
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} source="login" />
     </div>
   );
 }
