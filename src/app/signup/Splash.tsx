@@ -29,7 +29,7 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       {
         eyebrow: 'المشكلة',
         title: 'دخلك جيّد… فلماذا الصورة ضبابية؟',
-        body: 'الراتب في تطبيق، والقروض في آخر، والاشتراكات في كل مكان، وصافي ثروتك… في مكانٍ ما. أغلبنا لا يستطيع الإجابة عن أبسط سؤال عن أمواله: هل أتقدّم فعلاً؟',
+        body: 'الراتب في تطبيق، والقروض في آخر، والاشتراكات في كل مكان — وحتى أرضك وذهبك وإبلك لا أداة تلتقط قيمتها. أغلبنا لا يعرف صافي ثروته الحقيقية، ولا يجيب عن أبسط سؤال: هل أتقدّم فعلاً؟',
       },
       {
         eyebrow: 'الحل',
@@ -51,9 +51,10 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       'راتب 28,000 ريال',
       'قرض السيارة… 42,000؟',
       'نتفلكس · سبوتيفاي · آيكلاود…',
-      'صافي الثروة = ؟؟',
+      'أرضي في القصيم = ؟',
       'الإيجار 6,500',
-      'تداول +8%؟',
+      'إبلي وذهبي… بلا قيمة مسجّلة',
+      'صافي الثروة = ؟؟',
       'المدخرات… في مكانٍ ما',
     ],
     tools: [
@@ -69,7 +70,7 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       {
         eyebrow: 'The problem',
         title: 'You earn well. So why is the picture blurry?',
-        body: "Salary in one app, loans in another, subscriptions everywhere, net worth… somewhere. Most of us can't answer the simplest question about our own money: am I actually getting ahead?",
+        body: "Salary in one app, loans in another, subscriptions everywhere — and the land, gold, and camels you own? No tool captures their value at all. Most of us don't know our true net worth, or whether we're actually getting ahead.",
       },
       {
         eyebrow: 'The answer',
@@ -91,9 +92,10 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       'SAR 28,000 salary',
       'car loan… 42,000?',
       'Netflix · Spotify · iCloud…',
-      'net worth = ??',
+      'my land in Qassim = ?',
       'rent 6,500',
-      'Tadawul +8%?',
+      'camels & gold… uncounted',
+      'net worth = ??',
       'savings… somewhere',
     ],
     tools: [
@@ -394,13 +396,14 @@ function RiyadhSkyline() {
 // Act 1: scattered money-life fragments drifting in the dark.
 function SceneChaos({ chips }: { chips: string[] }) {
   const pos = [
-    { x: '4%', y: '12%', rot: '-6deg', delay: '0s' },
-    { x: '48%', y: '4%', rot: '4deg', delay: '0.4s' },
-    { x: '8%', y: '46%', rot: '3deg', delay: '0.8s' },
-    { x: '56%', y: '38%', rot: '-3deg', delay: '0.2s' },
-    { x: '30%', y: '70%', rot: '5deg', delay: '0.6s' },
-    { x: '62%', y: '66%', rot: '-5deg', delay: '1s' },
-    { x: '4%', y: '84%', rot: '2deg', delay: '1.2s' },
+    { x: '4%', y: '10%', rot: '-6deg', delay: '0s' },
+    { x: '52%', y: '3%', rot: '4deg', delay: '0.4s' },
+    { x: '6%', y: '40%', rot: '3deg', delay: '0.8s' },
+    { x: '58%', y: '32%', rot: '-3deg', delay: '0.2s' },
+    { x: '30%', y: '54%', rot: '5deg', delay: '0.6s' },
+    { x: '54%', y: '62%', rot: '-5deg', delay: '1s' },
+    { x: '2%', y: '72%', rot: '2deg', delay: '1.2s' },
+    { x: '34%', y: '86%', rot: '-4deg', delay: '1.4s' },
   ];
   return (
     <div className="absolute inset-0" dir="rtl">

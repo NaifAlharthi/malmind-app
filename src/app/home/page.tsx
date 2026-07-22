@@ -220,6 +220,19 @@ export default function HomePage() {
         { label: L('الوضع الائتماني', 'Credit'), href: '/credit' },
       ],
     },
+    {
+      icon: '🐫',
+      problem: L('ثروتك ليست نقداً فقط', "Wealth isn't just cash"),
+      desc: L(
+        'الأرض، الإبل، الذهب، حصّة في مشروع — قيمة حقيقية لا تلتقطها أيّ أداة، فتبقى ثروتك الحقيقية مجهولة.',
+        'Land, livestock, gold, a stake in a venture — real value no app captures, so your true wealth stays hidden.',
+      ),
+      answer: L('سجّل كل أصل حقيقي بقيمته، وارَ ثروتك كاملة.', 'Log every real asset at its value — and see your whole wealth.'),
+      tools: [
+        { label: L('الأصول', 'Assets'), href: '/holdings' },
+        { label: L('أرقامي المالية', 'My Financial Numbers'), href: '/financial-numbers' },
+      ],
+    },
   ];
 
   return (
@@ -319,9 +332,9 @@ export default function HomePage() {
       <div className="mb-8">
         <SectionHeading
           eyebrow={L('لماذا وُجد مال مايند', 'Why MalMind exists')}
-          title={L('ثلاث مشكلات في المال الشخصي — وكيف نعالجها', 'Three problems in personal finance — and how we tackle them')}
+          title={L('أربع مشكلات في المال الشخصي — وكيف نعالجها', 'Four problems in personal finance — and how we tackle them')}
         />
-        <div className="grid md:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-2 gap-3">
           {PROBLEMS.map((p) => (
             <div key={p.problem} className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col">
               <div className="text-2xl mb-2">{p.icon}</div>

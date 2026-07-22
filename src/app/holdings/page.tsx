@@ -5,8 +5,9 @@ import LivePortfolio from './LivePortfolio';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 const ASSET_TYPE_TO_CLASS: Record<string, string> = {
-  cash: 'cash', stocks: 'equity', real_estate: 'real_estate', gold: 'commodity',
-  car: 'other', business: 'business', crypto: 'alternative', other: 'other',
+  cash: 'cash', stocks: 'equity', real_estate: 'real_estate', land: 'real_estate',
+  gold: 'commodity', livestock: 'other', car: 'other', business: 'business',
+  crypto: 'alternative', other: 'other',
 };
 
 function fmt(n: unknown) {
@@ -24,7 +25,9 @@ export default function HoldingsPage() {
     { value: 'cash', label: L('نقد', 'Cash') },
     { value: 'stocks', label: L('أسهم وصناديق', 'Stocks / funds') },
     { value: 'real_estate', label: L('عقارات', 'Real estate') },
+    { value: 'land', label: L('أرض', 'Land') },
     { value: 'gold', label: L('ذهب', 'Gold') },
+    { value: 'livestock', label: L('ماشية وإبل', 'Livestock / camels') },
     { value: 'car', label: L('سيارة', 'Car') },
     { value: 'business', label: L('أعمال', 'Business') },
     { value: 'crypto', label: L('عملات رقمية', 'Crypto') },
