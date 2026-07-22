@@ -3,14 +3,14 @@
 // The Daily Stack — a day of spending as a stack of choices, and the snowball
 // it becomes when repeated. Ties daily choices to the pace shown on Velocity.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
-  PERIODS, periodLabel, periodPer, scaleToPeriod, buildDailyItems, byCategory, sumBy,
+  PERIODS, PERIOD_DAYS, periodLabel, periodPer, scaleToPeriod, buildDailyItems, byCategory, sumBy,
   futureValue, DEFAULT_RETURN, DEBT_RATE, KIND_COLOR,
   type Period, type StackItem, type Kind,
 } from '@/lib/dailyStack';
@@ -35,6 +35,25 @@ export default function DailyStackPage() {
   const [period, setPeriod] = useState<Period>('day');
   const [target, setTarget] = useState(100000);
   const [trim, setTrim] = useState(false);
+  const [hoverCat, setHoverCat] = useState<string | null>(null);
+
+  // Proportional zoom transition between period lenses. A week is 7× a day, so
+  // switching day→week momentarily shrinks the stack to its day-sized share at
+  // the base, then grows it to fill the frame — "zooming out" to the bigger
+  // stack at proportional scale (and zooming in the other way).
+  const [zoom, setZoom] = useState(1);
+  const [zoomAnim, setZoomAnim] = useState(false);
+  const prevPeriod = useRef<Period>(period);
+  useEffect(() => {
+    const prev = prevPeriod.current;
+    if (prev === period) return;
+    prevPeriod.current = period;
+    const start = PERIOD_DAYS[prev] / PERIOD_DAYS[period];
+    setZoomAnim(false);
+    setZoom(start);
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => { setZoomAnim(true); setZoom(1); }));
+    return () => cancelAnimationFrame(id);
+  }, [period]);
 
   useEffect(() => {
     (async () => {
@@ -72,6 +91,20 @@ export default function DailyStackPage() {
   const positive = dailySurplus >= 0;
 
   const needD = sumBy(items, 'need'), wantD = sumBy(items, 'want'), debtD = sumBy(items, 'debt');
+
+  // Vertical-stack geometry: the column is scaled to income, so the choices
+  // literally stack up against the income line — surplus is the cap on top,
+  // a deficit poking through the line is overspend.
+  const COL_H = 460;
+  const colMax = Math.max(dailySpend, dailyIncome, 1);
+  const px = COL_H / colMax;
+  const incomeY = dailyIncome * px;
+  const spendTop = dailySpend * px;
+  let _run = 0;
+  const blocks = cats.map((c) => { const b = { c, bottom: _run, height: c.daily * px }; _run += c.daily * px; return b; });
+  const shadow20 = (daily: number) => futureValue(daily, 20, DEFAULT_RETURN);
+  const hovered = hoverCat ? cats.find((c) => c.category === hoverCat) ?? null : null;
+  const kindWord = (k: Kind) => k === 'need' ? L('احتياج', 'a need') : k === 'debt' ? L('دَين', 'debt') : L('اختيار', 'a want');
 
   // The snowball: surplus invested; the shadow: your spend, had it been invested.
   const snowY = [10, 20, 30];
@@ -132,54 +165,123 @@ export default function DailyStackPage() {
               </div>
             </div>
 
-            <div className="flex gap-5 items-stretch">
-              {/* the stacked bricks */}
-              <div className="flex flex-col-reverse rounded-xl overflow-hidden border border-[var(--border-faint)]" style={{ width: 190, height: 340 }} dir="ltr">
-                {cats.map((c) => {
-                  const h = (c.daily / dailySpend) * 100;
-                  const tall = h > 9;
-                  return (
-                    <div key={c.category} className="relative flex items-center px-2.5 border-t border-white/10 first:border-t-0"
-                      style={{ height: `${h}%`, background: `linear-gradient(90deg, ${KIND_COLOR[c.kind]}e6, ${KIND_COLOR[c.kind]}b3)` }}
-                      title={`${c.category}: ${money(scaleToPeriod(c.daily, period))}`}>
-                      {tall && (
-                        <div className="text-white min-w-0">
-                          <div className="text-[11px] font-semibold leading-tight truncate">{c.icon} {c.category}</div>
-                          <div className="text-[10px] text-white/85">{money(scaleToPeriod(c.daily, period))}</div>
-                        </div>
-                      )}
+            <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+              {/* ── the vertical stack ── */}
+              <div className="shrink-0 mx-auto md:mx-0" style={{ width: 300 }}>
+                <div className="relative overflow-hidden" style={{ width: 300, height: COL_H }} dir="ltr" onMouseLeave={() => setHoverCat(null)}>
+                  <div className="absolute inset-0" style={{ transform: `scale(${zoom})`, transformOrigin: 'bottom center', transition: zoomAnim ? 'transform 560ms cubic-bezier(0.22,1,0.36,1)' : 'none' }}>
+                  {/* surplus cap (you keep) — the headroom above your spending */}
+                  {positive && incomeY - spendTop > 3 && (
+                    <div className="absolute inset-x-0 rounded-lg border border-dashed border-[var(--green)] flex items-center justify-center"
+                      style={{ bottom: spendTop, height: incomeY - spendTop - 2, background: 'var(--green)', backgroundImage: 'linear-gradient(0deg, rgba(29,158,117,0.14), rgba(29,158,117,0.05))' }}>
+                      <span className="text-[11px] font-semibold text-[var(--green-dark)]">↑ {L('يبقى معك', 'you keep')} +{money(surplusPeriod)}</span>
                     </div>
-                  );
-                })}
+                  )}
+
+                  {/* the choice blocks, stacked bottom → top (needs at the base) */}
+                  {blocks.map(({ c, bottom, height }) => {
+                    const active = hoverCat === c.category;
+                    const tall = height > 26;
+                    return (
+                      <div key={c.category}
+                        onMouseEnter={() => setHoverCat(c.category)}
+                        className="absolute inset-x-0 rounded-lg flex items-center justify-between px-3 cursor-pointer transition-all"
+                        style={{
+                          bottom, height: Math.max(2, height - 2),
+                          background: `linear-gradient(90deg, ${KIND_COLOR[c.kind]}f2, ${KIND_COLOR[c.kind]}c4)`,
+                          boxShadow: active ? `0 0 0 2px var(--surface-card), 0 0 0 4px ${KIND_COLOR[c.kind]}` : '0 1px 2px rgba(0,0,0,0.18)',
+                          transform: active ? 'translateX(4px)' : 'none', zIndex: active ? 5 : 1,
+                        }}>
+                        {tall ? (
+                          <>
+                            <div className="text-white min-w-0">
+                              <div className="text-[12px] font-semibold leading-tight truncate">{c.icon} {c.category}</div>
+                              <div className="text-[10px] text-white/85">{money(scaleToPeriod(c.daily, period))}</div>
+                            </div>
+                            <div className="text-[9px] text-white/70 text-end shrink-0 leading-tight">
+                              <div>{L('بعد 20س', '20y')}</div><div className="font-semibold">{moneyC(shadow20(c.daily))}</div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-white text-[10px] font-semibold truncate">{c.icon} {c.category}</div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* income line — the ceiling your choices stack toward */}
+                  <div className="absolute inset-x-0 flex items-center pointer-events-none" style={{ bottom: incomeY, height: 0 }}>
+                    <div className="flex-1 border-t-2 border-dashed border-[var(--ink)] opacity-70" />
+                    <span className="text-[9px] font-semibold text-[var(--ink-2)] bg-[var(--surface-card)] px-1 -mt-0.5">{L('دخلك', 'income')} {money(incomePeriod)}</span>
+                  </div>
+
+                  {/* deficit — the part poking above income */}
+                  {!positive && spendTop - incomeY > 3 && (
+                    <div className="absolute inset-x-0 rounded-lg border-2 border-dashed border-[var(--red-2)] flex items-center justify-center pointer-events-none"
+                      style={{ bottom: incomeY, height: spendTop - incomeY - 2 }}>
+                      <span className="text-[11px] font-semibold text-[var(--red-2)] bg-[var(--surface-card)]/80 px-1 rounded">⚠ {L('تجاوز', 'over by')} {money(Math.abs(surplusPeriod))}</span>
+                    </div>
+                  )}
+                  </div>
+                </div>
+                <div className="text-[10px] text-[var(--muted)] text-center mt-2">{L('مرّر فوق أي طبقة لرؤية ظلّها بعد 20 سنة', 'Hover a layer to see its 20-year shadow')}</div>
               </div>
 
-              {/* readout */}
-              <div className="flex-1 min-w-0 flex flex-col justify-between">
-                <div>
-                  <Row label={L('الدخل', 'Income')} value={money(incomePeriod)} color="var(--green-dark)" />
-                  <Row label={L('الإنفاق', 'Spending')} value={`− ${money(spendPeriod)}`} color="var(--ink-2)" />
-                  <div className="h-px bg-[var(--border-default)] my-2" />
-                  <Row label={positive ? L('يبقى معك', 'You keep') : L('العجز', 'Shortfall')} value={`${positive ? '+' : '−'} ${money(Math.abs(surplusPeriod))}`} color={positive ? 'var(--green-dark)' : 'var(--red-2)'} bold />
-                </div>
+              {/* ── insight panel ── */}
+              <div className="flex-1 min-w-0 flex flex-col">
+                {hovered ? (
+                  <div className="rounded-xl border p-4 mb-4" style={{ borderColor: `${KIND_COLOR[hovered.kind]}66`, background: `${KIND_COLOR[hovered.kind]}0f` }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{hovered.icon}</span>
+                      <span className="font-serif text-lg font-semibold text-[var(--ink)]">{hovered.category}</span>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ color: KIND_COLOR[hovered.kind], background: `${KIND_COLOR[hovered.kind]}22` }}>{kindWord(hovered.kind)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <div><div className="text-[10px] text-[var(--muted)]">{L('التكلفة', 'Costs you')} · {periodLabel(period, locale)}</div><div className="font-serif text-lg font-bold text-[var(--ink)]">{money(scaleToPeriod(hovered.daily, period))}</div></div>
+                      <div><div className="text-[10px] text-[var(--muted)]">{L('من إنفاقك', 'of your spend')}</div><div className="font-serif text-lg font-bold text-[var(--ink)]">{Math.round((hovered.daily / dailySpend) * 100)}%</div></div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: `${KIND_COLOR[hovered.kind]}33` }}>
+                      <div className="text-[11px] text-[var(--muted)]">{L('ظلّها بعد 20 سنة (لو استُثمِرت)', 'Its 20-year shadow (if invested)')}</div>
+                      <div className="font-serif text-2xl font-bold text-[var(--gold-text-strong)]">{money(shadow20(hovered.daily))}</div>
+                      <div className="text-[11px] text-[var(--ink-2)] mt-1">
+                        {hovered.kind === 'want'
+                          ? L('اختيار يمكنك تغييره اليوم — وهنا يظهر أثره على المدى الطويل.', 'A choice you can change today — this is its long shadow.')
+                          : hovered.kind === 'debt'
+                          ? L('يفرّغ نقداً حين يُسدَّد — ثم يتحوّل هذا الظلّ إلى كرة ثلج لك.', 'Frees cash once cleared — then this shadow becomes your snowball.')
+                          : L('أساسيّ، لكن حتى الأساسيّات تُحسَّن بذكاء.', 'Essential — but even essentials can be optimised.')}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <Row label={L('الدخل', 'Income')} value={money(incomePeriod)} color="var(--green-dark)" />
+                    <Row label={L('الإنفاق', 'Spending')} value={`− ${money(spendPeriod)}`} color="var(--ink-2)" />
+                    <div className="h-px bg-[var(--border-default)] my-2" />
+                    <Row label={positive ? L('يبقى معك', 'You keep') : L('العجز', 'Shortfall')} value={`${positive ? '+' : '−'} ${money(Math.abs(surplusPeriod))}`} color={positive ? 'var(--green-dark)' : 'var(--red-2)'} bold />
+                  </div>
+                )}
 
-                {/* need / want / debt split of the stack */}
-                <div className="mt-4">
-                  <div className="text-[10px] text-[var(--muted)] mb-1.5">{L('من ماذا تتكوّن كومتك', 'What your stack is made of')}</div>
-                  <div className="flex h-2.5 rounded-full overflow-hidden mb-2" dir="ltr">
+                {/* need / want / debt makeup */}
+                <div className="mt-auto pt-4">
+                  <div className="text-[10px] text-[var(--muted)] mb-2">{L('من ماذا تتكوّن كومتك', 'What your stack is made of')}</div>
+                  <div className="space-y-1.5">
                     {(['need', 'want', 'debt'] as Kind[]).map((k) => {
                       const v = k === 'need' ? needD : k === 'want' ? wantD : debtD;
-                      return v > 0 ? <div key={k} style={{ width: `${(v / dailySpend) * 100}%`, background: KIND_COLOR[k] }} /> : null;
+                      if (v <= 0) return null;
+                      const label = k === 'need' ? L('احتياجات', 'Needs') : k === 'want' ? L('اختيارات', 'Wants') : L('ديون', 'Debt');
+                      return (
+                        <div key={k} className="flex items-center gap-2">
+                          <span className="text-[11px] w-16 shrink-0" style={{ color: KIND_COLOR[k] }}>{label}</span>
+                          <div className="flex-1 h-2 rounded-full bg-[var(--surface-1)] overflow-hidden" dir="ltr"><div className="h-full rounded-full" style={{ width: `${(v / dailySpend) * 100}%`, background: KIND_COLOR[k] }} /></div>
+                          <span className="text-[11px] font-medium text-[var(--ink)] w-24 text-end shrink-0">{money(scaleToPeriod(v, period))}</span>
+                        </div>
+                      );
                     })}
                   </div>
-                  <div className="flex gap-3 flex-wrap text-[11px]">
-                    <Chip color={KIND_COLOR.need} label={L('احتياجات', 'Needs')} v={money(scaleToPeriod(needD, period))} />
-                    <Chip color={KIND_COLOR.want} label={L('اختيارات', 'Wants')} v={money(scaleToPeriod(wantD, period))} />
-                    {debtD > 0 && <Chip color={KIND_COLOR.debt} label={L('ديون', 'Debt')} v={money(scaleToPeriod(debtD, period))} />}
-                  </div>
-                  <p className="text-[11px] text-[var(--muted)] mt-2 leading-relaxed">
+                  <p className="text-[11px] text-[var(--muted)] mt-2.5 leading-relaxed">
                     {L(
-                      `«الاختيارات» هي ما بيدك تغييره اليوم — وهي ${Math.round((wantD / dailySpend) * 100)}% من كومتك.`,
-                      `“Wants” are what you can change today — and they're ${Math.round((wantD / dailySpend) * 100)}% of your stack.`
+                      `«الاختيارات» في القمّة — وهي ${Math.round((wantD / dailySpend) * 100)}% من كومتك، وأسهل ما يمكنك تحريكه اليوم.`,
+                      `“Wants” sit at the top — ${Math.round((wantD / dailySpend) * 100)}% of your stack, and the easiest layer to move today.`
                     )}
                   </p>
                 </div>
@@ -304,12 +406,5 @@ function Row({ label, value, color, bold }: { label: string; value: string; colo
       <span className="text-xs text-[var(--muted)]">{label}</span>
       <span className={`${bold ? 'font-serif text-lg font-bold' : 'text-sm font-medium'}`} style={{ color }}>{value}</span>
     </div>
-  );
-}
-function Chip({ color, label, v }: { color: string; label: string; v: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[var(--ink-2)]">
-      <span className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />{label} · <strong className="text-[var(--ink)] font-medium">{v}</strong>
-    </span>
   );
 }

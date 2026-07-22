@@ -905,6 +905,14 @@ export default function TodayDashboard() {
         const surplusP = scaleToPeriod(surplus, stackPeriod);
         const snow20 = futureValue(Math.max(0, surplus), 20, DEFAULT_RETURN);
         const monster20 = futureValue(Math.max(0, -surplus), 20, DEBT_RATE);
+        // mini vertical-stack geometry (scaled to income)
+        const mColH = 118;
+        const mMax = Math.max(dailySpend, dailyIncome, 1);
+        const mpx = mColH / mMax;
+        const mIncomeY = dailyIncome * mpx, mSpendTop = dailySpend * mpx;
+        const mKinds = ([{ k: 'need', v: needD }, { k: 'debt', v: debtD }, { k: 'want', v: wantD }] as { k: Kind; v: number }[]).filter((x) => x.v > 0);
+        let mrun = 0;
+        const mBlocks = mKinds.map((x) => { const b = { ...x, bottom: mrun, height: x.v * mpx }; mrun += x.v * mpx; return b; });
         return (
           <Card title={locale === 'ar' ? 'كومة اليوم' : 'The Daily Stack'} href="/daily-stack" explain={EX.stack} className="mb-4">
             <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-3">
@@ -915,26 +923,34 @@ export default function TodayDashboard() {
                 </button>
               ))}
             </div>
-            <div className="flex items-end justify-between gap-3 mb-3">
-              <div className="min-w-0">
+            <div className="flex gap-4 mb-1">
+              {/* the vertical stack, scaled to income */}
+              <div className="relative shrink-0" style={{ width: 52, height: mColH }} dir="ltr" title={locale === 'ar' ? 'كومتك مقابل دخلك' : 'your stack vs your income'}>
+                {positive && mIncomeY - mSpendTop > 2 && (
+                  <div className="absolute inset-x-0 rounded border border-dashed border-[var(--green)]" style={{ bottom: mSpendTop, height: mIncomeY - mSpendTop - 1, background: 'rgba(29,158,117,0.10)' }} />
+                )}
+                {mBlocks.map((b) => (
+                  <div key={b.k} className="absolute inset-x-0 rounded" style={{ bottom: b.bottom, height: Math.max(2, b.height - 1.5), background: KIND_COLOR[b.k] }} />
+                ))}
+                <div className="absolute inset-x-0 border-t border-dashed border-[var(--ink)] opacity-60" style={{ bottom: mIncomeY }} />
+                {!positive && mSpendTop - mIncomeY > 2 && (
+                  <div className="absolute inset-x-0 rounded border border-dashed border-[var(--red-2)]" style={{ bottom: mIncomeY, height: mSpendTop - mIncomeY - 1 }} />
+                )}
+              </div>
+              {/* numbers */}
+              <div className="flex-1 min-w-0">
                 <div className="font-serif text-2xl font-bold text-[var(--ink)]">{money(spendP)}</div>
-                <div className="text-[10px] text-[var(--muted)]">{locale === 'ar' ? `تكلفة مستوى معيشتك ${periodPer(stackPeriod, locale)}` : `your standard of living costs, ${periodPer(stackPeriod, locale)}`}</div>
+                <div className="text-[10px] text-[var(--muted)] mb-2">{locale === 'ar' ? `تكلفة مستوى معيشتك ${periodPer(stackPeriod, locale)}` : `your standard of living costs, ${periodPer(stackPeriod, locale)}`}</div>
+                <div className="flex items-baseline gap-1.5 mb-2">
+                  <span className="font-serif text-base font-bold" style={{ color: positive ? 'var(--green-dark)' : 'var(--red-2)' }}>{positive ? '+' : '−'}{money(Math.abs(surplusP))}</span>
+                  <span className="text-[10px] text-[var(--muted)]">{positive ? (locale === 'ar' ? 'يبقى فوق دخلك' : 'kept under income') : (locale === 'ar' ? 'فوق دخلك' : 'over income')}</span>
+                </div>
+                <div className="flex gap-3 flex-wrap text-[10px] text-[var(--muted)]">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: KIND_COLOR.need }} />{locale === 'ar' ? 'احتياجات' : 'Needs'}</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: KIND_COLOR.want }} />{locale === 'ar' ? 'اختيارات' : 'Wants'} {Math.round((wantD / dailySpend) * 100)}%</span>
+                  {debtD > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: KIND_COLOR.debt }} />{locale === 'ar' ? 'ديون' : 'Debt'}</span>}
+                </div>
               </div>
-              <div className="text-end shrink-0">
-                <div className="font-serif text-lg font-bold" style={{ color: positive ? 'var(--green-dark)' : 'var(--red-2)' }}>{positive ? '+' : '−'}{money(Math.abs(surplusP))}</div>
-                <div className="text-[10px] text-[var(--muted)]">{positive ? (locale === 'ar' ? 'يبقى معك' : 'you keep') : (locale === 'ar' ? 'عجز' : 'shortfall')}</div>
-              </div>
-            </div>
-            <div className="flex h-2.5 rounded-full overflow-hidden mb-1.5" dir="ltr">
-              {(['need', 'want', 'debt'] as Kind[]).map((k) => {
-                const v = k === 'need' ? needD : k === 'want' ? wantD : debtD;
-                return v > 0 ? <div key={k} style={{ width: `${(v / dailySpend) * 100}%`, background: KIND_COLOR[k] }} /> : null;
-              })}
-            </div>
-            <div className="flex gap-3 flex-wrap text-[10px] text-[var(--muted)]">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: KIND_COLOR.need }} />{locale === 'ar' ? 'احتياجات' : 'Needs'}</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: KIND_COLOR.want }} />{locale === 'ar' ? 'اختيارات' : 'Wants'} {Math.round((wantD / dailySpend) * 100)}%</span>
-              {debtD > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: KIND_COLOR.debt }} />{locale === 'ar' ? 'ديون' : 'Debt'}</span>}
             </div>
             <div className="mt-3 pt-3 border-t border-[var(--border-default)] text-[11px] leading-relaxed text-[var(--ink-2)]">
               {positive
