@@ -61,6 +61,16 @@ function YearAgeTick(props: {
   );
 }
 
+// Representative icons per level — one more for each rung up. They live inside
+// the band and move with it. Financial Freedom includes wings (freedom); Lavish
+// includes a plane (travels a lot).
+const LEVEL_ICONS: Record<LadderTier, string[]> = {
+  basic: ['🏠'],
+  decent: ['🚗', '🍽️'],
+  lavish: ['🏡', '🚙', '✈️'],
+  financial_freedom: ['🪽', '🏝️', '💰', '🌱'],
+};
+
 // The placement step. Left→right: a grabbable socioeconomic ladder (the drag
 // handle) · the level names in the y-axis gutter · the y-axis line · the plot
 // with transparent, full-width colour bands and a fixed national-average line.
@@ -100,6 +110,15 @@ function LadderPlacement({ offset, setOffset, ar, locale }: {
         }} />
       ))}
 
+      {/* level icons — one more per rung, living inside the band (move with it) */}
+      {LADDER_TIERS.map((t) =>
+        LEVEL_ICONS[t].map((ic, i) => (
+          <div key={`${t}-${i}`} className="absolute pointer-events-none select-none" style={{ top: yToTop(ladderY(t, offset)) - 15, left: PLOT_LEFT + 24 + i * 40, fontSize: 24, lineHeight: 1 }}>
+            {ic}
+          </div>
+        ))
+      )}
+
       {/* national-average line (fixed) */}
       <div className="absolute border-t-2 border-dashed" style={{ left: PLOT_LEFT, right: 4, top: natTop, borderColor: 'var(--gold)' }} />
       <div className="absolute px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm whitespace-nowrap" style={{ top: natTop - 10, right: 8, color: '#4a3a12', background: 'var(--gold)' }}>
@@ -128,8 +147,9 @@ function LadderPlacement({ offset, setOffset, ar, locale }: {
         <div className="absolute -right-4 top-1/2 -translate-y-1/2 text-[var(--muted)] group-hover:text-[var(--green-dark)] text-sm">⇕</div>
       </div>
 
-      {/* caption under the ladder */}
-      <div className="absolute text-[9px] text-[var(--muted)] text-center leading-tight" style={{ left: -6, width: 86, bottom: 2 }}>
+      {/* caption directly beneath the ladder (follows it as it moves) */}
+      <div className="absolute text-[8.5px] text-[var(--muted)] text-center leading-[1.15]"
+        style={{ top: Math.min(bandBottom + 6, H - 24), left: 19 - 33, width: 66 }}>
         {L('السُّلّم الاجتماعي', 'Socioeconomic ladder')}
       </div>
     </div>
