@@ -61,27 +61,39 @@ export const NATIONAL_AVG_SOURCE = {
 export type LadderTier = 'basic' | 'decent' | 'lavish' | 'financial_freedom';
 export const LADDER_TIERS: LadderTier[] = ['basic', 'decent', 'lavish', 'financial_freedom'];
 
-export const NAT_Y = 1;          // national average sits here on the abstract axis
-export const LADDER_STEP = 1;    // equal spacing between the four levels
-export const OFFSET_MIN = -0.6;  // band can dip its floor a little below the average
-export const OFFSET_MAX = 2.5;   // …or ride well above it (upper-middle footing)
-export const DEFAULT_OFFSET = 0; // basic sits exactly on the national average
+export const NAT_Y = 1;           // national-average line sits here on the abstract axis
+export const OFFSET_MIN = -1.6;   // band floor can drop below the average
+export const OFFSET_MAX = 2.6;    // …or ride well above it (upper-middle footing)
+export const DEFAULT_OFFSET = 0;  // basic floor sits at the national average
+// Quick-snap positions: where the Basic FLOOR sits vs the national average.
+export const OFFSET_BELOW = -1;
+export const OFFSET_AT = 0;
+export const OFFSET_ABOVE = 1;
+// A FIXED abstract domain, so the four-level band keeps a constant size as it
+// slides up and down (the band is 4 units tall; the domain is taller).
+export const Y_MIN = NAT_Y + OFFSET_MIN - 0.6;                     // ≈ -1.2
+export const Y_MAX = NAT_Y + OFFSET_MAX + LADDER_TIERS.length + 0.6; // ≈ 8.2
 
-// Abstract y-position of a ladder level for a given band offset. offset 0 puts
-// Basic on the national-average line; higher offset lifts the whole band.
-export function ladderY(tier: LadderTier, offset: number): number {
-  return NAT_Y + offset + LADDER_TIERS.indexOf(tier) * LADDER_STEP;
+// The bottom edge of a level's band. offset lifts the whole fixed-size band;
+// offset 0 puts the Basic floor exactly on the national-average line.
+export function ladderBandBottom(tier: LadderTier, offset: number): number {
+  return NAT_Y + offset + LADDER_TIERS.indexOf(tier);
 }
+// The centre of a level's band — where its planned/actual point sits.
+export function ladderY(tier: LadderTier, offset: number): number {
+  return ladderBandBottom(tier, offset) + 0.5;
+}
+// The top edge of the whole band (top of Financial Freedom).
 export function ladderTop(offset: number): number {
-  return ladderY('financial_freedom', offset);
+  return ladderBandBottom('financial_freedom', offset) + 1;
 }
 
 // Implied monthly SAR for each rung — used ONLY to place the user's real income
-// on the abstract axis (never shown). Basic tracks the offset around the
+// on the abstract axis (never shown). Basic tracks the band position around the
 // national average; the rest are fixed multiples of Basic.
 const LADDER_MULT: Record<LadderTier, number> = { basic: 1, decent: 1.9, lavish: 3.3, financial_freedom: 6 };
 export function ladderBasicSar(offset: number): number {
-  return Math.max(NATIONAL_AVG_INCOME * 0.55, Math.round(NATIONAL_AVG_INCOME * (1 + offset * 0.5)));
+  return Math.max(NATIONAL_AVG_INCOME * 0.55, Math.round(NATIONAL_AVG_INCOME * (1 + offset * 0.4)));
 }
 export function impliedSar(tier: LadderTier, offset: number): number {
   return Math.round(ladderBasicSar(offset) * LADDER_MULT[tier]);
@@ -90,7 +102,10 @@ export function impliedSar(tier: LadderTier, offset: number): number {
 // Place a real monthly income on the abstract axis by interpolating between the
 // implied rung values, so the actual line can be drawn against the plan.
 export function incomeToAbstractY(income: number, offset: number): number {
-  const anchors: [number, number][] = [[0, 0], ...LADDER_TIERS.map((t) => [impliedSar(t, offset), ladderY(t, offset)] as [number, number])];
+  const anchors: [number, number][] = [
+    [0, ladderBandBottom('basic', offset)],
+    ...LADDER_TIERS.map((t) => [impliedSar(t, offset), ladderY(t, offset)] as [number, number]),
+  ];
   for (let i = 0; i < anchors.length - 1; i++) {
     const [s0, y0] = anchors[i];
     const [s1, y1] = anchors[i + 1];
@@ -99,8 +114,7 @@ export function incomeToAbstractY(income: number, offset: number): number {
       return y0 + (y1 - y0) * t;
     }
   }
-  // Above Financial Freedom — nudge a touch beyond the top rung.
-  return ladderTop(offset) + 0.3;
+  return ladderY('financial_freedom', offset) + 0.4;
 }
 
 // What each rung means, in the user's own life-terms (kept short; the fuller

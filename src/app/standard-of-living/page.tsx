@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback, Suspense } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -12,8 +12,8 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   tierLabel, getLifestyle, ageForYear, suggestForTier, TIER_COLOR,
   NATIONAL_AVG_INCOME, NATIONAL_AVG_SOURCE, LADDER_TIERS, TIER_MEANING,
-  NAT_Y, OFFSET_MIN, OFFSET_MAX, DEFAULT_OFFSET, ladderY, ladderTop,
-  buildAbstractSeries, pathStatus,
+  NAT_Y, OFFSET_MIN, OFFSET_MAX, DEFAULT_OFFSET, OFFSET_BELOW, OFFSET_AT, OFFSET_ABOVE,
+  Y_MIN, Y_MAX, ladderY, ladderBandBottom, buildAbstractSeries, pathStatus,
   type Tier, type Phase, type PhaseSuggestion, type LadderTier,
 } from '@/lib/standardOfLiving';
 
@@ -58,6 +58,89 @@ function YearAgeTick(props: {
         </text>
       )}
     </g>
+  );
+}
+
+// A little climbable ladder — gamified anchor for the band.
+function LadderIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 48" className={className} fill="none" stroke="#C9843E" strokeWidth="2.4" strokeLinecap="round">
+      <line x1="6" y1="2" x2="6" y2="46" />
+      <line x1="18" y1="2" x2="18" y2="46" />
+      {[8, 16, 24, 32, 40].map((y) => <line key={y} x1="6" y1={y} x2="18" y2={y} />)}
+    </svg>
+  );
+}
+
+// The placement step: a FIXED-SIZE band of the four levels that the user grabs
+// and drags up/down against the national-average line. No numbers, no x-axis.
+function LadderPlacement({ offset, setOffset, ar, locale }: {
+  offset: number; setOffset: (v: number) => void; ar: boolean; locale: 'ar' | 'en';
+}) {
+  const L = (a: string, e: string) => (ar ? a : e);
+  const H = 340;
+  const span = Y_MAX - Y_MIN;
+  const pxPerUnit = H / span;
+  const yToTop = (yUnit: number) => (Y_MAX - yUnit) * pxPerUnit;
+  const drag = useRef<{ startY: number; startOffset: number } | null>(null);
+
+  const onDown = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    drag.current = { startY: e.clientY, startOffset: offset };
+  };
+  const onMove = (e: React.PointerEvent) => {
+    if (!drag.current) return;
+    setOffset(drag.current.startOffset + (drag.current.startY - e.clientY) / pxPerUnit);
+  };
+  const onUp = (e: React.PointerEvent) => {
+    drag.current = null;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+  };
+
+  const bandTop = yToTop(ladderBandBottom('financial_freedom', offset) + 1);
+  const bandBottom = yToTop(ladderBandBottom('basic', offset));
+  const bandH = bandBottom - bandTop;
+  const natTop = yToTop(NAT_Y);
+  const reversed = [...LADDER_TIERS].reverse(); // FF at the top
+
+  return (
+    <div className="flex gap-3 select-none" dir="ltr">
+      {/* gamified ladder anchor */}
+      <div className="flex flex-col items-center justify-center w-14 shrink-0">
+        <LadderIcon className="w-9 h-20" />
+        <span className="text-[9px] text-[var(--muted)] text-center mt-1 leading-tight">{L('السُّلّم الاجتماعي', 'Socioeconomic ladder')}</span>
+      </div>
+      {/* track */}
+      <div className="relative flex-1" style={{ height: H }}>
+        {/* faint full-width level strips */}
+        {LADDER_TIERS.map((t) => (
+          <div key={t} className="absolute inset-x-0 rounded-sm" style={{ top: yToTop(ladderBandBottom(t, offset) + 1), height: pxPerUnit, background: `${TIER_COLOR[t]}1f` }} />
+        ))}
+        {/* left + bottom axis lines (no ticks, no numbers) */}
+        <div className="absolute top-0 bottom-0 w-px bg-[var(--border-default)]" style={{ left: 0 }} />
+        <div className="absolute inset-x-0 h-px bg-[var(--border-default)]" style={{ bottom: 0 }} />
+        {/* national-average line */}
+        <div className="absolute inset-x-0 border-t-2 border-dashed" style={{ top: natTop, borderColor: 'var(--gold)' }} />
+        <span className="absolute text-[10px] font-semibold" style={{ top: Math.max(0, natTop - 15), right: 4, color: 'var(--gold)' }}>{L('المتوسط الوطني', 'National average')}</span>
+        {/* the draggable, fixed-size band */}
+        <div
+          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+          className="absolute rounded-2xl overflow-hidden border-2 border-white/30 shadow-xl touch-none cursor-grab active:cursor-grabbing"
+          style={{ top: bandTop, height: bandH, left: 12, width: 210 }}
+          title={L('اسحب لأعلى أو لأسفل', 'Drag up or down')}
+        >
+          {reversed.map((t) => (
+            <div key={t} className="flex items-center justify-center font-serif text-xs font-semibold text-white" style={{ height: bandH / 4, background: `${TIER_COLOR[t]}e6` }}>
+              {tierLabel(t, locale)}
+            </div>
+          ))}
+        </div>
+        {/* grab hint */}
+        <div className="absolute text-[10px] text-[var(--muted)] flex items-center gap-1" style={{ top: bandTop + bandH / 2 - 8, left: 228 }}>
+          <span className="text-sm">⇅</span> {L('اسحب', 'drag')}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -214,7 +297,6 @@ function StandardOfLivingInner() {
   );
 
   const series = useMemo(() => buildAbstractSeries(phasesForSeries, offset, incomeByYear), [phasesForSeries, offset, incomeByYear]);
-  const yMax = ladderTop(offset) + 0.6;
 
   // Abstract y-axis ticks: one per ladder level, labelled (never a number).
   const tierYs = LADDER_TIERS.map((t) => ({ t, y: ladderY(t, offset) }));
@@ -246,26 +328,23 @@ function StandardOfLivingInner() {
   const latest = loggedYears.length ? loggedYears[loggedYears.length - 1] : null;
   const latestStatus = latest ? pathStatus(latest.actual, latest.planned) : null;
 
-  // Shared reference lines (the ladder band + the national-average baseline).
-  // NOTE: an ARRAY, not a fragment — Recharts only detects children in arrays.
+  // The fixed-size colour band (one filled strip per level) + national-average
+  // baseline. An ARRAY, not a fragment — Recharts only detects array children.
   const bandRefs = [
     ...LADDER_TIERS.map((t) => (
-      <ReferenceLine key={t} y={ladderY(t, offset)} stroke={TIER_COLOR[t]} strokeOpacity={0.35} strokeDasharray="2 4" />
+      <ReferenceArea key={t} y1={ladderBandBottom(t, offset)} y2={ladderBandBottom(t, offset) + 1}
+        fill={TIER_COLOR[t]} fillOpacity={0.12} stroke="none"
+        label={{ value: tierLabel(t, locale), position: 'insideLeft', fontSize: 9, fill: TIER_COLOR[t] }} />
     )),
     <ReferenceLine key="natavg" y={NAT_Y} stroke="var(--gold)" strokeDasharray="5 3" strokeWidth={1.5}
       label={{ value: L('المتوسط الوطني', 'National avg'), position: 'insideBottomRight', fontSize: 9, fill: 'var(--gold)' }} />,
   ];
   const yAxis = (
-    <YAxis domain={[0, yMax]} ticks={yTicks} tickFormatter={(v) => tickLabel(Number(v))}
+    <YAxis domain={[Y_MIN, Y_MAX]} ticks={yTicks} tickFormatter={(v) => tickLabel(Number(v))}
       tick={{ fontSize: 10, fill: 'var(--ink-2)' }} width={ar ? 88 : 108} axisLine={false} tickLine={false} interval={0} />
   );
-  const xAxis = <XAxis dataKey="year" height={ageBase ? 36 : 20} tick={(props) => <YearAgeTick {...props} ageBase={ageBase} ar={ar} />} tickLine={false} />;
-
-  // Placeholder flat "abstract path" at the national average, for the placement step.
-  const placementData = [
-    { year: currentYear, planned: NAT_Y, actual: null },
-    { year: currentYear + 16, planned: NAT_Y, actual: null },
-  ];
+  // Full picture: every year shown, with age beneath.
+  const xAxis = <XAxis dataKey="year" height={ageBase ? 36 : 20} interval={0} tick={(props) => <YearAgeTick {...props} ageBase={ageBase} ar={ar} />} tickLine={false} />;
 
   return (
     <div onMouseLeave={() => setTierHover(null)}>
@@ -329,34 +408,33 @@ function StandardOfLivingInner() {
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
           <div className="text-sm font-medium text-[var(--ink)] mb-1">{L('١ · ضع سُلّمك بالنسبة للمتوسط الوطني', '1 · Place your ladder vs the national average')}</div>
           <div className="text-xs text-[var(--muted)] mb-4 max-w-xl">
-            {L('حرّك الحزمة كاملةً للأعلى أو للأسفل. اجعل «الأساسي» عند المتوسط الوطني، أو ارفعه فوقه لأرضيّةٍ أعلى. لا أرقام — فقط أين تريد أن تكون مستوياتك.',
-              'Slide the whole band up or down. Put “Basic” at the national average, or lift it above for a higher floor. No numbers — just where you want your levels to sit.')}
+            {L('امسك السُّلّم واسحبه لأعلى أو لأسفل — تبقى المستويات الأربعة بحجمٍ ثابت. ضع «الأساسي» عند المتوسط الوطني أو فوقه أو تحته. لا أرقام في هذه المرحلة.',
+              'Grab the ladder and drag it up or down — the four levels stay a fixed size. Put “Basic” at, above, or below the national average. No numbers at this stage.')}
           </div>
-          <div className="flex gap-3 items-stretch">
-            {/* vertical slider */}
-            <div className="flex flex-col items-center justify-between py-2 shrink-0">
-              <button onClick={() => setOffset(offset + 0.2)} className="text-lg text-[var(--muted)] hover:text-[var(--green-dark)]" aria-label={L('أعلى', 'Higher')}>▲</button>
-              <input type="range" min={OFFSET_MIN} max={OFFSET_MAX} step={0.05} value={offset}
-                onChange={(e) => setOffset(Number(e.target.value))}
-                className="my-2" style={{ writingMode: 'vertical-lr', direction: 'rtl', width: 20, height: 180, accentColor: 'var(--green-dark)' }} />
-              <button onClick={() => setOffset(offset - 0.2)} className="text-lg text-[var(--muted)] hover:text-[var(--green-dark)]" aria-label={L('أدنى', 'Lower')}>▼</button>
-            </div>
-            <div className="flex-1 h-64" dir="ltr">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={placementData} margin={{ top: 12, right: 12, left: 6, bottom: 0 }}>
-                  <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-                  {bandRefs}
-                  {xAxis}
-                  {yAxis}
-                  <Line type="linear" dataKey="planned" stroke="var(--muted)" strokeWidth={2} strokeDasharray="5 4" dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
+
+          {/* quick-place buttons */}
+          <div className="flex gap-2 flex-wrap mb-4">
+            {[
+              { v: OFFSET_BELOW, ar: 'أساسي دون المتوسط', en: 'Basic below average' },
+              { v: OFFSET_AT, ar: 'أساسي عند المتوسط', en: 'Basic at average' },
+              { v: OFFSET_ABOVE, ar: 'أساسي فوق المتوسط', en: 'Basic above average' },
+            ].map((b) => {
+              const active = Math.abs(offset - b.v) < 0.25;
+              return (
+                <button key={b.v} onClick={() => setOffset(b.v)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium border ${active ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)]' : 'bg-[var(--surface-card)] border-[var(--border-medium)] text-[var(--ink-2)]'}`}>
+                  {L(b.ar, b.en)}
+                </button>
+              );
+            })}
           </div>
-          <div className="text-[11px] text-[var(--muted)] mt-2">
-            {offset > 0.15 ? L('أرضيّتك «الأساسي» فوق المتوسط الوطني — طبقة وسطى عليا.', 'Your “Basic” floor sits above the national average — an upper-middle footing.')
-              : offset < -0.15 ? L('أرضيّتك «الأساسي» دون المتوسط الوطني.', 'Your “Basic” floor sits below the national average.')
-              : L('أرضيّتك «الأساسي» عند المتوسط الوطني تماماً.', 'Your “Basic” floor sits right at the national average.')}
+
+          <LadderPlacement offset={offset} setOffset={setOffset} ar={ar} locale={locale} />
+
+          <div className="text-[11px] text-[var(--muted)] mt-3">
+            {offset > 0.35 ? L('أرضيّتك «الأساسي» فوق المتوسط الوطني — طبقة وسطى عليا.', 'Your “Basic” floor sits above the national average — an upper-middle footing.')
+              : offset < -0.35 ? L('أرضيّتك «الأساسي» دون المتوسط الوطني.', 'Your “Basic” floor sits below the national average.')
+              : L('أرضيّتك «الأساسي» عند المتوسط الوطني تقريباً.', 'Your “Basic” floor sits at the national average.')}
           </div>
           <button onClick={() => setConfirmed(true)} className="mt-4 text-sm text-white bg-[var(--green-dark)] rounded-lg px-5 py-2.5 font-medium">
             {L('تأكيد هذه المستويات ←', 'Confirm these levels →')}
@@ -396,17 +474,20 @@ function StandardOfLivingInner() {
                 <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-[var(--blue)] inline-block" />{L('الفعلي', 'Actual')}</span>
                 <span className="flex items-center gap-1.5"><span className="w-4 h-0 border-t border-dashed border-[var(--gold)] inline-block" />{L('المتوسط الوطني', 'National average')}</span>
               </div>
-              <div className="h-80 mt-2" dir="ltr">
+              {/* every year is shown with its age; the chart scrolls if the span is long */}
+              <div className="mt-2 overflow-x-auto" dir="ltr">
+              <div style={{ width: Math.max(680, series.length * 44), height: 320 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={series} margin={{ top: 16, right: 12, left: 6, bottom: 0 }}>
                     <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                    {/* horizontal level bands first (the ladder), so period marks read on top */}
+                    {bandRefs}
                     {phasesForSeries.map((p, i) => (
-                      <ReferenceArea key={p.id} x1={p.start_year} x2={p.end_year} y1={0} y2={yMax}
-                        fill={TIER_COLOR[p.target_tier]} fillOpacity={0.07 + (i % 2) * 0.05}
-                        stroke={TIER_COLOR[p.target_tier]} strokeOpacity={0.2}
+                      <ReferenceArea key={p.id} x1={p.start_year} x2={p.end_year} y1={Y_MIN} y2={Y_MAX}
+                        fill="var(--ink)" fillOpacity={i % 2 === 0 ? 0.04 : 0}
+                        stroke="var(--border-medium)" strokeOpacity={0.4}
                         label={{ value: p.phase_name, position: 'insideTop', fontSize: 10, fill: 'var(--ink-2)' }} />
                     ))}
-                    {bandRefs}
                     {xAxis}
                     {yAxis}
                     <Tooltip
@@ -417,6 +498,7 @@ function StandardOfLivingInner() {
                     <Line type="monotone" dataKey="actual" name={L('الفعلي', 'Actual')} stroke="var(--blue)" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
                   </ComposedChart>
                 </ResponsiveContainer>
+              </div>
               </div>
               <div className="flex gap-2 flex-wrap mt-3">
                 {phasesForSeries.map((p) => (
