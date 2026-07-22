@@ -141,7 +141,8 @@ export default function HomePage() {
   const personaName = (p: string | null) => {
     if (!p) return null;
     const map: Record<string, string> = {
-      faisal: L('فيصل', 'Faisal'), sara: L('سارة', 'Sara'), reem: L('ريم', 'Reem'),
+      layla: L('ليلى', 'Layla'), faisal: L('فيصل', 'Faisal'),
+      reem: L('ريم', 'Reem'), khalid: L('خالد', 'Khalid'),
     };
     return map[p] ?? null;
   };

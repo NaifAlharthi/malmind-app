@@ -7,14 +7,16 @@
 // renders fully populated with zero changes, and writes mutate the
 // in-memory world so the demo is interactive (nothing is ever persisted).
 
-import { buildDemoDb, DEMO_USER_ID, DEMO_EMAIL } from './demoWorld';
+import { buildDemoDb, personaUser } from './demoWorld';
 
 type Row = Record<string, unknown>;
 type QueryResult = { data: unknown; error: { message: string } | null };
 
 const DEMO_FLAG = 'mm-demo';
+const DEMO_PERSONA_KEY = 'mm-demo-persona';
 export const DEMO_STEP_KEY = 'mm-demo-step';
 export const DEMO_DONE_KEY = 'mm-demo-done';
+const DEFAULT_PERSONA = 'faisal';
 
 export function isDemoActive(): boolean {
   if (typeof window === 'undefined') return false;
@@ -25,15 +27,27 @@ export function isDemoActive(): boolean {
   }
 }
 
-export function enterDemo() {
+// Which persona the guest is exploring as (A·layla, B·faisal, C·reem, D·khalid).
+export function getActivePersona(): string {
+  if (typeof window === 'undefined') return DEFAULT_PERSONA;
+  try {
+    return window.localStorage.getItem(DEMO_PERSONA_KEY) || DEFAULT_PERSONA;
+  } catch {
+    return DEFAULT_PERSONA;
+  }
+}
+
+export function enterDemo(personaId: string = DEFAULT_PERSONA) {
   window.localStorage.setItem(DEMO_FLAG, '1');
+  window.localStorage.setItem(DEMO_PERSONA_KEY, personaId);
   window.localStorage.setItem(DEMO_STEP_KEY, '0');
   window.localStorage.removeItem(DEMO_DONE_KEY);
-  db = buildDemoDb(); // fresh world every time
+  db = buildDemoDb(personaId); // fresh world for the chosen persona
 }
 
 export function exitDemo() {
   window.localStorage.removeItem(DEMO_FLAG);
+  window.localStorage.removeItem(DEMO_PERSONA_KEY);
   window.localStorage.removeItem(DEMO_STEP_KEY);
   window.localStorage.removeItem(DEMO_DONE_KEY);
   db = null;
@@ -43,7 +57,7 @@ export function exitDemo() {
 let db: Record<string, Row[]> | null = null;
 
 function tableRows(table: string): Row[] {
-  if (!db) db = buildDemoDb();
+  if (!db) db = buildDemoDb(getActivePersona());
   if (!db[table]) db[table] = [];
   return db[table];
 }
@@ -137,11 +151,12 @@ class DemoQuery implements PromiseLike<QueryResult> {
     }
 
     if (this.op === 'insert') {
+      const uid = personaUser(getActivePersona()).id;
       const list = Array.isArray(this.payload) ? this.payload : [this.payload!];
       const added = list.map((p) => ({
         id: crypto.randomUUID(),
         created_at: new Date().toISOString(),
-        user_id: DEMO_USER_ID,
+        user_id: uid,
         ...p,
       }));
       rows.push(...added);
@@ -150,6 +165,7 @@ class DemoQuery implements PromiseLike<QueryResult> {
     }
 
     if (this.op === 'upsert') {
+      const uid = personaUser(getActivePersona()).id;
       const list = Array.isArray(this.payload) ? this.payload : [this.payload!];
       const cols = this.conflictCols ?? ['id'];
       for (const p of list) {
@@ -157,7 +173,7 @@ class DemoQuery implements PromiseLike<QueryResult> {
         if (existing) {
           Object.assign(existing, p);
         } else {
-          rows.push({ id: crypto.randomUUID(), created_at: new Date().toISOString(), user_id: DEMO_USER_ID, ...p });
+          rows.push({ id: crypto.randomUUID(), created_at: new Date().toISOString(), user_id: uid, ...p });
         }
       }
       return { data: null, error: null };
@@ -184,11 +200,10 @@ class DemoQuery implements PromiseLike<QueryResult> {
 }
 
 // ── The mock client ──────────────────────────────────────────────────
-const demoUser = {
-  id: DEMO_USER_ID,
-  email: DEMO_EMAIL,
-  user_metadata: { name: 'Sara Al-Qahtani' },
-};
+// The signed-in "user" reflects whichever persona the guest chose.
+function activeDemoUser() {
+  return personaUser(getActivePersona());
+}
 
 // IMPORTANT: a singleton, matching @supabase/ssr's createBrowserClient
 // behaviour. Pages put the client in useEffect/useCallback dependency
@@ -208,10 +223,10 @@ function buildDemoClient() {
     },
     auth: {
       async getUser() {
-        return { data: { user: demoUser }, error: null };
+        return { data: { user: activeDemoUser() }, error: null };
       },
       async getSession() {
-        return { data: { session: { user: demoUser } }, error: null };
+        return { data: { session: { user: activeDemoUser() } }, error: null };
       },
       async signOut() {
         exitDemo();

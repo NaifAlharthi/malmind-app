@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { joinName } from '@/lib/name';
-import { enterDemo } from '@/lib/demoSupabase';
 import { useT } from '@/lib/i18n/LocaleProvider';
 import LanguageToggle from '@/components/shared/LanguageToggle';
 import Splash from './Splash';
+import PersonaPicker from './PersonaPicker';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -46,6 +46,7 @@ export default function SignupPage() {
     <div>
       <LanguageToggle className="fixed top-4 right-4 z-50 shadow-md" />
       <Splash />
+      <PersonaPicker />
       <div id="signup-form" className="relative min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6 py-16 overflow-hidden">
       {/* soft brand glow tying the form to the splash above */}
       <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[560px] h-[360px] rounded-full blur-[130px] opacity-40 pointer-events-none"
@@ -134,10 +135,7 @@ export default function SignupPage() {
         <div className="mt-6 pt-5 border-t border-[var(--border-default)]">
           <button
             type="button"
-            onClick={() => {
-              enterDemo();
-              router.push('/home');
-            }}
+            onClick={() => document.getElementById('persona-picker')?.scrollIntoView({ behavior: 'smooth' })}
             className="w-full text-left bg-[var(--green-bg)] border border-[var(--green-border)] rounded-xl p-4 hover:border-[var(--green)] transition-colors group"
           >
             <div className="flex items-center justify-between mb-1">

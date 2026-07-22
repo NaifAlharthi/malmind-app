@@ -7,8 +7,6 @@
 // Bilingual (flips with the language toggle); pure CSS/SVG, no assets.
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { enterDemo } from '@/lib/demoSupabase';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 interface Act { eyebrow: string; title: string; body: string }
@@ -45,7 +43,7 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       },
     ],
     ctaCreate: 'أنشئ حسابك المجاني ↓',
-    ctaDemo: 'شاهده يعمل — تجربة فورية',
+    ctaDemo: 'اختر شخصية وامشِ في حياتها ↓',
     skip: 'تخطٍّ ↓',
     sceneNetWorth: 'صافي الثروة — يُحتسب مباشرة',
     stats: [['صافي الثروة', '1.0M ريال'], ['مدى الأمان', '7.8 أشهر'], ['معدل الادخار', '34%']],
@@ -85,7 +83,7 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       },
     ],
     ctaCreate: 'Create your free account ↓',
-    ctaDemo: 'Watch it work — instant demo',
+    ctaDemo: 'Walk through as a persona ↓',
     skip: 'skip ↓',
     sceneNetWorth: 'Net worth — computed live',
     stats: [['Net worth', 'SAR 1.0M'], ['Runway', '7.8 months'], ['Savings rate', '34%']],
@@ -110,7 +108,6 @@ const CONTENT: Record<'ar' | 'en', Content> = {
 const ACT_MS = 5200;
 
 export default function Splash() {
-  const router = useRouter();
   const { locale } = useLocale();
   const c = CONTENT[locale === 'ar' ? 'ar' : 'en'];
   const [act, setAct] = useState(0);
@@ -121,7 +118,7 @@ export default function Splash() {
   }, []);
 
   const scrollToForm = () => document.getElementById('signup-form')?.scrollIntoView({ behavior: 'smooth' });
-  const startDemo = () => { enterDemo(); router.push('/home'); };
+  const startDemo = () => document.getElementById('persona-picker')?.scrollIntoView({ behavior: 'smooth' });
 
   const a = c.acts[act];
 

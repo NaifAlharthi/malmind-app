@@ -8,8 +8,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { isDemoActive, exitDemo, enterDemo, DEMO_STEP_KEY, DEMO_DONE_KEY } from '@/lib/demoSupabase';
-import { DEMO_AI_REPLY } from '@/lib/demoWorld';
+import { isDemoActive, exitDemo, enterDemo, getActivePersona, DEMO_STEP_KEY, DEMO_DONE_KEY } from '@/lib/demoSupabase';
+import { demoAiReply } from '@/lib/demoWorld';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 interface TourStep {
@@ -19,55 +19,86 @@ interface TourStep {
   body: string;
 }
 
-function getSteps(ar: boolean): TourStep[] {
+// Localised first name per persona — the tour narration is templated on it so
+// the same script works whoever the guest chose to walk as.
+const FIRST_NAME: Record<string, { ar: string; en: string }> = {
+  layla: { ar: 'ليلى', en: 'Layla' },
+  faisal: { ar: 'فيصل', en: 'Faisal' },
+  reem: { ar: 'ريم', en: 'Reem' },
+  khalid: { ar: 'خالد', en: 'Khalid' },
+};
+
+// A one-line, persona-specific hook for the opening card.
+const INTRO: Record<string, { ar: string; en: string }> = {
+  layla: {
+    ar: 'طالبة حاسب في جامعة الملك سعود، عمرها 20 عاماً، تبني أوّل عاداتها المالية قبل أن يبدأ الدخل الثابت.',
+    en: "a 20-year-old computer-science student at King Saud University, building her first money habits before a steady income even starts.",
+  },
+  faisal: {
+    ar: 'محلّل مبتدئ في بنك بالرياض، عمره 24 عاماً، راتبه جيّد لكن لا يبقى منه شيء آخر الشهر.',
+    en: "a 24-year-old junior bank analyst in Riyadh on a good salary — with nothing left at the end of the month.",
+  },
+  reem: {
+    ar: 'موظّفة حكومية عمرها 34 عاماً، متزوّجة ولديها طفلان، تغطّي كل شيء لكن لا يتبقّى ما تبني به.',
+    en: "a 34-year-old ministry employee, married with two kids, covering everything — with nothing left to build with.",
+  },
+  khalid: {
+    ar: 'صاحب أعمال عمره 48 عاماً بنى ثروته من الصفر، وتحدّيه الآن توظيف الفائض وبناء إرث.',
+    en: "a 48-year-old business owner who built his wealth from nothing, now facing the harder problem of deploying surplus and building a legacy.",
+  },
+};
+
+function getSteps(ar: boolean, persona: string): TourStep[] {
   const L = (a: string, e: string) => (ar ? a : e);
+  const first = (FIRST_NAME[persona] ?? FIRST_NAME.faisal)[ar ? 'ar' : 'en'];
+  const intro = (INTRO[persona] ?? INTRO.faisal)[ar ? 'ar' : 'en'];
   return [
     {
       path: '/home', selector: null,
       title: L('مرحباً بك في مَالمايند 👋', 'Welcome to MalMind 👋'),
       body: L(
-        'أنت داخل عرض حيّ — دون حساب، دون حفظ، وكل شيء حقيقي. خلال الدقيقتين القادمتين سترى المال بعينَي سارة، مديرة منتجات عمرها 29 عاماً في الرياض بنَت مليونها الأول بهدوء. كل ما ستراه محسوب من أرقامها الفعلية. لنتجوّل في عالمها معاً.',
-        "You're inside a live demo — no account, nothing saved, everything real. For the next two minutes you'll see money through the eyes of Sara, a 29-year-old product manager in Riyadh who's quietly built her first million riyals. Everything you'll see is computed from her actual numbers. Let's walk her world together."
+        `أنت داخل عرض حيّ — دون حساب، دون حفظ، وكل شيء حقيقي. خلال الدقيقتين القادمتين سترى المال بعينَي ${first}: ${intro} كل ما ستراه محسوب من أرقامها الفعلية. لنتجوّل في عالمها معاً — ويمكنك تبديل الشخصية في أيّ وقت.`,
+        `You're inside a live demo — no account, nothing saved, everything real. For the next two minutes you'll see money through the eyes of ${first}: ${intro} Everything you'll see is computed from their actual numbers. Let's walk their world together — and you can switch persona anytime.`
       ),
     },
     {
       path: '/home', selector: '[data-tour="profile-card"]',
       title: L('الأرقام في لمحة', 'The numbers at a glance'),
       body: L(
-        'صافي ثروة 1,005,000 ريال — لم يُكتَب، بل استُنتِج حيّاً من آخر شهر سجّلته: نقد + استثمارات + شقّة، ناقص ما عليها. حين تحدّث سارة رقماً واحداً في أيّ مكان، تتحدّث معه هذه البطاقة، والعالم ثلاثي الأبعاد، وعشرات الأدوات دفعةً واحدة.',
-        'Net worth SAR 1,005,000 — not typed in, but derived live from her latest logged month: cash + investments + apartment, minus what she owes. When Sara updates a single number anywhere, this card, the 3D world, and a dozen tools downstream all update together.'
+        `صافي الثروة هنا لم يُكتَب، بل استُنتِج حيّاً من آخر شهر سجّلته ${first}: نقد + استثمارات + عقار، ناقص ما عليها. حين تحدّث ${first} رقماً واحداً في أيّ مكان، تتحدّث معه هذه البطاقة، والعالم ثلاثي الأبعاد، وعشرات الأدوات دفعةً واحدة.`,
+        `The net worth here isn't typed in — it's derived live from ${first}'s latest logged month: cash + investments + property, minus what they owe. When ${first} updates a single number anywhere, this card, the 3D world, and a dozen tools downstream all update together.`
       ),
     },
     {
       path: '/home', selector: '[data-tour="views-grid"]',
       title: L('ثلاث نظرات لحياة مالية واحدة', 'Three views of one financial life'),
       body: L(
-        'ينظّم مَالمايند كل شيء حول الزمن. الماضي يحمل أرشيف سارة وقصّتها. اليوم يعرض موقعها الحيّ. المستقبل يحمل خططها وإسقاطاتها و«ماذا لو». كل نظرة تفتح بملخّص، وشريط تحادث فيه الدماغ، وصندوق أدوات تفتحه حين تحتاجه فقط.',
-        "MalMind arranges everything around time. The Past holds Sara's archive and story. Today shows her live position. The Future carries her plans, projections and what-ifs. Each view opens with a summary, a bar where she talks to the Brain, and a toolbox she opens only when she needs it."
+        `ينظّم مَالمايند كل شيء حول الزمن. الماضي يحمل أرشيف ${first} وقصّتها. اليوم يعرض موقعها الحيّ. المستقبل يحمل خططها وإسقاطاتها و«ماذا لو». كل نظرة تفتح بملخّص، وشريط تحادث فيه الدماغ، وصندوق أدوات تفتحه حين تحتاجه فقط.`,
+        `MalMind arranges everything around time. The Past holds ${first}'s archive and story. Today shows their live position. The Future carries their plans, projections and what-ifs. Each view opens with a summary, a bar where they talk to the Brain, and a toolbox opened only when needed.`
       ),
     },
     {
       path: '/today', selector: 'main h1',
       title: L('اليوم — الحاضر، ملخَّصاً', 'Today — the present, summarised'),
       body: L(
-        'نظرة واحدة: صافي الثروة، النقد، الاستثمارات، الالتزامات، وتدفّق هذا الشهر — محسوبةً حيّاً من أرقام سارة. تستطيع أن تسأل الدماغ أيّ شيء من الشريط في المنتصف، أو تفتح صندوق الأدوات أدناه لأدوات التحليل السبع في هذه النظرة. لنفتح الأدوات نفسها.',
-        "One glance: net worth, cash, investments, liabilities, and this month's flow — computed live from Sara's numbers. She can ask the Brain anything from the bar in the middle, or open the toolbox below for the seven analysis tools that live in this view. Let's open the tools themselves."
+        `نظرة واحدة: صافي الثروة، النقد، الاستثمارات، الالتزامات، وتدفّق هذا الشهر — محسوبةً حيّاً من أرقام ${first}. تستطيع أن تسأل الدماغ أيّ شيء من الشريط في المنتصف، أو تفتح صندوق الأدوات أدناه لأدوات التحليل في هذه النظرة. لنفتح الأدوات نفسها.`,
+        `One glance: net worth, cash, investments, liabilities, and this month's flow — computed live from ${first}'s numbers. Ask the Brain anything from the bar in the middle, or open the toolbox below for the analysis tools that live in this view. Let's open the tools themselves.`
       ),
     },
     {
       path: '/financial-numbers', selector: 'main h1',
       title: L('أرقامي المالية — السِّجلّ', 'My Financial Numbers — the ledger'),
       body: L(
-        'قلب مَالمايند: صفٌّ لكل شهر — نقد، أسهم، عقار، التزامات، دخل، مصروفات. تسجّل سارة خمس دقائق شهرياً، أو تزامن جدول Google، وكل ما عداه في المنتج يحسب نفسه من هنا.',
-        'The heart of MalMind: one row per month — cash, stocks, real estate, liabilities, income, expenses. Sara logs five minutes a month, or syncs a Google Sheet, and everything else in the product computes itself from here.'
+        `قلب مَالمايند: صفٌّ لكل شهر — نقد، أسهم، عقار، التزامات، دخل، مصروفات. تسجّل ${first} بضع دقائق شهرياً، أو تزامن جدول Google، وكل ما عداه في المنتج يحسب نفسه من هنا.`,
+        `The heart of MalMind: one row per month — cash, stocks, real estate, liabilities, income, expenses. ${first} logs a few minutes a month, or syncs a Google Sheet, and everything else in the product computes itself from here.`
       ),
     },
     {
       path: '/financial-numbers', selector: '[data-tour="fn-charts"]',
       title: L('خطّ زمني يبني نفسه', 'A timeline builds itself'),
       body: L(
-        'ثمانية أشهر مسجَّلة تصير ثلاثة مخطّطات حيّة: صافي ثروتها يتسلّق متجاوزاً المليون، ومزيج أصولها يتراكم (تلك الشريحة الوردية الكبيرة هي الشقّة)، والدخل مقابل الإنفاق كل شهر. هذا سؤال «هل أصبحت أغنى فعلاً؟» مُجاباً على المرأى.',
-        'Eight logged months become three living charts: her net worth climbing past SAR 1M, her asset mix stacking up (that big pink band is the apartment), and income vs spending each month. This is the "am I actually getting richer?" question, answered on sight.'
+        `الأشهر المسجَّلة تصير ثلاثة مخطّطات حيّة: صافي الثروة عبر الزمن، ومزيج الأصول يتراكم طبقةً فوق طبقة، والدخل مقابل الإنفاق كل شهر. هذا سؤال «هل أصبحت أفضل حالاً فعلاً؟» مُجاباً على المرأى.`,
+        `The logged months become three living charts: net worth over time, the asset mix stacking up layer by layer, and income vs spending each month. This is the "am I actually getting ahead?" question, answered on sight.`
       ),
     },
     {
@@ -82,80 +113,80 @@ function getSteps(ar: boolean): TourStep[] {
       path: '/story', selector: 'main h1',
       title: L('قصّتي المالية', 'My Financial Story'),
       body: L(
-        'المال سيرة ذاتية. تاريخ سارة يعيش هنا كفصول — الجامعة، أول وظيفة تسرّب منها المال، الانتقال إلى المنتجات، الشقّة. يقرأ المستشار الذكي هذه القصّة، ولهذا تبدو نصيحته وكأنها تعرفها. لأنها تعرفها فعلاً.',
-        "Money is autobiography. Sara's history lives here as chapters — university, the first job that leaked money, the switch to product, the apartment. The AI advisor reads this story, which is why its advice sounds like it knows her. Because it does."
+        `المال سيرة ذاتية. تاريخ ${first} يعيش هنا كفصول — لحظات التحوّل التي شكّلت وضعها اليوم. يقرأ المستشار الذكي هذه القصّة، ولهذا تبدو نصيحته وكأنها تعرفها. لأنها تعرفها فعلاً.`,
+        `Money is autobiography. ${first}'s history lives here as chapters — the turning points that shaped where they stand today. The AI advisor reads this story, which is why its advice sounds like it knows them. Because it does.`
       ),
     },
     {
       path: '/lifetime-income', selector: 'main h1',
       title: L('دخل العمر', 'Lifetime Income'),
       body: L(
-        'عدستان على سؤال واحد: كل ريال كسبته سارة يوماً. تبويب «التسجيل» يتتبّع الأشهر الحقيقية؛ وتبويب «الفهم» يُسقط حياتها الكاسبة كلّها ويطرح السؤال الذي يتجنّبه أغلب الناس — من كل ما كسبت، كم احتفظت به، وهل استحقّ الباقي؟',
-        'Two lenses on one question: every riyal Sara has ever earned. The "Log" tab tracks real months; the "Understand" tab projects her whole earning life and asks the question most people never face — of everything you earned, how much did you keep, and was the rest worth it?'
+        `عدستان على سؤال واحد: كل ريال كسبته ${first} يوماً. تبويب «التسجيل» يتتبّع الأشهر الحقيقية؛ وتبويب «الفهم» يُسقط الحياة الكاسبة كلّها ويطرح السؤال الذي يتجنّبه أغلب الناس — من كل ما كسبت، كم احتفظت به، وهل استحقّ الباقي؟`,
+        `Two lenses on one question: every riyal ${first} has ever earned. The "Log" tab tracks real months; the "Understand" tab projects a whole earning life and asks the question most people never face — of everything you earned, how much did you keep, and was the rest worth it?`
       ),
     },
     {
       path: '/positioning', selector: 'main h1',
       title: L('المركز المالي', 'Financial Positioning'),
       body: L(
-        'أين تقف سارة فعلاً؟ يُرسَم صافي ثروتها حسب العمر مقابل منحنيات توضيحية للمتوسط الوطني والأعلى دخلاً — المنطقة الوردية فرصة فائتة، والخضراء أرض استُعيدت. نظرة ثانية تشخّص أيّ المواقف المالية الأربعة هي فيه، والخطوة الأهمّ من هناك.',
-        "Where does Sara actually stand? Her net worth is plotted by age against illustrative national-average and higher-earner curves — the pink area is opportunity missed, the green is ground regained. A second view diagnoses which of four financial situations she's in, and the single move that matters most from there."
+        `أين تقف ${first} فعلاً؟ يُرسَم صافي الثروة حسب العمر مقابل منحنيات توضيحية للمتوسط الوطني والأعلى دخلاً — المنطقة الوردية فرصة فائتة، والخضراء أرض استُعيدت. نظرة ثانية تشخّص أيّ المواقف المالية الأربعة هي فيه، والخطوة الأهمّ من هناك.`,
+        `Where does ${first} actually stand? Net worth is plotted by age against illustrative national-average and higher-earner curves — the pink area is opportunity missed, the green is ground regained. A second view diagnoses which of four financial situations they're in, and the single move that matters most from there.`
       ),
     },
     {
       path: '/velocity', selector: 'main h1',
       title: L('سرعة المال', 'Velocity of Money'),
       body: L(
-        'الثروة معاد صياغتها كزمن. بوتيرة ادّخار سارة الحقيقية، 100 ألف ريال على بُعد نحو 8 أشهر؛ والمليون في متناول خطّتها. فعّل رهناً عقارياً وشاهِد كل محطّة تمتدّ — التكلفة الحقيقية لالتزامٍ، مقيسةً بأشهر من عمرك.',
-        "Wealth reframed as time. At Sara's real pace of saving, SAR 100K is about 8 months away; SAR 1M within reach of her plan. Toggle on a mortgage and watch every milestone stretch — the true cost of a commitment, measured in months of your life."
+        `الثروة معاد صياغتها كزمن. بوتيرة ادّخار ${first} الحقيقية، يعرض مَالمايند كم يبعد كل هدف مالي — بالأشهر لا بالريالات. فعّل رهناً عقارياً وشاهِد كل محطّة تمتدّ: التكلفة الحقيقية لالتزامٍ، مقيسةً بأشهر من عمرك.`,
+        `Wealth reframed as time. At ${first}'s real pace of saving, MalMind shows how far away each money milestone is — in months, not riyals. Toggle on a mortgage and watch every milestone stretch: the true cost of a commitment, measured in months of your life.`
       ),
     },
     {
       path: '/doubling-path', selector: 'main h1',
       title: L('مسار المضاعفة', 'The Doubling Path'),
       body: L(
-        'يستحيل الشعور بالتراكم كنسبة، فيعرضه مَالمايند كلقاءات مع نفسك المستقبلية: بعائد 8%، تتضاعف محفظة سارة البالغة 235 ألف ريال قرب عمر 38، ثم بحلول 47، ثم 56. أول ثلاث مضاعفات تحدث داخل حياة عملية — وهناك ينبغي أن يكون التركيز.',
-        "Compounding is impossible to feel as a percentage, so MalMind shows it as meetings with your future self: at 8% return, Sara's SAR 235K portfolio doubles around age 38, again by 47, again by 56. The first three doublings happen inside a working life — that's where the focus belongs."
+        `يستحيل الشعور بالتراكم كنسبة، فيعرضه مَالمايند كلقاءات مع نفسك المستقبلية: بعائد مفترَض، متى تتضاعف محفظة ${first}، ثم تتضاعف ثانيةً، ثم ثالثةً. أوّل المضاعفات تحدث داخل حياة عملية — وهناك ينبغي أن يكون التركيز.`,
+        `Compounding is impossible to feel as a percentage, so MalMind shows it as meetings with your future self: at an assumed return, when ${first}'s portfolio doubles, doubles again, and again. The first doublings happen inside a working life — that's where the focus belongs.`
       ),
     },
     {
       path: '/ratios', selector: '[data-tour="ratios-vitals"]',
       title: L('النسب والإحصاءات — العلامات الحيوية', 'Ratios & Stats — vital signs'),
       body: L(
-        'اثنتا عشرة قراءة صحّية، كلٌّ مرسومة كما تعني: تغطية صندوق طوارئ (تغطية سارة 7.8 أشهر)، وشريط تقسيم ادّخار، وسقف دَين، وسُلّم صافي ثروة. الأخضر سليم، والكهرماني راقِب. اضغط أيّ بطاقة لتفتح وتُظهر الصيغة الدقيقة والإدخالات الحقيقية وراء الرقم.',
-        "Twelve health readings, each drawn as the thing it means: an emergency-fund runway (Sara's covers 7.8 months), a savings split bar, a debt ceiling, a net-worth ladder. Green means healthy, amber means watch. Tap any card and it opens up to show the exact formula and the real entries behind the number."
+        'اثنتا عشرة قراءة صحّية، كلٌّ مرسومة كما تعني: تغطية صندوق طوارئ، وشريط تقسيم ادّخار، وسقف دَين، وسُلّم صافي ثروة. الأخضر سليم، والكهرماني راقِب. اضغط أيّ بطاقة لتفتح وتُظهر الصيغة الدقيقة والإدخالات الحقيقية وراء الرقم.',
+        "Twelve health readings, each drawn as the thing it means: an emergency-fund runway, a savings split bar, a debt ceiling, a net-worth ladder. Green means healthy, amber means watch. Tap any card and it opens up to show the exact formula and the real entries behind the number."
       ),
     },
     {
       path: '/ratios', selector: '[data-tour="ratios-blend"]',
       title: L('المزيج — محلّلك الذكي', 'The Blend — your AI analyst'),
       body: L(
-        'نقرة واحدة تسلّم النسب الاثنتي عشرة كلها إلى محلّل ذكيّ يفكّر عبرها مجتمعةً — ادّخار قويّ لكن نقد خامل، دَين منخفض مع متّسع — ثم يبقى للأسئلة المتابِعة. في المنتج الحيّ هذه محادثة حقيقية مدعومة بـClaude حول أرقامك.',
-        'One click hands all twelve ratios to an AI analyst that reasons across them together — strong saving but idle cash, low debt with room to spare — then stays for follow-up questions. In the live product this is a real Claude-powered conversation about your numbers.'
+        'نقرة واحدة تسلّم النسب الاثنتي عشرة كلها إلى محلّل ذكيّ يفكّر عبرها مجتمعةً، ثم يبقى للأسئلة المتابِعة. في المنتج الحيّ هذه محادثة حقيقية مدعومة بـClaude حول أرقامك.',
+        'One click hands all twelve ratios to an AI analyst that reasons across them together, then stays for follow-up questions. In the live product this is a real Claude-powered conversation about your numbers.'
       ),
     },
     {
       path: '/standard-of-living', selector: 'main h1',
       title: L('مستوى المعيشة', 'Standard of Living'),
       body: L(
-        'حياة مصمَّمة في مراحل. حدّدت سارة ثلاثاً: بناء القاعدة، التراكم والترقية، حرّية الاختيار — كلٌّ بمستوى معيشة مستهدَف، من المتوسط الوطني إلى المرفَّه، مترجَماً إلى واقع سعودي (كيف يبدو السكن والسفر والتعليم فعلاً في كل مستوى). ثم تتتبّع المستوى الذي عاشته كل سنة مقابل الخطة.',
-        "Life, designed in phases. Sara set three: build the base, compound & upgrade, freedom of choice — each with a target lifestyle tier, from national average to lavish, translated into real Saudi terms (what housing, travel, and schooling actually look like at each level). Then she tracks the tier she actually lived each year against the plan."
+        `حياة مصمَّمة في مراحل. تحدّد ${first} مراحلها — كلٌّ بمستوى معيشة مستهدَف، من المتوسط الوطني إلى المرفَّه، مترجَماً إلى واقع سعودي (كيف يبدو السكن والسفر والتعليم فعلاً في كل مستوى). ثم تتتبّع المستوى الذي عاشته كل سنة مقابل الخطة.`,
+        `Life, designed in phases. ${first} sets phases — each with a target lifestyle tier, from national average to lavish, translated into real Saudi terms (what housing, travel, and schooling actually look like at each level). Then tracks the tier actually lived each year against the plan.`
       ),
     },
     {
       path: '/goal-fund', selector: 'main h1',
       title: L('صناديق الأهداف', 'Goal Funds'),
       body: L(
-        'الادّخار لشيء محدّد يستحقّ مساحته الخاصّة. صندوق حجّ سارة يجري بـ1,500 ريال شهرياً لسنتين — يقول المؤشّر إنها متقدّمة على الخطة. كل صندوق يحصل على متتبّع شهري، ومخطّط مسار للخطة مقابل الواقع، وحالة صادقة: متقدّم، على المسار، أو متأخّر.',
-        "Saving for something specific deserves its own space. Sara's Hajj fund runs SAR 1,500 a month for two years — the gauge says she's ahead of plan. Every fund gets a monthly tracker, a trajectory chart of plan vs reality, and an honest status: ahead, on track, or behind."
+        `الادّخار لشيء محدّد يستحقّ مساحته الخاصّة. لدى ${first} صناديق لأهدافها المختلفة — كل صندوق يحصل على متتبّع شهري، ومخطّط مسار للخطة مقابل الواقع، وحالة صادقة: متقدّم، على المسار، أو متأخّر.`,
+        `Saving for something specific deserves its own space. ${first} has funds for different goals — each gets a monthly tracker, a trajectory chart of plan vs reality, and an honest status: ahead, on track, or behind.`
       ),
     },
     {
       path: '/year-plan', selector: 'main h1',
       title: L('الخطة السنوية الرئيسية', 'Year Master Plan'),
       body: L(
-        'السنة، مقرَّرة سلفاً: رصيد افتتاحي 800 ألف ريال، هدف 1.15 مليون، ومعدّل الادّخار وتقسيم الاستثمار اللذان يجسّران بينهما. إنها العقد السنوي الذي تعقده سارة مع نفسها — وخطّ الأساس الذي تقيس عليه الأدوات الأخرى الانحراف.',
-        "The year, decided in advance: opening balance SAR 800K, target SAR 1.15M, and the save rate and investment split that bridge the two. It's the yearly contract Sara makes with herself — and the baseline other tools measure drift against."
+        `السنة، مقرَّرة سلفاً: رصيد افتتاحي، وهدف نهاية العام، ومعدّل الادّخار وتقسيم الاستثمار اللذان يجسّران بينهما. إنها العقد السنوي الذي تعقده ${first} مع نفسها — وخطّ الأساس الذي تقيس عليه الأدوات الأخرى الانحراف.`,
+        `The year, decided in advance: an opening balance, a year-end target, and the save rate and investment split that bridge the two. It's the yearly contract ${first} makes with themselves — and the baseline other tools measure drift against.`
       ),
     },
     {
@@ -170,40 +201,40 @@ function getSteps(ar: boolean): TourStep[] {
       path: '/budgeting', selector: 'main h1',
       title: L('الميزنة الديناميكية', 'Dynamic Budgeting'),
       body: L(
-        'ليس «هل أقدر عليه؟» بل «متى ينبغي أن أشتريه؟» المشتريات تصطفّ في مراحل — تجهيز المكتب اشتُري، الآيفون ينتظر دوره، تجديد غرفة المعيشة بعده. أن ترغب في الأشياء أمر جيّد؛ وترتيبها هو الثروة.',
-        'Not "can I afford it?" but "when should I buy it?" Purchases queue up in phases — the desk setup is bought, the iPhone waits its turn, the living-room refresh after that. Wanting things is fine; sequencing them is wealth.'
+        'ليس «هل أقدر عليه؟» بل «متى ينبغي أن أشتريه؟» المشتريات تصطفّ في مراحل حسب الأولوية والتوقيت. أن ترغب في الأشياء أمر جيّد؛ وترتيبها هو الثروة.',
+        'Not "can I afford it?" but "when should I buy it?" Purchases queue up in phases by priority and timing. Wanting things is fine; sequencing them is wealth.'
       ),
     },
     {
       path: '/holdings', selector: 'main h1',
       title: L('الأصول والالتزامات', 'Assets & Liabilities'),
       body: L(
-        'كل ما تملكه سارة وما عليها، مفصَّلاً: محفظة تداول، شقّة الملقا، الذهب، حصّة في شركة ناشئة — والقرض من أخيها تسدّده بـ500 ريال شهرياً. تُغذّي هذه السجلّات نسبها، وصافي ثروتها، والأجسام الواقفة بجانب صورتها الرمزية.',
-        "Everything Sara owns and owes, itemised: the Tadawul portfolio, the Al Malqa apartment, gold, startup equity — and the loan from her brother she's paying back at SAR 500 a month. These records feed her ratios, her net worth, and the objects standing beside her avatar."
+        `كل ما تملكه ${first} وما عليها، مفصَّلاً — من المدّخرات والاستثمارات إلى العقار والالتزامات. تُغذّي هذه السجلّات نسبها، وصافي ثروتها، والأجسام الواقفة بجانب صورتها الرمزية.`,
+        `Everything ${first} owns and owes, itemised — from savings and investments to property and liabilities. These records feed their ratios, their net worth, and the objects standing beside their avatar.`
       ),
     },
     {
       path: '/commitments', selector: 'main h1',
       title: L('الفواتير والالتزامات', 'Bills & Commitments'),
       body: L(
-        'الحقيقة المتكرّرة: الاشتراكات (نعم، كلّها)، قرض السيارة، ذيل الرهن، بطاقة ائتمانية واحدة عند 17% استخدام. يعرف مَالمايند تدفّقها الشهري الحقيقي — فتُبنى كل خطة في مكان آخر على الواقع، لا على التفاؤل.',
-        'The recurring truth: subscriptions (yes, all of them), the car loan, the mortgage tail, one credit card at 17% utilisation. MalMind knows her true monthly outflow — so every plan elsewhere is built on reality, not optimism.'
+        `الحقيقة المتكرّرة: الاشتراكات، القروض، والبطاقات. يعرف مَالمايند تدفّق ${first} الشهري الحقيقي — فتُبنى كل خطة في مكان آخر على الواقع، لا على التفاؤل.`,
+        `The recurring truth: subscriptions, loans, and cards. MalMind knows ${first}'s true monthly outflow — so every plan elsewhere is built on reality, not optimism.`
       ),
     },
     {
       path: '/advisor', selector: 'main h1',
       title: L('المستشار الذكي — دائماً في السياق', 'The AI Advisor — always in context'),
       body: L(
-        'اسأل أيّ شيء. يعرف المستشار أصلاً دخل سارة، وفصول قصّتها، ونسبها وأهدافها — مرّر محادثاتها السابقة ولاحظ استشهاده بأرقامها الفعلية. لا يروّج لمنتجات أبداً، ويقول دائماً الجزء الصريح: للاطّلاع فقط، وليس استشارة مالية مرخّصة.',
-        "Ask anything. The advisor already knows Sara's income, story chapters, ratios and goals — scroll her past conversations and notice it citing her actual numbers. It never pushes products, and it always says the quiet part: informational, not licensed financial advice."
+        `اسأل أيّ شيء. يعرف المستشار أصلاً دخل ${first}، وفصول قصّتها، ونسبها وأهدافها — مرّر محادثاتها السابقة ولاحظ استشهاده بأرقامها الفعلية. لا يروّج لمنتجات أبداً، ويقول دائماً الجزء الصريح: للاطّلاع فقط، وليس استشارة مالية مرخّصة.`,
+        `Ask anything. The advisor already knows ${first}'s income, story chapters, ratios and goals — scroll their past conversations and notice it citing their actual numbers. It never pushes products, and it always says the quiet part: informational, not licensed financial advice.`
       ),
     },
     {
       path: '/home', selector: null,
       title: L('هذا هو مَالمايند ✦', "That's MalMind ✦"),
       body: L(
-        'ثماني عشرة أداة، وصورة واحدة مترابطة — حياة مالية يمكنك أن تراها وتسائلها وتصمّمها. كل ما تجوّلت فيه للتوّ عمل على أرقام سارة. تخيّله يعمل على أرقامك أنت. أنشئ حساباً مجّانياً ويبدأ عالمك الخاصّ بالبناء من أول رقم تسجّله.',
-        "Eighteen tools, one connected picture — a financial life you can see, question, and design. Everything you just toured ran on Sara's numbers. Imagine it running on yours. Create a free account and your own world starts building from the very first number you log."
+        `أدوات كثيرة، وصورة واحدة مترابطة — حياة مالية يمكنك أن تراها وتسائلها وتصمّمها. كل ما تجوّلت فيه للتوّ عمل على أرقام ${first}. جرّب شخصية أخرى لترى موقفاً مختلفاً تماماً، أو أنشئ حساباً مجّانياً ويبدأ عالمك الخاصّ بالبناء من أول رقم تسجّله.`,
+        `Many tools, one connected picture — a financial life you can see, question, and design. Everything you just toured ran on ${first}'s numbers. Try another persona to see a completely different situation, or create a free account and your own world starts building from the very first number you log.`
       ),
     },
   ];
@@ -217,7 +248,9 @@ export default function DemoTour() {
   const { locale } = useLocale();
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
-  const STEPS = useMemo(() => getSteps(ar), [ar]);
+  const [persona, setPersona] = useState('faisal');
+  const STEPS = useMemo(() => getSteps(ar, persona), [ar, persona]);
+  const personaName = (FIRST_NAME[persona] ?? FIRST_NAME.faisal)[ar ? 'ar' : 'en'];
   const [active, setActive] = useState(false);
   const [step, setStep] = useState<number | null>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -227,6 +260,7 @@ export default function DemoTour() {
   useEffect(() => {
     if (!isDemoActive()) return;
     setActive(true);
+    setPersona(getActivePersona());
     if (localStorage.getItem(DEMO_DONE_KEY) === '1') {
       setStep(null);
     } else {
@@ -243,7 +277,7 @@ export default function DemoTour() {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.includes('/api/advisor') || url.includes('/api/ratios-synthesis') || url.includes('/api/what-if-analysis')) {
         await new Promise((r) => setTimeout(r, 900));
-        return new Response(JSON.stringify({ reply: DEMO_AI_REPLY }), {
+        return new Response(JSON.stringify({ reply: demoAiReply(getActivePersona()) }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -317,9 +351,15 @@ export default function DemoTour() {
   }
 
   function restart() {
-    enterDemo();
+    enterDemo(getActivePersona()); // same persona, back to step 0
     setStep(0);
     router.push('/home');
+  }
+
+  // Back to the landing persona chooser to walk the product as someone else.
+  function changePersona() {
+    exitDemo();
+    window.location.href = '/signup#persona-picker';
   }
 
   function leaveDemo() {
@@ -332,12 +372,15 @@ export default function DemoTour() {
   // ── Tour finished / skipped: persistent demo banner ──
   if (step == null || !current) {
     return (
-      <div className="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 bg-[#0F2A1E] text-white rounded-full pl-5 pr-2 py-2 shadow-xl border border-[#5DCAA5]/40 max-w-[94vw]">
+      <div className="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 bg-[#0F2A1E] text-white rounded-full pl-5 pr-2 py-2 shadow-xl border border-[#5DCAA5]/40 max-w-[94vw] overflow-x-auto">
         <span className="text-xs whitespace-nowrap">
-          👀 {L('تستكشف بصفتك', 'Exploring as')} <strong className="font-semibold">{L('سارة', 'Sara')}</strong> — {L('بيانات تجريبية، دون حفظ', 'demo data, nothing saved')}
+          👀 {L('تستكشف بصفة', 'Exploring as')} <strong className="font-semibold">{personaName}</strong> — {L('بيانات تجريبية، دون حفظ', 'demo data, nothing saved')}
         </span>
         <button onClick={restart} className="text-xs text-[#5DCAA5] font-medium whitespace-nowrap hover:underline">
           {L('أعِد الجولة', 'Restart tour')}
+        </button>
+        <button onClick={changePersona} className="text-xs text-[#5DCAA5] font-medium whitespace-nowrap hover:underline">
+          {L('غيّر الشخصية', 'Change persona')}
         </button>
         <button
           onClick={leaveDemo}
@@ -433,9 +476,14 @@ export default function DemoTour() {
           <button onClick={skip} className="text-[11px] text-[#898781] hover:text-[#3D3D3A]">
             {L('تخطَّ الجولة — استكشف بحرّية', 'Skip tour — explore freely')}
           </button>
-          <button onClick={leaveDemo} className="text-[11px] text-[#898781] hover:text-[#A32D2D]">
-            {L('اخرج من العرض', 'Exit demo')}
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={changePersona} className="text-[11px] text-[#898781] hover:text-[#1D9E75]">
+              {L('غيّر الشخصية', 'Change persona')}
+            </button>
+            <button onClick={leaveDemo} className="text-[11px] text-[#898781] hover:text-[#A32D2D]">
+              {L('اخرج من العرض', 'Exit demo')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
