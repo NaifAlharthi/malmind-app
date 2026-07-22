@@ -65,7 +65,7 @@ function YearAgeTick(props: {
 // the band and move with it. Financial Freedom includes wings (freedom); Lavish
 // includes a plane (travels a lot).
 const LEVEL_ICONS: Record<LadderTier, string[]> = {
-  basic: ['🏠'],
+  basic: ['🍱'],
   decent: ['🚗', '🍽️'],
   lavish: ['🏡', '🚙', '✈️'],
   financial_freedom: ['🪽', '🏝️', '💰', '🌱'],
