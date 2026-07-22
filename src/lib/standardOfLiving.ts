@@ -62,30 +62,30 @@ export type LadderTier = 'basic' | 'decent' | 'lavish' | 'financial_freedom';
 export const LADDER_TIERS: LadderTier[] = ['basic', 'decent', 'lavish', 'financial_freedom'];
 
 export const NAT_Y = 1;           // national-average line sits here on the abstract axis
-export const OFFSET_MIN = -1.6;   // band floor can drop below the average
-export const OFFSET_MAX = 2.6;    // …or ride well above it (upper-middle footing)
-export const DEFAULT_OFFSET = 0;  // basic floor sits at the national average
-// Quick-snap positions: where the Basic FLOOR sits vs the national average.
+export const OFFSET_MIN = -1.5;
+export const OFFSET_MAX = 3;
+export const DEFAULT_OFFSET = 0;  // Basic-area CENTRE sits on the national average
+// Quick-place: the CENTRE of the Basic area, relative to the national average.
 export const OFFSET_BELOW = -1;
 export const OFFSET_AT = 0;
 export const OFFSET_ABOVE = 1;
 // A FIXED abstract domain, so the four-level band keeps a constant size as it
 // slides up and down (the band is 4 units tall; the domain is taller).
-export const Y_MIN = NAT_Y + OFFSET_MIN - 0.6;                     // ≈ -1.2
-export const Y_MAX = NAT_Y + OFFSET_MAX + LADDER_TIERS.length + 0.6; // ≈ 8.2
+export const Y_MIN = NAT_Y + OFFSET_MIN - 1.1;                       // ≈ -1.6
+export const Y_MAX = NAT_Y + OFFSET_MAX + LADDER_TIERS.length + 0.1; // ≈ 8.1
 
-// The bottom edge of a level's band. offset lifts the whole fixed-size band;
-// offset 0 puts the Basic floor exactly on the national-average line.
-export function ladderBandBottom(tier: LadderTier, offset: number): number {
+// The CENTRE of a level's area on the abstract axis — where its planned/actual
+// point sits. offset moves the whole fixed-size band; offset 0 puts the Basic
+// area's centre exactly on the national-average line.
+export function ladderY(tier: LadderTier, offset: number): number {
   return NAT_Y + offset + LADDER_TIERS.indexOf(tier);
 }
-// The centre of a level's band — where its planned/actual point sits.
-export function ladderY(tier: LadderTier, offset: number): number {
-  return ladderBandBottom(tier, offset) + 0.5;
+// The bottom / top edges of a level's area (each area is one unit tall).
+export function ladderBandBottom(tier: LadderTier, offset: number): number {
+  return ladderY(tier, offset) - 0.5;
 }
-// The top edge of the whole band (top of Financial Freedom).
 export function ladderTop(offset: number): number {
-  return ladderBandBottom('financial_freedom', offset) + 1;
+  return ladderY('financial_freedom', offset) + 0.5;
 }
 
 // Implied monthly SAR for each rung — used ONLY to place the user's real income

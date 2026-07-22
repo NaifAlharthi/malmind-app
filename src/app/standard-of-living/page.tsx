@@ -61,84 +61,71 @@ function YearAgeTick(props: {
   );
 }
 
-// A little climbable ladder — gamified anchor for the band.
-function LadderIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 48" className={className} fill="none" stroke="#C9843E" strokeWidth="2.4" strokeLinecap="round">
-      <line x1="6" y1="2" x2="6" y2="46" />
-      <line x1="18" y1="2" x2="18" y2="46" />
-      {[8, 16, 24, 32, 40].map((y) => <line key={y} x1="6" y1={y} x2="18" y2={y} />)}
-    </svg>
-  );
-}
-
-// The placement step: a FIXED-SIZE band of the four levels that the user grabs
-// and drags up/down against the national-average line. No numbers, no x-axis.
+// The placement step. Left→right: a grabbable socioeconomic ladder (the drag
+// handle) · the level names in the y-axis gutter · the y-axis line · the plot
+// with transparent, full-width colour bands and a fixed national-average line.
+// No numbers, no x-axis values.
 function LadderPlacement({ offset, setOffset, ar, locale }: {
   offset: number; setOffset: (v: number) => void; ar: boolean; locale: 'ar' | 'en';
 }) {
   const L = (a: string, e: string) => (ar ? a : e);
-  const H = 340;
+  const H = 330;
+  const PLOT_LEFT = 150;
+  const BOTTOM_PAD = 22;
   const span = Y_MAX - Y_MIN;
-  const pxPerUnit = H / span;
+  const pxPerUnit = (H - BOTTOM_PAD) / span;
   const yToTop = (yUnit: number) => (Y_MAX - yUnit) * pxPerUnit;
   const drag = useRef<{ startY: number; startOffset: number } | null>(null);
 
-  const onDown = (e: React.PointerEvent) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    drag.current = { startY: e.clientY, startOffset: offset };
-  };
-  const onMove = (e: React.PointerEvent) => {
-    if (!drag.current) return;
-    setOffset(drag.current.startOffset + (drag.current.startY - e.clientY) / pxPerUnit);
-  };
-  const onUp = (e: React.PointerEvent) => {
-    drag.current = null;
-    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* ignore */ }
-  };
+  const onDown = (e: React.PointerEvent) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); drag.current = { startY: e.clientY, startOffset: offset }; };
+  const onMove = (e: React.PointerEvent) => { if (drag.current) setOffset(drag.current.startOffset + (drag.current.startY - e.clientY) / pxPerUnit); };
+  const onUp = (e: React.PointerEvent) => { drag.current = null; try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* ignore */ } };
 
-  const bandTop = yToTop(ladderBandBottom('financial_freedom', offset) + 1);
-  const bandBottom = yToTop(ladderBandBottom('basic', offset));
+  const bandTop = yToTop(ladderY('financial_freedom', offset) + 0.5);
+  const bandBottom = yToTop(ladderY('basic', offset) - 0.5);
   const bandH = bandBottom - bandTop;
   const natTop = yToTop(NAT_Y);
-  const reversed = [...LADDER_TIERS].reverse(); // FF at the top
 
   return (
-    <div className="flex gap-3 select-none" dir="ltr">
-      {/* gamified ladder anchor */}
-      <div className="flex flex-col items-center justify-center w-14 shrink-0">
-        <LadderIcon className="w-9 h-20" />
-        <span className="text-[9px] text-[var(--muted)] text-center mt-1 leading-tight">{L('السُّلّم الاجتماعي', 'Socioeconomic ladder')}</span>
+    <div className="relative select-none" style={{ height: H }} dir="ltr">
+      {/* y-axis + x-axis lines (fixed, no ticks) */}
+      <div className="absolute rounded-full" style={{ left: PLOT_LEFT, top: 4, bottom: BOTTOM_PAD, width: 2, background: 'var(--border-medium)' }} />
+      <div className="absolute rounded-full" style={{ left: PLOT_LEFT, right: 4, height: 2, bottom: BOTTOM_PAD, background: 'var(--border-medium)' }} />
+
+      {/* transparent, full-width colour bands (move with the ladder) */}
+      {LADDER_TIERS.map((t) => (
+        <div key={t} className="absolute rounded-md" style={{
+          left: PLOT_LEFT + 3, right: 4, top: yToTop(ladderY(t, offset) + 0.5) + 2, height: pxPerUnit - 4,
+          background: `linear-gradient(90deg, ${TIER_COLOR[t]}3d, ${TIER_COLOR[t]}0a)`,
+        }} />
+      ))}
+
+      {/* national-average line (fixed) */}
+      <div className="absolute border-t-2 border-dashed" style={{ left: PLOT_LEFT, right: 4, top: natTop, borderColor: 'var(--gold)' }} />
+      <div className="absolute px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm whitespace-nowrap" style={{ top: natTop - 10, right: 8, color: '#4a3a12', background: 'var(--gold)' }}>
+        {L('المتوسط الوطني', 'National average')}
       </div>
-      {/* track */}
-      <div className="relative flex-1" style={{ height: H }}>
-        {/* faint full-width level strips */}
-        {LADDER_TIERS.map((t) => (
-          <div key={t} className="absolute inset-x-0 rounded-sm" style={{ top: yToTop(ladderBandBottom(t, offset) + 1), height: pxPerUnit, background: `${TIER_COLOR[t]}1f` }} />
-        ))}
-        {/* left + bottom axis lines (no ticks, no numbers) */}
-        <div className="absolute top-0 bottom-0 w-px bg-[var(--border-default)]" style={{ left: 0 }} />
-        <div className="absolute inset-x-0 h-px bg-[var(--border-default)]" style={{ bottom: 0 }} />
-        {/* national-average line */}
-        <div className="absolute inset-x-0 border-t-2 border-dashed" style={{ top: natTop, borderColor: 'var(--gold)' }} />
-        <span className="absolute text-[10px] font-semibold" style={{ top: Math.max(0, natTop - 15), right: 4, color: 'var(--gold)' }}>{L('المتوسط الوطني', 'National average')}</span>
-        {/* the draggable, fixed-size band */}
-        <div
-          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
-          className="absolute rounded-2xl overflow-hidden border-2 border-white/30 shadow-xl touch-none cursor-grab active:cursor-grabbing"
-          style={{ top: bandTop, height: bandH, left: 12, width: 210 }}
-          title={L('اسحب لأعلى أو لأسفل', 'Drag up or down')}
-        >
-          {reversed.map((t) => (
-            <div key={t} className="flex items-center justify-center font-serif text-xs font-semibold text-white" style={{ height: bandH / 4, background: `${TIER_COLOR[t]}e6` }}>
-              {tierLabel(t, locale)}
-            </div>
-          ))}
+
+      {/* level names in the gutter, between the ladder and the y-axis (move with the ladder) */}
+      {LADDER_TIERS.map((t) => (
+        <div key={t} className="absolute text-right font-serif font-semibold leading-tight" style={{ left: 44, width: PLOT_LEFT - 44 - 12, top: yToTop(ladderY(t, offset)) - 9, color: TIER_COLOR[t], fontSize: 13 }}>
+          {tierLabel(t, locale)}
         </div>
-        {/* grab hint */}
-        <div className="absolute text-[10px] text-[var(--muted)] flex items-center gap-1" style={{ top: bandTop + bandH / 2 - 8, left: 228 }}>
-          <span className="text-sm">⇅</span> {L('اسحب', 'drag')}
+      ))}
+
+      {/* the grabbable ladder — the drag handle, spanning the band */}
+      <div
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        className="absolute cursor-grab active:cursor-grabbing touch-none group"
+        style={{ left: 4, top: bandTop, height: bandH, width: 30 }}
+        title={L('اسحب السُّلّم لأعلى أو لأسفل', 'Drag the ladder up or down')}
+      >
+        <div className="absolute rounded-full" style={{ left: 4, top: 0, bottom: 0, width: 5, background: '#C9843E' }} />
+        <div className="absolute rounded-full" style={{ right: 4, top: 0, bottom: 0, width: 5, background: '#C9843E' }} />
+        <div className="absolute flex flex-col justify-around" style={{ left: 6, right: 6, top: 8, bottom: 8 }}>
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="rounded-full" style={{ height: 4, background: '#C9843E' }} />)}
         </div>
+        <div className="absolute -right-4 top-1/2 -translate-y-1/2 text-[var(--muted)] group-hover:text-[var(--green-dark)] text-sm">⇕</div>
       </div>
     </div>
   );
@@ -333,8 +320,7 @@ function StandardOfLivingInner() {
   const bandRefs = [
     ...LADDER_TIERS.map((t) => (
       <ReferenceArea key={t} y1={ladderBandBottom(t, offset)} y2={ladderBandBottom(t, offset) + 1}
-        fill={TIER_COLOR[t]} fillOpacity={0.12} stroke="none"
-        label={{ value: tierLabel(t, locale), position: 'insideLeft', fontSize: 9, fill: TIER_COLOR[t] }} />
+        fill={TIER_COLOR[t]} fillOpacity={0.13} stroke="none" />
     )),
     <ReferenceLine key="natavg" y={NAT_Y} stroke="var(--gold)" strokeDasharray="5 3" strokeWidth={1.5}
       label={{ value: L('المتوسط الوطني', 'National avg'), position: 'insideBottomRight', fontSize: 9, fill: 'var(--gold)' }} />,
@@ -415,11 +401,11 @@ function StandardOfLivingInner() {
           {/* quick-place buttons */}
           <div className="flex gap-2 flex-wrap mb-4">
             {[
-              { v: OFFSET_BELOW, ar: 'أساسي دون المتوسط', en: 'Basic below average' },
-              { v: OFFSET_AT, ar: 'أساسي عند المتوسط', en: 'Basic at average' },
-              { v: OFFSET_ABOVE, ar: 'أساسي فوق المتوسط', en: 'Basic above average' },
+              { v: OFFSET_BELOW, ar: 'أساسيّ دون المتوسط', en: 'My Basic below average' },
+              { v: OFFSET_AT, ar: 'أساسيّ عند المتوسط', en: 'My Basic at average' },
+              { v: OFFSET_ABOVE, ar: 'أساسيّ فوق المتوسط', en: 'My Basic above average' },
             ].map((b) => {
-              const active = Math.abs(offset - b.v) < 0.25;
+              const active = Math.abs(offset - b.v) < 0.4;
               return (
                 <button key={b.v} onClick={() => setOffset(b.v)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-medium border ${active ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)]' : 'bg-[var(--surface-card)] border-[var(--border-medium)] text-[var(--ink-2)]'}`}>
@@ -432,9 +418,9 @@ function StandardOfLivingInner() {
           <LadderPlacement offset={offset} setOffset={setOffset} ar={ar} locale={locale} />
 
           <div className="text-[11px] text-[var(--muted)] mt-3">
-            {offset > 0.35 ? L('أرضيّتك «الأساسي» فوق المتوسط الوطني — طبقة وسطى عليا.', 'Your “Basic” floor sits above the national average — an upper-middle footing.')
-              : offset < -0.35 ? L('أرضيّتك «الأساسي» دون المتوسط الوطني.', 'Your “Basic” floor sits below the national average.')
-              : L('أرضيّتك «الأساسي» عند المتوسط الوطني تقريباً.', 'Your “Basic” floor sits at the national average.')}
+            {offset > 0.4 ? L('مستوى «الأساسي» لديك فوق المتوسط الوطني — طبقة وسطى عليا.', 'Your “Basic” level sits above the national average — an upper-middle footing.')
+              : offset < -0.4 ? L('مستوى «الأساسي» لديك دون المتوسط الوطني.', 'Your “Basic” level sits below the national average.')
+              : L('مستوى «الأساسي» لديك عند المتوسط الوطني.', 'Your “Basic” level sits right at the national average.')}
           </div>
           <button onClick={() => setConfirmed(true)} className="mt-4 text-sm text-white bg-[var(--green-dark)] rounded-lg px-5 py-2.5 font-medium">
             {L('تأكيد هذه المستويات ←', 'Confirm these levels →')}
