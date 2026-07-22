@@ -56,7 +56,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6 py-16">
       <div className="max-w-3xl w-full text-center">
         <div className="text-xs tracking-[0.15em] uppercase text-[var(--green)] font-semibold mb-4">
-          {L('مرحباً بك في مَالمايند', 'Welcome to MalMind')}
+          {L('مرحباً بك في مال مايند', 'Welcome to MalMind')}
         </div>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[var(--ink)] mb-4 leading-tight">
           {ar ? (

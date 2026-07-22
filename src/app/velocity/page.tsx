@@ -372,7 +372,7 @@ export default function VelocityPage() {
                   />
                   <LeverRow icon="✂️" title={L('اقتطع 1,000 ريال من الإنفاق الشهري', 'Cut SAR 1,000 from monthly expense')} desc={L('وجِّهها مباشرةً إلى بناء الثروة', 'Redirect it straight into wealth-building')} impact={L('وتيرة أسرع', 'Faster pace')} />
                   <LeverRow icon="🏡" title={L('أعِد التفكير في حجم الرهن', 'Rethink the mortgage size')} desc={L('قسطٌ أصغر يُبقي مزيداً من الدخل المتاح يعمل لصالحك', 'A smaller installment keeps more disposable income working for you')} impact={L('أثر كبير', 'Big effect')} />
-                  <LeverRow icon="💬" title={L('ابنِ خطّة مع مستشارك', 'Build a plan with your advisor')} desc={L('دع مَالمايند يرسم مساراً واقعياً إلى رقمك', 'Let MalMind map a realistic path to your number')} impact={L('مخصّص', 'Personalized')} />
+                  <LeverRow icon="💬" title={L('ابنِ خطّة مع مستشارك', 'Build a plan with your advisor')} desc={L('دع مال مايند يرسم مساراً واقعياً إلى رقمك', 'Let MalMind map a realistic path to your number')} impact={L('مخصّص', 'Personalized')} />
                 </div>
               </>
             )}

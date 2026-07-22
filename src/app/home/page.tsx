@@ -183,7 +183,7 @@ export default function HomePage() {
         'مالك يعيش في تطبيقات البنوك والوسطاء والجداول — ولا مكان واحد يُظهر الصورة كاملة.',
         'Your money lives across bank apps, brokers and spreadsheets — no single place shows the whole picture.'
       ),
-      answer: L('يجمعها مَالمايند في سِجلّ واحد مترابط.', 'MalMind pulls it into one connected ledger.'),
+      answer: L('يجمعها مال مايند في سِجلّ واحد مترابط.', 'MalMind pulls it into one connected ledger.'),
       tools: [
         { label: L('أرقامي المالية', 'My Financial Numbers'), href: '/financial-numbers' },
         { label: L('الأصول', 'Assets'), href: '/holdings' },
@@ -295,13 +295,13 @@ export default function HomePage() {
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 sm:p-8 mb-8 relative overflow-hidden">
         <div className="absolute -top-10 -end-10 w-40 h-40 rounded-full bg-[var(--green-bg)] blur-3xl opacity-60 pointer-events-none" />
         <div className="relative">
-          <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--green-dark)] font-semibold mb-2">{L('عن مَالمايند', 'About MalMind')}</div>
+          <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--green-dark)] font-semibold mb-2">{L('عن مال مايند', 'About MalMind')}</div>
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)] mb-3 leading-tight max-w-2xl">
             {L('طبقة تفكير لمالك.', 'A thinking layer for your money.')}
           </h2>
           <p className="text-sm text-[var(--ink-2)] leading-relaxed max-w-2xl">
             {L(
-              'مَالمايند رفيقٌ ماليّ سعوديّ أولاً، يحوّل الأرقام المبعثرة إلى صورة واحدة مترابطة تراها وتسائلها وتصمّمها — عبر ماضيك، وحاضرك، والمستقبل الذي تبنيه. ليس شاشة أرصدة أخرى، بل مكانٌ لفهم مالك واتّخاذ قرارات أفضل به.',
+              'مال مايند رفيقٌ ماليّ سعوديّ أولاً، يحوّل الأرقام المبعثرة إلى صورة واحدة مترابطة تراها وتسائلها وتصمّمها — عبر ماضيك، وحاضرك، والمستقبل الذي تبنيه. ليس شاشة أرصدة أخرى، بل مكانٌ لفهم مالك واتّخاذ قرارات أفضل به.',
               "MalMind is a Saudi-first financial companion that turns scattered numbers into one connected picture you can see, question, and design — across your past, your present, and the future you're building toward. Not another balance screen: a place to understand your money and make better decisions with it."
             )}
           </p>
@@ -316,7 +316,7 @@ export default function HomePage() {
       {/* ── why we exist: problem → answer ── */}
       <div className="mb-8">
         <SectionHeading
-          eyebrow={L('لماذا وُجد مَالمايند', 'Why MalMind exists')}
+          eyebrow={L('لماذا وُجد مال مايند', 'Why MalMind exists')}
           title={L('ثلاث مشكلات في المال الشخصي — وكيف نعالجها', 'Three problems in personal finance — and how we tackle them')}
         />
         <div className="grid md:grid-cols-3 gap-3">

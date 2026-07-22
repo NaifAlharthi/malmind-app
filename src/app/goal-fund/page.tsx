@@ -451,7 +451,7 @@ export default function GoalFundPage() {
           <div className="mb-5">
             <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">{L('المتتبّع الشهري', 'Monthly tracker')}</div>
             <div className="text-xs text-[var(--muted)] mb-3">
-              {L('سجّل ما ادّخرته فعلاً. يتتبّع مَالمايند الفرق تلقائياً.', 'Log what you actually saved. MalMind tracks the difference automatically.')}
+              {L('سجّل ما ادّخرته فعلاً. يتتبّع مال مايند الفرق تلقائياً.', 'Log what you actually saved. MalMind tracks the difference automatically.')}
             </div>
             <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden">
               <div className="grid grid-cols-[36px_1fr_90px_90px_80px_80px] gap-2.5 px-4 py-2.5 bg-[var(--surface-0)] text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
@@ -514,7 +514,7 @@ export default function GoalFundPage() {
             </div>
             <div className="text-xs text-[var(--gold-text-body)] leading-relaxed">
               <strong className="text-[var(--gold-text-strong)]">{L('هذا الصندوق الآن جزء من خطتك.', 'This fund is now part of your plan.')}</strong> {L(
-                'يتتبّعه مَالمايند إلى جانب كل شيء آخر — وإن كان قرارٌ كبير يعني تفويت شهر هنا، سأريك ما يكلّفه ذلك مقابل هذا الهدف بالذات، بهذه المصطلحات بالذات.',
+                'يتتبّعه مال مايند إلى جانب كل شيء آخر — وإن كان قرارٌ كبير يعني تفويت شهر هنا، سأريك ما يكلّفه ذلك مقابل هذا الهدف بالذات، بهذه المصطلحات بالذات.',
                 "MalMind tracks it alongside everything else — if a big decision would mean skipping a month here, I'll show you what that costs against this exact goal, in these exact terms."
               )}
             </div>

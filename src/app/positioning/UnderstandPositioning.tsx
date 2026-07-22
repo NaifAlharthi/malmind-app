@@ -52,7 +52,7 @@ function getQuadData(ar: boolean): Record<string, QuadDef> {
       levers: [
         { ic: '✂️', t: L('هندِس فائضاً', 'Engineer a surplus'), d: L('اعثر على 1,000–2,000 ريال/شهر من متنفّس واحفظها في أداة الميزنة', 'Find and lock SAR 1,000–2,000/month of breathing room in the Budgeting tool'), tag: L('خطوة جوهرية', 'Core move') },
         { ic: '🔒', t: L('أتمِته قبل أن تراه', 'Automate it before you see it'), d: L('انقل الفائض إلى الادّخار يوم الراتب فلا يُنفَق أبداً', 'Move the surplus to savings on payday so it never gets spent'), tag: L('احمِ', 'Protect') },
-        { ic: '📊', t: L('احترس من تضخّم نمط الحياة', 'Watch for lifestyle creep'), d: L('ينبّهك مَالمايند حين ترتفع النفقات بسرعة الدخل', 'MalMind flags when expenses rise as fast as income'), tag: L('أضِف للخطة', 'Add to plan') },
+        { ic: '📊', t: L('احترس من تضخّم نمط الحياة', 'Watch for lifestyle creep'), d: L('ينبّهك مال مايند حين ترتفع النفقات بسرعة الدخل', 'MalMind flags when expenses rise as fast as income'), tag: L('أضِف للخطة', 'Add to plan') },
       ],
     },
     behind: {
@@ -346,18 +346,18 @@ export default function UnderstandPositioning() {
           <div className="mb-6">
             <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">{L('كيف تعوّض الفجوة', 'How to make up the gap')}</div>
             <div className="text-sm text-[var(--ink-2)] mb-4">
-              {L('ليست نصائح عامّة — كلٌّ منها يصبح جزءاً من خطتك الشاملة التي يتتبّعها مَالمايند ويحميها.', "These aren't generic tips — each one becomes part of your holistic plan that MalMind tracks and protects.")}
+              {L('ليست نصائح عامّة — كلٌّ منها يصبح جزءاً من خطتك الشاملة التي يتتبّعها مال مايند ويحميها.', "These aren't generic tips — each one becomes part of your holistic plan that MalMind tracks and protects.")}
             </div>
             <div className="flex flex-col gap-2">
               <LeverRow icon="📈" title={L('أضِف مصدر دخل ثانٍ', 'Add a second income stream')} desc={L('احسب دخلاً جانبياً في أداة سرعة المال وشاهِد مسارك ينحني صعوداً', 'Model a side income in the Velocity tool and watch your trajectory bend upward')} tag={L('أضِف للخطة', 'Add to plan')} />
               <LeverRow icon="🏡" title={L('انتقل من الإيجار إلى التملّك', 'Move from renting to owning')} desc={L('تحقّق من أهليّة صندوق التنمية العقارية — الملكية أسرع رافعة لللحاق بصافي الثروة', 'Check REDF eligibility — equity is the fastest net-worth catch-up lever you have')} tag={L('أضِف للخطة', 'Add to plan')} />
               <LeverRow icon="💾" title={L('ابدأ باستثمار دخلك المتاح', 'Start investing your disposable income')} desc={L('حتى مبلغ شهري متواضع يتراكم — تُسقطه أداة مسار المضاعفة إلى الأمام', 'Even a modest monthly amount compounds — the Doubling Path tool projects it forward')} tag={L('أضِف للخطة', 'Add to plan')} />
-              <LeverRow icon="💬" title={L('ابنِ خطة لحاق مع مستشارك', 'Build a catch-up plan with your advisor')} desc={L('دع مَالمايند يرتّب هذه الخطوات في مسار واقعي لغلق الفجوة', 'Let MalMind sequence these moves into a realistic path to close the gap')} tag={L('مخصّص', 'Personalized')} />
+              <LeverRow icon="💬" title={L('ابنِ خطة لحاق مع مستشارك', 'Build a catch-up plan with your advisor')} desc={L('دع مال مايند يرتّب هذه الخطوات في مسار واقعي لغلق الفجوة', 'Let MalMind sequence these moves into a realistic path to close the gap')} tag={L('مخصّص', 'Personalized')} />
             </div>
           </div>
 
           <NudgeBanner>
-            <strong className="text-[var(--gold-text-strong)]">{L('يتذكّر مَالمايند هذا.', 'MalMind remembers this.')}</strong> {L(
+            <strong className="text-[var(--gold-text-strong)]">{L('يتذكّر مال مايند هذا.', 'MalMind remembers this.')}</strong> {L(
               'فجوتك وخطة لحاقك أصبحتا جزءاً من صورتك المالية الشاملة. في المرّة القادمة التي توشك فيها على قرار يوسّع الفجوة — شراء اختياري كبير، قرض سيارة أطول، السحب من المدخرات — سأذكّرك بهدوء بما يكلّفه ذلك مقابل هذه الخطة. لا للحكم، بل ليكون الخيار خيارك بعينين مفتوحتين.',
               "Your gap and your catch-up plan are now part of your holistic financial picture. Next time you're about to make a decision that widens the gap — a big discretionary purchase, a longer car loan, dipping into savings — I'll quietly remind you what it costs against this plan. Not to judge, just so the choice is yours with eyes open."
             )}

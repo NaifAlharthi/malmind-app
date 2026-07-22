@@ -291,7 +291,7 @@ function StandardOfLivingInner() {
         <div className="mb-6">
           <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">{L('كيف حالك مقابل خطّتك أنت؟', 'How are you doing against your own plan?')}</div>
           <div className="text-sm text-[var(--ink-2)] mb-3">
-            {L('كل سنة، سجّل مستوى المعيشة الذي بلغته فعلاً. يخبرك مَالمايند إن كنت متقدّماً أم على المسار أم متأخّراً.', "Each year, record the standard of living you actually reached. MalMind tells you if you're ahead, on track, or falling behind.")}
+            {L('كل سنة، سجّل مستوى المعيشة الذي بلغته فعلاً. يخبرك مال مايند إن كنت متقدّماً أم على المسار أم متأخّراً.', "Each year, record the standard of living you actually reached. MalMind tells you if you're ahead, on track, or falling behind.")}
           </div>
           {series.length === 0 ? (
             <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
@@ -374,7 +374,7 @@ function StandardOfLivingInner() {
         <div className="w-7 h-7 rounded-full bg-[var(--gold)] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">M</div>
         <div className="text-xs text-[var(--gold-text-body)] leading-relaxed">
           <strong className="text-[var(--gold-text-strong)]">{L('يصبح هذا مخطّط حياتك.', "This becomes your life's blueprint.")}</strong> {L(
-            'ما إن تحدّد هذه الدرجات، يحفظها لك مَالمايند. وحين يبعدك قرارٌ عن مسارك إلى مستواك التالي، سأريك المقايضة مقابل الحياة التي قلت إنك تريدها.',
+            'ما إن تحدّد هذه الدرجات، يحفظها لك مال مايند. وحين يبعدك قرارٌ عن مسارك إلى مستواك التالي، سأريك المقايضة مقابل الحياة التي قلت إنك تريدها.',
             "Once you set these stepping stones, MalMind holds them for you. When a decision would knock you off the path to your next level, I'll show you the trade-off against the life you said you wanted."
           )}
         </div>

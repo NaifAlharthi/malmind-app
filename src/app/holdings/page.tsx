@@ -102,7 +102,7 @@ export default function HoldingsPage() {
         icon="🧾"
         title={L('المصروفات', 'Expenses')}
         description={L(
-          'إنفاقك المتكرر ولمرة واحدة، ليرى مَالمايند أين تذهب أموالك فعلاً.',
+          'إنفاقك المتكرر ولمرة واحدة، ليرى مال مايند أين تذهب أموالك فعلاً.',
           'Your recurring and one-off spending, so MalMind can see where your money actually goes.'
         )}
         table="expenses"

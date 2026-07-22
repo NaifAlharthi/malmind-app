@@ -55,7 +55,7 @@ function getSteps(ar: boolean, persona: string): TourStep[] {
   return [
     {
       path: '/home', selector: null,
-      title: L('مرحباً بك في مَالمايند 👋', 'Welcome to MalMind 👋'),
+      title: L('مرحباً بك في مال مايند 👋', 'Welcome to MalMind 👋'),
       body: L(
         `أنت داخل عرض حيّ — دون حساب، دون حفظ، وكل شيء حقيقي. خلال الدقيقتين القادمتين سترى المال بعينَي ${first}: ${intro} كل ما ستراه محسوب من أرقامها الفعلية. لنتجوّل في عالمها معاً — ويمكنك تبديل الشخصية في أيّ وقت.`,
         `You're inside a live demo — no account, nothing saved, everything real. For the next two minutes you'll see money through the eyes of ${first}: ${intro} Everything you'll see is computed from their actual numbers. Let's walk their world together — and you can switch persona anytime.`
@@ -73,7 +73,7 @@ function getSteps(ar: boolean, persona: string): TourStep[] {
       path: '/home', selector: '[data-tour="views-grid"]',
       title: L('ثلاث نظرات لحياة مالية واحدة', 'Three views of one financial life'),
       body: L(
-        `ينظّم مَالمايند كل شيء حول الزمن. الماضي يحمل أرشيف ${first} وقصّتها. اليوم يعرض موقعها الحيّ. المستقبل يحمل خططها وإسقاطاتها و«ماذا لو». كل نظرة تفتح بملخّص، وشريط تحادث فيه الدماغ، وصندوق أدوات تفتحه حين تحتاجه فقط.`,
+        `ينظّم مال مايند كل شيء حول الزمن. الماضي يحمل أرشيف ${first} وقصّتها. اليوم يعرض موقعها الحيّ. المستقبل يحمل خططها وإسقاطاتها و«ماذا لو». كل نظرة تفتح بملخّص، وشريط تحادث فيه الدماغ، وصندوق أدوات تفتحه حين تحتاجه فقط.`,
         `MalMind arranges everything around time. The Past holds ${first}'s archive and story. Today shows their live position. The Future carries their plans, projections and what-ifs. Each view opens with a summary, a bar where they talk to the Brain, and a toolbox opened only when needed.`
       ),
     },
@@ -89,7 +89,7 @@ function getSteps(ar: boolean, persona: string): TourStep[] {
       path: '/financial-numbers', selector: 'main h1',
       title: L('أرقامي المالية — السِّجلّ', 'My Financial Numbers — the ledger'),
       body: L(
-        `قلب مَالمايند: صفٌّ لكل شهر — نقد، أسهم، عقار، التزامات، دخل، مصروفات. تسجّل ${first} بضع دقائق شهرياً، أو تزامن جدول Google، وكل ما عداه في المنتج يحسب نفسه من هنا.`,
+        `قلب مال مايند: صفٌّ لكل شهر — نقد، أسهم، عقار، التزامات، دخل، مصروفات. تسجّل ${first} بضع دقائق شهرياً، أو تزامن جدول Google، وكل ما عداه في المنتج يحسب نفسه من هنا.`,
         `The heart of MalMind: one row per month — cash, stocks, real estate, liabilities, income, expenses. ${first} logs a few minutes a month, or syncs a Google Sheet, and everything else in the product computes itself from here.`
       ),
     },
@@ -105,7 +105,7 @@ function getSteps(ar: boolean, persona: string): TourStep[] {
       path: '/financial-numbers', selector: '[data-tour="fn-sheet"]',
       title: L('جدول حقيقي، في الاتجاهين', 'A real spreadsheet, both directions'),
       body: L(
-        'اضغط أيّ صفّ لتحريره. صدّر كل شيء كـ CSV، أو الصِق أشهراً من أيّ جدول، أو اربط Google Sheets للمزامنة في الاتجاهين. بياناتك ليست محبوسة هنا أبداً — يعمل مَالمايند مع عادات الجداول التي لديك أصلاً.',
+        'اضغط أيّ صفّ لتحريره. صدّر كل شيء كـ CSV، أو الصِق أشهراً من أيّ جدول، أو اربط Google Sheets للمزامنة في الاتجاهين. بياناتك ليست محبوسة هنا أبداً — يعمل مال مايند مع عادات الجداول التي لديك أصلاً.',
         'Click any row to edit it. Export the whole thing as CSV, paste months in from any spreadsheet, or connect Google Sheets for two-way sync. Your data is never trapped here — MalMind works with the spreadsheet habits you already have.'
       ),
     },
@@ -137,7 +137,7 @@ function getSteps(ar: boolean, persona: string): TourStep[] {
       path: '/velocity', selector: 'main h1',
       title: L('سرعة المال', 'Velocity of Money'),
       body: L(
-        `الثروة معاد صياغتها كزمن. بوتيرة ادّخار ${first} الحقيقية، يعرض مَالمايند كم يبعد كل هدف مالي — بالأشهر لا بالريالات. فعّل رهناً عقارياً وشاهِد كل محطّة تمتدّ: التكلفة الحقيقية لالتزامٍ، مقيسةً بأشهر من عمرك.`,
+        `الثروة معاد صياغتها كزمن. بوتيرة ادّخار ${first} الحقيقية، يعرض مال مايند كم يبعد كل هدف مالي — بالأشهر لا بالريالات. فعّل رهناً عقارياً وشاهِد كل محطّة تمتدّ: التكلفة الحقيقية لالتزامٍ، مقيسةً بأشهر من عمرك.`,
         `Wealth reframed as time. At ${first}'s real pace of saving, MalMind shows how far away each money milestone is — in months, not riyals. Toggle on a mortgage and watch every milestone stretch: the true cost of a commitment, measured in months of your life.`
       ),
     },
@@ -145,7 +145,7 @@ function getSteps(ar: boolean, persona: string): TourStep[] {
       path: '/doubling-path', selector: 'main h1',
       title: L('مسار المضاعفة', 'The Doubling Path'),
       body: L(
-        `يستحيل الشعور بالتراكم كنسبة، فيعرضه مَالمايند كلقاءات مع نفسك المستقبلية: بعائد مفترَض، متى تتضاعف محفظة ${first}، ثم تتضاعف ثانيةً، ثم ثالثةً. أوّل المضاعفات تحدث داخل حياة عملية — وهناك ينبغي أن يكون التركيز.`,
+        `يستحيل الشعور بالتراكم كنسبة، فيعرضه مال مايند كلقاءات مع نفسك المستقبلية: بعائد مفترَض، متى تتضاعف محفظة ${first}، ثم تتضاعف ثانيةً، ثم ثالثةً. أوّل المضاعفات تحدث داخل حياة عملية — وهناك ينبغي أن يكون التركيز.`,
         `Compounding is impossible to feel as a percentage, so MalMind shows it as meetings with your future self: at an assumed return, when ${first}'s portfolio doubles, doubles again, and again. The first doublings happen inside a working life — that's where the focus belongs.`
       ),
     },
@@ -217,7 +217,7 @@ function getSteps(ar: boolean, persona: string): TourStep[] {
       path: '/commitments', selector: 'main h1',
       title: L('الفواتير والالتزامات', 'Bills & Commitments'),
       body: L(
-        `الحقيقة المتكرّرة: الاشتراكات، القروض، والبطاقات. يعرف مَالمايند تدفّق ${first} الشهري الحقيقي — فتُبنى كل خطة في مكان آخر على الواقع، لا على التفاؤل.`,
+        `الحقيقة المتكرّرة: الاشتراكات، القروض، والبطاقات. يعرف مال مايند تدفّق ${first} الشهري الحقيقي — فتُبنى كل خطة في مكان آخر على الواقع، لا على التفاؤل.`,
         `The recurring truth: subscriptions, loans, and cards. MalMind knows ${first}'s true monthly outflow — so every plan elsewhere is built on reality, not optimism.`
       ),
     },
@@ -231,7 +231,7 @@ function getSteps(ar: boolean, persona: string): TourStep[] {
     },
     {
       path: '/home', selector: null,
-      title: L('هذا هو مَالمايند ✦', "That's MalMind ✦"),
+      title: L('هذا هو مال مايند ✦', "That's MalMind ✦"),
       body: L(
         `أدوات كثيرة، وصورة واحدة مترابطة — حياة مالية يمكنك أن تراها وتسائلها وتصمّمها. كل ما تجوّلت فيه للتوّ عمل على أرقام ${first}. جرّب شخصية أخرى لترى موقفاً مختلفاً تماماً، أو أنشئ حساباً مجّانياً ويبدأ عالمك الخاصّ بالبناء من أول رقم تسجّله.`,
         `Many tools, one connected picture — a financial life you can see, question, and design. Everything you just toured ran on ${first}'s numbers. Try another persona to see a completely different situation, or create a free account and your own world starts building from the very first number you log.`
@@ -433,7 +433,7 @@ export default function DemoTour() {
         {/* progress */}
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-bold tracking-[0.1em] uppercase text-[#1D9E75]">
-            {L('جولة مَالمايند التعريفية', 'MalMind demo tour')}
+            {L('جولة مال مايند التعريفية', 'MalMind demo tour')}
           </span>
           <span className="text-[10px] text-[#898781] font-medium">{step + 1} / {STEPS.length}</span>
         </div>

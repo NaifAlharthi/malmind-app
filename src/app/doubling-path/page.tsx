@@ -346,7 +346,7 @@ export default function DoublingPathPage() {
         <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">{L('اثنِ المسار', 'Bend the path')}</div>
         <div className="text-sm text-[var(--ink-2)] mb-4">
           {L(
-            'كل خطوة تصبح جزءاً من خطتك الشاملة التي يتتبّعها مَالمايند — ويذكّرك بها حين يُبطئك قرارٌ ما.',
+            'كل خطوة تصبح جزءاً من خطتك الشاملة التي يتتبّعها مال مايند — ويذكّرك بها حين يُبطئك قرارٌ ما.',
             'Each move becomes part of your holistic plan that MalMind tracks — and reminds you of when a decision would slow you down.'
           )}
         </div>

@@ -70,7 +70,7 @@ export default function CommitmentsPage() {
       <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">{L('الفواتير والالتزامات', 'Bills & Commitments')}</h1>
       <p className="text-sm text-[var(--ink-2)] mb-6 max-w-xl">
         {L(
-          'التزاماتك المتكررة — الاشتراكات، والقروض والرهون العقارية، والبطاقات الائتمانية. تسجيلها يتيح لمَالمايند رؤية تدفّقك الشهري الحقيقي وأخذه في كل خطة.',
+          'التزاماتك المتكررة — الاشتراكات، والقروض والرهون العقارية، والبطاقات الائتمانية. تسجيلها يتيح لمال مايند رؤية تدفّقك الشهري الحقيقي وأخذه في كل خطة.',
           'Your recurring obligations — subscriptions, loans and mortgages, and credit cards. Logging these lets MalMind see your true monthly outflow and factor it into every plan.'
         )}
       </p>

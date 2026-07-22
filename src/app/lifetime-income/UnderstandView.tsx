@@ -312,7 +312,7 @@ export default function UnderstandView() {
             )}
             {reflection === 'unsure' && (
               L(
-                'ذلك التردّد يستحقّ التأمّل — فهو غالباً يعني أن بعض الإنفاق خدمك جيّداً وبعضه لا، ولا يمكنك بعد تمييز أيّهما. أنفع تمرين: فكّر في العام الماضي. هل تستطيع أن تشير إلى ما اشتراه لك إنفاقك — تقدّماً، أو فرحاً، أو لا هذا ولا ذاك؟ يستطيع مَالمايند مساعدتك على تتبّعه شهراً بشهر.',
+                'ذلك التردّد يستحقّ التأمّل — فهو غالباً يعني أن بعض الإنفاق خدمك جيّداً وبعضه لا، ولا يمكنك بعد تمييز أيّهما. أنفع تمرين: فكّر في العام الماضي. هل تستطيع أن تشير إلى ما اشتراه لك إنفاقك — تقدّماً، أو فرحاً، أو لا هذا ولا ذاك؟ يستطيع مال مايند مساعدتك على تتبّعه شهراً بشهر.',
                 "That uncertainty is worth sitting with — it usually means some spending served you well and some didn't, and you can't yet tell which. The most useful exercise: think about the last year. Can you point to what your spending bought you — progress, joy, or neither? MalMind can help you trace it month by month."
               )
             )}
@@ -338,7 +338,7 @@ export default function UnderstandView() {
           <LensCard icon="🎯" title={L('هل قرّبك من أهدافك؟', 'Did it move you toward your goals?')} desc={L('قارِن ما أنفقته بالأهداف التي تقول إنها تهمّك — منزل، عائلة، حرّية. الإنفاق الذي اشترى تقدّماً هو إنفاق نجح.', 'Compare what you spent against the goals you say matter — a home, family, freedom. Spending that bought progress is spending that worked.')} />
           <LensCard icon="😊" title={L('هل اشترى متعةً حقيقية؟', 'Did it buy real enjoyment?')} desc={L('السفر، التجارب، الوقت مع من تحبّ — هذا ما وُجد المال لأجله. والسؤال هل حقّقها إنفاقك فعلاً.', 'Travel, experiences, time with people you love — these are what money is for. The question is whether your spending actually delivered them.')} />
           <LensCard icon="💨" title={L('أم أنه تبخّر فحسب؟', 'Or did it just evaporate?')} desc={L('كثير من الإنفاق لا يترك أثراً — لا تقدّماً ولا فرحاً. إيجاد هذا التسرّب الخفيّ هو أكبر فرصة في مالية أغلب الناس.', "Much spending leaves no trace — neither progress nor joy. Finding this invisible leak is the single biggest opportunity in most people's finances.")} />
-          <LensCard icon="⚖️" title={L('هل التوازن مناسب لمرحلتك؟', 'Is the balance right for your stage?')} desc={L('ابن الخامسة والعشرين وابن الخامسة والأربعين ينبغي أن يحتفظا بحصص مختلفة. يزن مَالمايند نسبتك مقابل موضعك في الحياة — لا قاعدة عامّة.', 'A 25-year-old and a 45-year-old should keep different shares. MalMind weighs your ratio against where you are in life — not a generic rule.')} />
+          <LensCard icon="⚖️" title={L('هل التوازن مناسب لمرحلتك؟', 'Is the balance right for your stage?')} desc={L('ابن الخامسة والعشرين وابن الخامسة والأربعين ينبغي أن يحتفظا بحصص مختلفة. يزن مال مايند نسبتك مقابل موضعك في الحياة — لا قاعدة عامّة.', 'A 25-year-old and a 45-year-old should keep different shares. MalMind weighs your ratio against where you are in life — not a generic rule.')} />
         </div>
       </div>
 
@@ -348,7 +348,7 @@ export default function UnderstandView() {
           M
         </div>
         <div className="text-xs text-[var(--gold-text-body)] leading-relaxed">
-          <strong className="text-[var(--gold-text-strong)]">{L('مَالمايند يُبقي هذا نصب عينيه.', 'MalMind keeps this in view.')}</strong> {L(
+          <strong className="text-[var(--gold-text-strong)]">{L('مال مايند يُبقي هذا نصب عينيه.', 'MalMind keeps this in view.')}</strong> {L(
             'تصبح صورة العمر هذه جزءاً من كيفية فهمي لك. حين تزن شراءً كبيراً لاحقاً، أستطيع أن أُريك ما يفعله بهذا المنحنى — لا لأوقفك، بل لتراه مقابل كل ما كسبته واحتفظت به. الحياة الطيّبة تحتاج إنفاقاً. والهدف أن يشتري إنفاقك الحياة التي تريدها فعلاً.',
             "This lifetime picture becomes part of how I understand you. When you're weighing a big purchase later, I can show you what it does to this curve — not to stop you, but so you see it against everything you've earned and kept. A good life needs spending. The goal is making sure yours buys the life you actually want."
           )}

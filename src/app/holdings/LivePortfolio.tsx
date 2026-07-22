@@ -172,7 +172,7 @@ export default function LivePortfolio() {
           </div>
           <p className="text-xs text-[var(--muted)] max-w-md leading-relaxed">
             {L(
-              'ابحث عن شركة أو رمز وأضِف عدد أسهمك — يسعّرها مَالمايند مباشرة من السوق بالريال ويحدّثها تلقائياً. تداول يستخدم اللاحقة',
+              'ابحث عن شركة أو رمز وأضِف عدد أسهمك — يسعّرها مال مايند مباشرة من السوق بالريال ويحدّثها تلقائياً. تداول يستخدم اللاحقة',
               'Search a company or symbol and add your share count — MalMind prices it live from the market in SAR and refreshes on its own. Tadawul uses a'
             )}{' '}
             <span className="font-mono">.SR</span>{' '}

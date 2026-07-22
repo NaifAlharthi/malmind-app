@@ -42,7 +42,7 @@ export default function PersonaPicker() {
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">{L('اختر من يشبهك، وامشِ في حياته المالية', 'Pick who you relate to, and walk their financial life')}</h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto leading-relaxed">
             {L(
-              'أربع شخصيات سعودية، كلٌّ منها في مرحلة مختلفة من رحلتها المالية. اختر واحدة لتجربة كل أداة في مَالمايند على بياناتها الكاملة — دون حساب، ولا شيء يُحفَظ.',
+              'أربع شخصيات سعودية، كلٌّ منها في مرحلة مختلفة من رحلتها المالية. اختر واحدة لتجربة كل أداة في مال مايند على بياناتها الكاملة — دون حساب، ولا شيء يُحفَظ.',
               'Four Saudi personas, each at a different stage of the money journey. Choose one to experience every MalMind tool on their full data — no account, nothing saved.'
             )}
           </p>

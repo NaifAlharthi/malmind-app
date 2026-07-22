@@ -226,7 +226,7 @@ export default function RisksPage() {
         <div className="w-7 h-7 rounded-full bg-[var(--gold)] flex items-center justify-center font-serif font-semibold text-white text-sm shrink-0">M</div>
         <div className="text-xs text-[#5A4A1A] leading-relaxed">
           <strong className="text-[#3A2F0A]">{L('المخاطرة ليست مزاجاً — بل رقم.', "Risk isn't a mood — it's a number.")}</strong> {L(
-            'تتحدّث هذه القراءات كلّما تحدّثت بياناتك. وحين يدفع قرارٌ في مكانٍ آخر من مَالمايند إحداها في الاتجاه الخطأ — رهنٌ أكبر، تغطيةٌ مستنزَفة — فهذه الصفحة هي حيث ترى التكلفة مُسمّاة.',
+            'تتحدّث هذه القراءات كلّما تحدّثت بياناتك. وحين يدفع قرارٌ في مكانٍ آخر من مال مايند إحداها في الاتجاه الخطأ — رهنٌ أكبر، تغطيةٌ مستنزَفة — فهذه الصفحة هي حيث ترى التكلفة مُسمّاة.',
             "These readings update as your data does. When a decision elsewhere in MalMind would push one of them the wrong way — a bigger mortgage, a drained runway — this page is where you'll see the cost named."
           )}
         </div>
