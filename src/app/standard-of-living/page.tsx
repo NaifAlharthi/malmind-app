@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ResponsiveContainer,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import { isDemoActive } from '@/lib/demoSupabase';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
-  TIERS, tierLabel, tierShortLabel, getLifestyle,
-  buildYearSeries, solStatus, type Tier, type Phase,
+  TIERS, tierLabel, getLifestyle, buildYearSeries, solStatus, ageForYear, suggestForTier,
+  TIER_COLOR, type Tier, type Phase, type PhaseSuggestion,
 } from '@/lib/standardOfLiving';
 
 interface PhaseRow {
@@ -37,6 +38,32 @@ const STATUS_CLASS = {
   behind: 'bg-[var(--red-bg)] text-[var(--red-dark-text)] border-[var(--red-soft)]',
 };
 
+type Baseline = 'below' | 'at' | 'above';
+const BASELINE_KEY = 'mm-sol-baseline';
+
+// X-axis tick that shows the calendar year and, when we know the user's age,
+// the age they'll be that year — so the timeline reads in human terms.
+function YearAgeTick(props: {
+  x?: number | string; y?: number | string; payload?: { value: number | string };
+  ageBase: { year: number; age: number } | null; ar: boolean;
+}) {
+  const { ageBase, ar } = props;
+  const px = Number(props.x) || 0;
+  const py = Number(props.y) || 0;
+  const year = Number(props.payload?.value ?? 0);
+  const age = ageBase ? ageBase.age + (year - ageBase.year) : null;
+  return (
+    <g transform={`translate(${px},${py})`}>
+      <text x={0} y={0} dy={12} textAnchor="middle" fontSize={10} fill="var(--muted)">{year}</text>
+      {age != null && age >= 0 && (
+        <text x={0} y={0} dy={25} textAnchor="middle" fontSize={9} fill="var(--muted)" opacity={0.6}>
+          {ar ? `${age} سنة` : `age ${age}`}
+        </text>
+      )}
+    </g>
+  );
+}
+
 export default function StandardOfLivingPage() {
   return (
     <Suspense fallback={<div className="text-sm text-[var(--muted)]">Loading…</div>}>
@@ -55,42 +82,56 @@ function StandardOfLivingInner() {
   const L = (a: string, e: string) => (ar ? a : e);
 
   const [mode, setMode] = useState<'plan' | 'track'>(initialMode);
-  const [baseline, setBaseline] = useState<'below' | 'at' | 'above'>('at');
+  const [baseline, setBaselineState] = useState<Baseline>('at');
   const [userId, setUserId] = useState<string | null>(null);
+  const [profileAge, setProfileAge] = useState<number | null>(null);
   const [phases, setPhases] = useState<PhaseRow[]>([]);
   const [actuals, setActuals] = useState<ActualRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [lsTier, setLsTier] = useState<Tier>('decent');
-  const [editBuffers, setEditBuffers] = useState<Record<string, { theme: string; todo: string }>>({});
+  // Buffered edits (theme/todo/growth) so we commit on blur, not per keystroke.
+  const [buffers, setBuffers] = useState<Record<string, { theme?: string; todo?: string; growth?: string }>>({});
+  const [assisting, setAssisting] = useState<Set<string>>(new Set());
+  // Page-level hover popover for "what this tier means" (rendered fixed, so an
+  // overflow-scrolled table never clips it).
+  const [tierHover, setTierHover] = useState<{ tier: Tier; x: number; y: number } | null>(null);
+
+  const currentYear = new Date().getFullYear();
+  const ageBase = profileAge != null ? { year: currentYear, age: profileAge } : null;
+
+  const setBaseline = (b: Baseline) => {
+    setBaselineState(b);
+    try { localStorage.setItem(userId ? `${BASELINE_KEY}:${userId}` : BASELINE_KEY, b); } catch { /* ignore */ }
+  };
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      router.push('/login');
-      return;
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push('/login'); return; }
     setUserId(user.id);
 
-    const [{ data: phaseData }, { data: actualData }] = await Promise.all([
+    try {
+      const saved = localStorage.getItem(`${BASELINE_KEY}:${user.id}`) || localStorage.getItem(BASELINE_KEY);
+      if (saved === 'below' || saved === 'at' || saved === 'above') setBaselineState(saved);
+    } catch { /* ignore */ }
+
+    const [{ data: phaseData }, { data: actualData }, { data: profile }] = await Promise.all([
       supabase.from('life_phases').select('*').eq('user_id', user.id).order('start_year', { ascending: true }),
       supabase.from('living_standard_actuals').select('year, actual_tier').eq('user_id', user.id).order('year', { ascending: true }),
+      supabase.from('profiles').select('age').eq('id', user.id).single(),
     ]);
 
     if (phaseData) setPhases(phaseData as PhaseRow[]);
     if (actualData) setActuals(actualData as ActualRow[]);
+    if (profile && (profile as { age: number | null }).age != null) setProfileAge((profile as { age: number }).age);
     setLoading(false);
   }, [supabase, router]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   async function addPhase() {
     if (!userId) return;
-    const lastEnd = phases.length > 0 ? Math.max(...phases.map((p) => p.end_year ?? p.start_year)) : new Date().getFullYear();
-    const start = phases.length > 0 ? lastEnd + 1 : new Date().getFullYear();
+    const lastEnd = phases.length > 0 ? Math.max(...phases.map((p) => p.end_year ?? p.start_year)) : currentYear;
+    const start = phases.length > 0 ? lastEnd + 1 : currentYear;
     const { data, error } = await supabase
       .from('life_phases')
       .insert({
@@ -114,7 +155,45 @@ function StandardOfLivingInner() {
 
   async function deletePhase(id: string) {
     setPhases((prev) => prev.filter((p) => p.id !== id));
+    setBuffers((prev) => { const n = { ...prev }; delete n[id]; return n; });
     await supabase.from('life_phases').delete().eq('id', id);
+  }
+
+  // "Assist me" — fill this phase's theme/to-dos/growth. Real users hit the AI
+  // route; in the guest demo we use the tier template locally.
+  async function assist(phase: PhaseRow) {
+    setAssisting((prev) => new Set(prev).add(phase.id));
+    try {
+      let sug: PhaseSuggestion;
+      if (isDemoActive()) {
+        await new Promise((r) => setTimeout(r, 500));
+        sug = suggestForTier(phase.target_tier, ar ? 'ar' : 'en');
+      } else {
+        const res = await fetch('/api/sol-assist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phaseName: phase.phase_name, startYear: phase.start_year,
+            endYear: phase.end_year, tier: phase.target_tier, locale: ar ? 'ar' : 'en',
+          }),
+        });
+        sug = res.ok ? await res.json() : suggestForTier(phase.target_tier, ar ? 'ar' : 'en');
+      }
+      const merge = (existing: string[] | null, add: string[]) => {
+        const out = [...(existing ?? [])];
+        add.forEach((a) => { if (a && !out.includes(a)) out.push(a); });
+        return out;
+      };
+      const patch: Partial<PhaseRow> = {
+        theme: merge(phase.theme, sug.theme),
+        todo: merge(phase.todo, sug.todo),
+        net_worth_goal: phase.net_worth_goal?.trim() ? phase.net_worth_goal : (sug.growth || null),
+      };
+      setBuffers((prev) => { const n = { ...prev }; delete n[phase.id]; return n; });
+      await updatePhase(phase.id, patch);
+    } finally {
+      setAssisting((prev) => { const n = new Set(prev); n.delete(phase.id); return n; });
+    }
   }
 
   async function setActual(year: number, tier: string) {
@@ -130,19 +209,10 @@ function StandardOfLivingInner() {
   }
 
   const phasesForSeries: Phase[] = useMemo(
-    () =>
-      phases
-        .filter((p) => p.end_year != null)
-        .map((p) => ({
-          id: p.id,
-          phase_name: p.phase_name,
-          start_year: p.start_year,
-          end_year: p.end_year!,
-          target_tier: p.target_tier,
-          theme: p.theme ?? [],
-          todo: p.todo ?? [],
-          net_worth_goal: p.net_worth_goal,
-        })),
+    () => phases.filter((p) => p.end_year != null).map((p) => ({
+      id: p.id, phase_name: p.phase_name, start_year: p.start_year, end_year: p.end_year!,
+      target_tier: p.target_tier, theme: p.theme ?? [], todo: p.todo ?? [], net_worth_goal: p.net_worth_goal,
+    })),
     [phases]
   );
 
@@ -160,12 +230,29 @@ function StandardOfLivingInner() {
     router.push(`/standard-of-living?mode=${m === 'track' ? 'track' : 'plan'}`);
   }
 
+  // Show the tier meaning popover anchored under the hovered element.
+  const showTierMeaning = (tier: Tier, el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    setTierHover({ tier, x: Math.min(r.left, window.innerWidth - 300), y: r.bottom + 8 });
+  };
+
+  // Buffered value getters for the editable table.
+  const themeVal = (p: PhaseRow) => buffers[p.id]?.theme ?? (p.theme ?? []).join('\n');
+  const todoVal = (p: PhaseRow) => buffers[p.id]?.todo ?? (p.todo ?? []).join('\n');
+  const growthVal = (p: PhaseRow) => buffers[p.id]?.growth ?? (p.net_worth_goal ?? '');
+  const setBuf = (id: string, field: 'theme' | 'todo' | 'growth', v: string) =>
+    setBuffers((prev) => ({ ...prev, [id]: { ...prev[id], [field]: v } }));
+  const commitList = (p: PhaseRow, field: 'theme' | 'todo') => {
+    const v = (buffers[p.id]?.[field] ?? (p[field] ?? []).join('\n'));
+    updatePhase(p.id, { [field]: v.split('\n').map((s) => s.trim()).filter(Boolean) });
+  };
+
   if (loading) {
     return <div className="text-sm text-[var(--muted)]">{L('جارٍ تحميل تصميم حياتك…', 'Loading your life design…')}</div>;
   }
 
   return (
-    <div>
+    <div onMouseLeave={() => setTierHover(null)}>
       <div className="mb-1 text-[10px] tracking-[0.1em] uppercase text-[var(--blue)] font-semibold">
         {mode === 'plan' ? L('قرّر', 'Decide') : L('فكّر', 'Think')}
       </div>
@@ -177,9 +264,9 @@ function StandardOfLivingInner() {
         )}
       </p>
 
-      {/* baseline — reflective only, no effect on the chart */}
+      {/* starting positioning — a saved framing choice */}
       <div className="flex items-center gap-2.5 flex-wrap mb-4">
-        <span className="text-sm text-[var(--ink-2)]">{L('الآن، أقول إنّني:', "Right now, I'd say I'm:")}</span>
+        <span className="text-sm text-[var(--ink-2)]">{L('أبدأ اليوم من:', "Today I'm starting from:")}</span>
         {(['below', 'at', 'above'] as const).map((b) => (
           <button
             key={b}
@@ -188,7 +275,7 @@ function StandardOfLivingInner() {
               baseline === b ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)]' : 'bg-[var(--surface-card)] border-[var(--border-medium)] text-[var(--ink-2)]'
             }`}
           >
-            {b === 'below' ? L('دون المتوسط الوطني', 'Below national average') : b === 'at' ? L('حول المتوسط الوطني', 'Around national average') : L('أعلى قليلاً من المتوسط', 'Slightly above average')}
+            {b === 'below' ? L('دون المتوسط الوطني', 'Below national average') : b === 'at' ? L('حول المتوسط الوطني', 'Around national average') : L('أعلى من المتوسط', 'Above national average')}
           </button>
         ))}
       </div>
@@ -215,16 +302,36 @@ function StandardOfLivingInner() {
       {chartData.length > 0 ? (
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
           <div className="text-sm font-medium text-[var(--ink)]">{L('مستوى معيشتك عبر السنوات', 'Your standard of living over the years')}</div>
-          <div className="text-xs text-[var(--muted)] mb-1">{L('الدرَج هو خطّتك. والخطّ الأزرق هو ما سجّلته.', 'The staircase is your plan. The blue line is what you logged.')}</div>
+          <div className="text-xs text-[var(--muted)] mb-1">{L('المناطق الملوّنة هي مراحلك. والخطّ الأزرق هو ما سجّلته.', 'The coloured bands are your phases. The blue line is what you logged.')}</div>
           <div className="flex gap-4 text-[11px] text-[var(--ink-2)] mb-2">
             <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-[var(--ink)] inline-block" />{L('الهدف (خطّتك)', 'Target (your plan)')}</span>
             <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-[var(--blue)] inline-block" />{L('الفعلي (مسجَّل)', 'Actual (logged)')}</span>
           </div>
-          <div className="h-80 mt-2">
+          <div className="h-80 mt-2" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData}>
-                <CartesianGrid stroke="var(--chart-grid)" />
-                <XAxis dataKey="year" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
+              <ComposedChart data={chartData} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                {/* translucent phase bands */}
+                {phasesForSeries.map((p, i) => (
+                  <ReferenceArea
+                    key={p.id}
+                    x1={p.start_year}
+                    x2={p.end_year}
+                    y1={0}
+                    y2={3}
+                    fill={TIER_COLOR[p.target_tier]}
+                    fillOpacity={0.08 + (i % 2) * 0.05}
+                    stroke={TIER_COLOR[p.target_tier]}
+                    strokeOpacity={0.25}
+                    label={{ value: p.phase_name, position: 'insideTop', fontSize: 10, fill: 'var(--ink-2)' }}
+                  />
+                ))}
+                <XAxis
+                  dataKey="year"
+                  height={ageBase ? 36 : 20}
+                  tick={(props) => <YearAgeTick {...props} ageBase={ageBase} ar={ar} />}
+                  tickLine={false}
+                />
                 <YAxis
                   domain={[0, 3]}
                   ticks={[0, 1, 2, 3]}
@@ -243,11 +350,18 @@ function StandardOfLivingInner() {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
+          {/* phase chips — hover to see what that standard of living means */}
           <div className="flex gap-2 flex-wrap mt-3">
             {phasesForSeries.map((p) => (
-              <span key={p.id} className="text-[11px] text-[var(--red)] border border-[var(--red)]/30 bg-[var(--red-bg)] rounded-full px-3 py-1">
-                {p.phase_name}: {p.start_year}–{p.end_year} · {L(`${p.end_year - p.start_year} سنة`, `${p.end_year - p.start_year} years`)}
-              </span>
+              <button
+                key={p.id}
+                onMouseEnter={(e) => showTierMeaning(p.target_tier, e.currentTarget)}
+                onMouseLeave={() => setTierHover(null)}
+                className="text-[11px] rounded-full px-3 py-1 border cursor-help"
+                style={{ color: TIER_COLOR[p.target_tier], borderColor: `${TIER_COLOR[p.target_tier]}55`, background: `${TIER_COLOR[p.target_tier]}12` }}
+              >
+                {p.phase_name}: {p.start_year}–{p.end_year} · {tierLabel(p.target_tier, locale)} ⓘ
+              </button>
             ))}
           </div>
         </div>
@@ -262,22 +376,122 @@ function StandardOfLivingInner() {
           <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">
             {L('مراحل حياتك — حدّد هدفاً لكلٍّ منها', 'The phases of your life — set a target for each')}
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {phases.map((phase) => (
-              <PhaseCard
-                key={phase.id}
-                phase={phase}
-                ar={ar}
-                buffer={editBuffers[phase.id]}
-                onLocalTheme={(v) => setEditBuffers((prev) => ({ ...prev, [phase.id]: { theme: v, todo: prev[phase.id]?.todo ?? (phase.todo ?? []).join('\n') } }))}
-                onLocalTodo={(v) => setEditBuffers((prev) => ({ ...prev, [phase.id]: { theme: prev[phase.id]?.theme ?? (phase.theme ?? []).join('\n'), todo: v } }))}
-                onCommitTheme={() => updatePhase(phase.id, { theme: (editBuffers[phase.id]?.theme ?? (phase.theme ?? []).join('\n')).split('\n').map((s) => s.trim()).filter(Boolean) })}
-                onCommitTodo={() => updatePhase(phase.id, { todo: (editBuffers[phase.id]?.todo ?? (phase.todo ?? []).join('\n')).split('\n').map((s) => s.trim()).filter(Boolean) })}
-                onUpdate={(patch) => updatePhase(phase.id, patch)}
-                onDelete={() => deletePhase(phase.id)}
-              />
-            ))}
-          </div>
+
+          {phases.length === 0 ? (
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 text-center text-sm text-[var(--muted)]">
+              {L('لم تُضِف مراحل بعد.', 'No phases yet.')}
+            </div>
+          ) : (
+            <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-x-auto">
+              <table className="border-collapse text-xs" style={{ minWidth: 120 + phases.length * 230 }}>
+                <thead>
+                  <tr className="border-b border-[var(--border-faint)]">
+                    <th className="p-3 w-28 align-top" />
+                    {phases.map((p) => (
+                      <th key={p.id} className="p-3 text-start align-top border-s border-[var(--border-faint)]" style={{ minWidth: 220 }}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <input
+                            value={p.phase_name}
+                            onChange={(e) => updatePhase(p.id, { phase_name: e.target.value })}
+                            className="font-serif text-sm font-semibold text-[var(--ink)] border-b border-dashed border-[var(--border-medium)] focus:border-[var(--green)] outline-none bg-transparent flex-1 min-w-0"
+                          />
+                          <button onClick={() => deletePhase(p.id)} className="text-[var(--muted)] hover:text-[var(--red-dark-text)] text-xs shrink-0" aria-label={L('حذف', 'Delete')}>✕</button>
+                        </div>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <input type="number" value={p.start_year}
+                            onChange={(e) => updatePhase(p.id, { start_year: parseInt(e.target.value) || p.start_year })}
+                            className="w-16 bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1 text-[11px]" />
+                          <span className="text-[var(--muted)]">–</span>
+                          <input type="number" value={p.end_year ?? ''}
+                            onChange={(e) => updatePhase(p.id, { end_year: parseInt(e.target.value) || null })}
+                            className="w-16 bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1 text-[11px]" />
+                          {ageBase && p.end_year && (
+                            <span className="text-[10px] text-[var(--muted)]">
+                              {L(`(${ageForYear(profileAge, currentYear, p.start_year)}–${ageForYear(profileAge, currentYear, p.end_year)} سنة)`,
+                                `(age ${ageForYear(profileAge, currentYear, p.start_year)}–${ageForYear(profileAge, currentYear, p.end_year)})`)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={p.target_tier}
+                            onChange={(e) => updatePhase(p.id, { target_tier: e.target.value as Tier })}
+                            className="bg-[var(--surface-0)] border rounded-md px-2 py-1 text-[11px] font-medium outline-none"
+                            style={{ color: TIER_COLOR[p.target_tier], borderColor: `${TIER_COLOR[p.target_tier]}66` }}
+                          >
+                            {TIERS.map((t) => <option key={t} value={t} style={{ color: 'var(--ink)' }}>{tierLabel(t, locale)}</option>)}
+                          </select>
+                          <button
+                            onMouseEnter={(e) => showTierMeaning(p.target_tier, e.currentTarget)}
+                            onMouseLeave={() => setTierHover(null)}
+                            className="w-5 h-5 rounded-full border border-[var(--border-medium)] text-[10px] text-[var(--muted)] hover:border-[var(--green)] hover:text-[var(--green-dark)] cursor-help shrink-0"
+                            aria-label={L('ماذا يعني هذا المستوى', 'What this tier means')}
+                          >ⓘ</button>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="align-top">
+                  {/* Theme & events */}
+                  <tr className="border-b border-[var(--border-faint)]">
+                    <td className="p-3 text-[10px] tracking-[0.06em] uppercase text-[var(--gold)] font-semibold align-top">{L('الموضوع والأحداث', 'Theme & events')}</td>
+                    {phases.map((p) => (
+                      <td key={p.id} className="p-3 border-s border-[var(--border-faint)]">
+                        <textarea rows={3} value={themeVal(p)}
+                          onChange={(e) => setBuf(p.id, 'theme', e.target.value)}
+                          onBlur={() => commitList(p, 'theme')}
+                          placeholder={L('واحد في كل سطر', 'One per line')}
+                          className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5 text-[11px] leading-relaxed outline-none focus:border-[var(--green)] resize-none" />
+                      </td>
+                    ))}
+                  </tr>
+                  {/* To-do */}
+                  <tr className="border-b border-[var(--border-faint)]">
+                    <td className="p-3 text-[10px] tracking-[0.06em] uppercase text-[var(--gold)] font-semibold align-top">{L('ما يجب إنجازه', 'To-do')}</td>
+                    {phases.map((p) => (
+                      <td key={p.id} className="p-3 border-s border-[var(--border-faint)]">
+                        <textarea rows={3} value={todoVal(p)}
+                          onChange={(e) => setBuf(p.id, 'todo', e.target.value)}
+                          onBlur={() => commitList(p, 'todo')}
+                          placeholder={L('واحد في كل سطر', 'One per line')}
+                          className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5 text-[11px] leading-relaxed outline-none focus:border-[var(--green)] resize-none" />
+                      </td>
+                    ))}
+                  </tr>
+                  {/* Growth */}
+                  <tr className="border-b border-[var(--border-faint)]">
+                    <td className="p-3 text-[10px] tracking-[0.06em] uppercase text-[var(--gold)] font-semibold align-top">{L('قياس النموّ', 'Growth')}</td>
+                    {phases.map((p) => (
+                      <td key={p.id} className="p-3 border-s border-[var(--border-faint)]">
+                        <input value={growthVal(p)}
+                          onChange={(e) => setBuf(p.id, 'growth', e.target.value)}
+                          onBlur={() => updatePhase(p.id, { net_worth_goal: (buffers[p.id]?.growth ?? p.net_worth_goal ?? '') || null })}
+                          placeholder={L('مثال: أول 500 ألف ريال', 'e.g. First SAR 500K')}
+                          className="w-full bg-transparent text-[12px] font-serif font-semibold text-[var(--green-dark)] border-b border-dashed border-[var(--border-medium)] focus:border-[var(--green)] outline-none" />
+                      </td>
+                    ))}
+                  </tr>
+                  {/* AI assist */}
+                  <tr>
+                    <td className="p-3" />
+                    {phases.map((p) => (
+                      <td key={p.id} className="p-3 border-s border-[var(--border-faint)]">
+                        <button
+                          onClick={() => assist(p)}
+                          disabled={assisting.has(p.id)}
+                          className="w-full text-[11px] font-medium text-[var(--blue-dark-text)] bg-[var(--blue-bg)] border border-[var(--blue-border)] rounded-lg px-2 py-1.5 disabled:opacity-60"
+                        >
+                          {assisting.has(p.id) ? L('يفكّر…', 'Thinking…') : L('✨ ساعِدني', '✨ Assist me')}
+                        </button>
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <button
             onClick={addPhase}
             className="mt-3.5 text-sm text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-4 py-2 font-medium"
@@ -301,10 +515,13 @@ function StandardOfLivingInner() {
             <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden">
               {series.map((s) => {
                 const status = solStatus(s.actual, s.target);
+                const age = ageForYear(profileAge, currentYear, s.year);
                 return (
                   <div key={s.year} className="flex items-center justify-between px-5 py-3.5 border-t border-[var(--border-faint)] first:border-t-0">
                     <div>
-                      <div className="text-sm font-medium text-[var(--ink)]">{s.year}</div>
+                      <div className="text-sm font-medium text-[var(--ink)]">
+                        {s.year}{age != null && age >= 0 && <span className="text-[11px] text-[var(--muted)] font-normal ms-1.5">· {L(`${age} سنة`, `age ${age}`)}</span>}
+                      </div>
                       <div className="text-xs text-[var(--muted)]">
                         {L('الهدف:', 'Target:')} <strong className="text-[var(--ink-2)] font-medium">{tierLabel(TIERS[s.target], locale)}</strong>
                       </div>
@@ -379,110 +596,30 @@ function StandardOfLivingInner() {
           )}
         </div>
       </div>
-    </div>
-  );
-}
 
-function PhaseCard({
-  phase, ar, buffer, onLocalTheme, onLocalTodo, onCommitTheme, onCommitTodo, onUpdate, onDelete,
-}: {
-  phase: PhaseRow;
-  ar: boolean;
-  buffer?: { theme: string; todo: string };
-  onLocalTheme: (v: string) => void;
-  onLocalTodo: (v: string) => void;
-  onCommitTheme: () => void;
-  onCommitTodo: () => void;
-  onUpdate: (patch: Partial<PhaseRow>) => void;
-  onDelete: () => void;
-}) {
-  const L = (a: string, e: string) => (ar ? a : e);
-  const locale: 'ar' | 'en' = ar ? 'ar' : 'en';
-  const themeText = buffer?.theme ?? (phase.theme ?? []).join('\n');
-  const todoText = buffer?.todo ?? (phase.todo ?? []).join('\n');
-
-  return (
-    <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
-      <div className="flex items-center gap-2.5 mb-3.5">
-        <input
-          value={phase.phase_name}
-          onChange={(e) => onUpdate({ phase_name: e.target.value })}
-          className="font-serif text-base font-semibold text-[var(--ink)] border-b border-dashed border-[var(--border-medium)] focus:border-[var(--green)] outline-none bg-transparent flex-1 min-w-0"
-        />
-        <button onClick={onDelete} className="text-[10px] text-[var(--red-dark-text)] shrink-0">{L('حذف', 'Delete')}</button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5 mb-3.5">
-        <div>
-          <label className="text-[10px] text-[var(--muted)] block mb-1">{L('سنة البداية', 'Start year')}</label>
-          <input
-            type="number"
-            value={phase.start_year}
-            onChange={(e) => onUpdate({ start_year: parseInt(e.target.value) || phase.start_year })}
-            className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5 text-xs"
-          />
+      {/* tier-meaning hover popover (fixed, never clipped) */}
+      {tierHover && (
+        <div
+          className="fixed z-[80] w-[280px] bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-2xl p-4 pointer-events-none"
+          style={{ left: tierHover.x, top: tierHover.y }}
+        >
+          <div className="flex items-baseline gap-2 mb-2.5">
+            <span className="font-serif text-sm font-semibold" style={{ color: TIER_COLOR[tierHover.tier] }}>{tierLabel(tierHover.tier, locale)}</span>
+            <span className="text-[10px] text-[var(--muted)]">{getLifestyle(tierHover.tier, locale).income}</span>
+          </div>
+          <div className="grid grid-cols-1 gap-1.5">
+            {getLifestyle(tierHover.tier, locale).items.map((it, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <span className="text-sm shrink-0 leading-none mt-0.5">{it.icon}</span>
+                <div className="text-[11px] leading-snug min-w-0">
+                  <strong className="text-[var(--ink)] font-medium">{it.label}: </strong>
+                  <span className="text-[var(--muted)]">{it.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div>
-          <label className="text-[10px] text-[var(--muted)] block mb-1">{L('سنة النهاية', 'End year')}</label>
-          <input
-            type="number"
-            value={phase.end_year ?? ''}
-            onChange={(e) => onUpdate({ end_year: parseInt(e.target.value) || null })}
-            className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2 py-1.5 text-xs"
-          />
-        </div>
-      </div>
-
-      <div className="mb-3.5">
-        <label className="text-[10px] text-[var(--muted)] block mb-1.5">{L('المستوى المستهدَف لهذه المرحلة', 'Target standard for this phase')}</label>
-        <div className="flex gap-1">
-          {TIERS.map((t) => (
-            <button
-              key={t}
-              onClick={() => onUpdate({ target_tier: t })}
-              className={`flex-1 px-1 py-1.5 rounded-md text-[10px] text-center font-medium ${
-                phase.target_tier === t ? 'bg-[var(--green)] text-white' : 'bg-[var(--surface-card)] border border-[var(--border-medium)] text-[var(--muted)]'
-              }`}
-            >
-              {tierShortLabel(t, locale)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-3">
-        <label className="text-[10px] tracking-[0.06em] uppercase text-[var(--gold)] block mb-1.5">{L('الموضوع والأحداث الكبرى', 'Theme & major events')}</label>
-        <textarea
-          value={themeText}
-          onChange={(e) => onLocalTheme(e.target.value)}
-          onBlur={onCommitTheme}
-          rows={3}
-          placeholder={L('واحد في كل سطر — مثال: بداية مسيرتي المهنية', 'One per line — e.g. Starting my career')}
-          className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2.5 py-2 text-xs leading-relaxed outline-none focus:border-[var(--green)] resize-none"
-        />
-      </div>
-
-      <div className="mb-3.5">
-        <label className="text-[10px] tracking-[0.06em] uppercase text-[var(--gold)] block mb-1.5">{L('ما الذي يجب إنجازه', 'What needs to be done')}</label>
-        <textarea
-          value={todoText}
-          onChange={(e) => onLocalTodo(e.target.value)}
-          onBlur={onCommitTodo}
-          rows={3}
-          placeholder={L('واحد في كل سطر — مثال: بناء صندوق طوارئ', 'One per line — e.g. Build an emergency fund')}
-          className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-md px-2.5 py-2 text-xs leading-relaxed outline-none focus:border-[var(--green)] resize-none"
-        />
-      </div>
-
-      <div className="bg-[var(--surface-0)] rounded-lg px-3 py-2.5">
-        <label className="text-[10px] text-[var(--muted)] block mb-1">{L('قياس النموّ (بكلماتك)', 'Quantifying growth (your own words)')}</label>
-        <input
-          defaultValue={phase.net_worth_goal ?? ''}
-          onBlur={(e) => onUpdate({ net_worth_goal: e.target.value || null })}
-          placeholder={L('مثال: ابنِ أول 500 ألف ريال لك', 'e.g. Build your first SAR 500K')}
-          className="w-full bg-transparent text-sm font-serif font-semibold text-[var(--green-dark)] outline-none"
-        />
-      </div>
+      )}
     </div>
   );
 }

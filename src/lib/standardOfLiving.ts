@@ -214,6 +214,42 @@ export function buildYearSeries(phases: Phase[], actualsByYear: Record<number, T
   return points;
 }
 
+// The user's age at a given calendar year, inferred from their current age.
+// Returns null when we don't know their age (so the axis just shows years).
+export function ageForYear(currentAge: number | null | undefined, currentYear: number, year: number): number | null {
+  if (currentAge == null || !Number.isFinite(currentAge)) return null;
+  return currentAge + (year - currentYear);
+}
+
+// A sensible, tier-appropriate starting suggestion for a phase's theme, to-dos
+// and growth target. Used as the offline/demo fallback for the AI assist, and
+// as the server-side fallback when no model key is configured.
+export interface PhaseSuggestion { theme: string[]; todo: string[]; growth: string }
+
+const SUGGESTIONS: Record<Tier, { en: PhaseSuggestion; ar: PhaseSuggestion }> = {
+  national_average: {
+    en: { theme: ['Cover the essentials', 'Build stability'], todo: ['Track every riyal for one month', 'Start a small emergency fund'], growth: 'Reach a positive monthly surplus' },
+    ar: { theme: ['تغطية الأساسيّات', 'بناء الاستقرار'], todo: ['تتبّع كل ريال لمدة شهر', 'ابدأ صندوق طوارئ صغير'], growth: 'الوصول إلى فائض شهري موجب' },
+  },
+  basic: {
+    en: { theme: ['Your own place', 'First real savings'], todo: ['Automate a monthly transfer to savings', 'Clear high-interest debt'], growth: 'Build 3 months of expenses in cash' },
+    ar: { theme: ['سكنك الخاص', 'أول ادّخار حقيقي'], todo: ['حوّل مبلغاً شهرياً للادّخار تلقائياً', 'سدّد الديون مرتفعة الفائدة'], growth: 'بناء نفقات 3 أشهر نقداً' },
+  },
+  decent: {
+    en: { theme: ['Comfortable living', 'Growing investments'], todo: ['Start a diversified investment plan', 'Fund the education goal'], growth: 'Grow your investment portfolio steadily' },
+    ar: { theme: ['حياة مريحة', 'استثمارات متنامية'], todo: ['ابدأ خطة استثمار متنوّعة', 'موّل هدف التعليم'], growth: 'تنمية محفظتك الاستثمارية باطّراد' },
+  },
+  lavish: {
+    en: { theme: ['Financial freedom', 'Give back'], todo: ['Deploy idle cash into income assets', 'Set up an endowment or waqf'], growth: 'Build income-producing assets that cover your lifestyle' },
+    ar: { theme: ['الحرّية المالية', 'العطاء'], todo: ['وظّف النقد المعطّل في أصول مدرّة للدخل', 'أنشئ وقفاً أو صندوقاً'], growth: 'بناء أصول تولّد دخلاً يغطّي نمط حياتك' },
+  },
+};
+
+export function suggestForTier(tier: Tier, locale: 'ar' | 'en' = 'en'): PhaseSuggestion {
+  const s = SUGGESTIONS[tier] ?? SUGGESTIONS.decent;
+  return locale === 'ar' ? s.ar : s.en;
+}
+
 export type SolStatus = 'not-logged' | 'ahead' | 'ontrack' | 'behind';
 
 export function solStatus(actual: number | null, target: number): SolStatus {
