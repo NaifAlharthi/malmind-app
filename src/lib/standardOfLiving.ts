@@ -2,39 +2,40 @@
 // Tier system, static Saudi-context lifestyle reference data, and the
 // per-year target/actual series builder for the Standard of Living page.
 
-export type Tier = 'national_average' | 'basic' | 'decent' | 'lavish';
+export type Tier = 'national_average' | 'basic' | 'decent' | 'lavish' | 'financial_freedom';
 
-export const TIERS: Tier[] = ['national_average', 'basic', 'decent', 'lavish'];
+export const TIERS: Tier[] = ['national_average', 'basic', 'decent', 'lavish', 'financial_freedom'];
 
-// "lavish" is surfaced to users as "Financial Freedom" — the aspiration the
-// whole product is built around. The enum value stays 'lavish' so existing
-// data and the DB check constraint don't have to change.
 export const TIER_LABEL: Record<Tier, string> = {
   national_average: 'National Average',
   basic: 'Basic',
   decent: 'Decent',
-  lavish: 'Financial Freedom',
+  lavish: 'Lavish',
+  financial_freedom: 'Financial Freedom',
 };
 
 export const TIER_SHORT_LABEL: Record<Tier, string> = {
   national_average: 'Nat. Avg',
   basic: 'Basic',
   decent: 'Decent',
-  lavish: 'Freedom',
+  lavish: 'Lavish',
+  financial_freedom: 'Freedom',
 };
 
 export const TIER_LABEL_AR: Record<Tier, string> = {
   national_average: 'المتوسط الوطني',
   basic: 'أساسي',
   decent: 'لائق',
-  lavish: 'الحرّية المالية',
+  lavish: 'مرفَّه',
+  financial_freedom: 'الحرّية المالية',
 };
 
 export const TIER_SHORT_LABEL_AR: Record<Tier, string> = {
   national_average: 'المتوسط',
   basic: 'أساسي',
   decent: 'لائق',
-  lavish: 'حرّية',
+  lavish: 'مرفَّه',
+  financial_freedom: 'حرّية',
 };
 
 // ── National average, grounded in real Saudi data ───────────────────────
@@ -50,21 +51,56 @@ export const NATIONAL_AVG_SOURCE = {
   ar: 'مسح دخل وإنفاق الأسرة (الهيئة العامة للإحصاء) — متوسط دخل الأسرة السعودية 14,823 ريال/شهر (2018)؛ وأحدث جولة 2023: 18,056 ريال/شهر دخل متاح.',
 };
 
-// The three tiers a user positions form a "ladder" of monthly-income levels.
-// national_average is a fixed reference line, not part of the ladder.
-export type LadderTier = 'basic' | 'decent' | 'lavish';
-export const LADDER_TIERS: LadderTier[] = ['basic', 'decent', 'lavish'];
-export interface Ladder { basic: number; decent: number; lavish: number }
+// ── The abstract ladder ─────────────────────────────────────────────────
+// The user's standard-of-living "band" is four levels — Basic, Decent, Lavish,
+// Financial Freedom — that a user positions as a bundle relative to the fixed
+// national-average line. The chart's y-axis is ABSTRACT (no numbers): the four
+// levels sit at equal spacing, and a single `offset` slides the whole bundle
+// up or down against the baseline. national_average is a reference line, not a
+// ladder rung.
+export type LadderTier = 'basic' | 'decent' | 'lavish' | 'financial_freedom';
+export const LADDER_TIERS: LadderTier[] = ['basic', 'decent', 'lavish', 'financial_freedom'];
 
-// Default ladder, anchored on the national average: basic ≈ national average,
-// then a climb. Users slide these up or down relative to the baseline.
-export const DEFAULT_LADDER: Ladder = { basic: 15000, decent: 30000, lavish: 60000 };
+export const NAT_Y = 1;          // national average sits here on the abstract axis
+export const LADDER_STEP = 1;    // equal spacing between the four levels
+export const OFFSET_MIN = -0.6;  // band can dip its floor a little below the average
+export const OFFSET_MAX = 2.5;   // …or ride well above it (upper-middle footing)
+export const DEFAULT_OFFSET = 0; // basic sits exactly on the national average
 
-export function ladderValue(ladder: Ladder, tier: Tier): number {
-  if (tier === 'basic') return ladder.basic;
-  if (tier === 'decent') return ladder.decent;
-  if (tier === 'lavish') return ladder.lavish;
-  return NATIONAL_AVG_INCOME;
+// Abstract y-position of a ladder level for a given band offset. offset 0 puts
+// Basic on the national-average line; higher offset lifts the whole band.
+export function ladderY(tier: LadderTier, offset: number): number {
+  return NAT_Y + offset + LADDER_TIERS.indexOf(tier) * LADDER_STEP;
+}
+export function ladderTop(offset: number): number {
+  return ladderY('financial_freedom', offset);
+}
+
+// Implied monthly SAR for each rung — used ONLY to place the user's real income
+// on the abstract axis (never shown). Basic tracks the offset around the
+// national average; the rest are fixed multiples of Basic.
+const LADDER_MULT: Record<LadderTier, number> = { basic: 1, decent: 1.9, lavish: 3.3, financial_freedom: 6 };
+export function ladderBasicSar(offset: number): number {
+  return Math.max(NATIONAL_AVG_INCOME * 0.55, Math.round(NATIONAL_AVG_INCOME * (1 + offset * 0.5)));
+}
+export function impliedSar(tier: LadderTier, offset: number): number {
+  return Math.round(ladderBasicSar(offset) * LADDER_MULT[tier]);
+}
+
+// Place a real monthly income on the abstract axis by interpolating between the
+// implied rung values, so the actual line can be drawn against the plan.
+export function incomeToAbstractY(income: number, offset: number): number {
+  const anchors: [number, number][] = [[0, 0], ...LADDER_TIERS.map((t) => [impliedSar(t, offset), ladderY(t, offset)] as [number, number])];
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const [s0, y0] = anchors[i];
+    const [s1, y1] = anchors[i + 1];
+    if (income <= s1) {
+      const t = s1 === s0 ? 1 : (income - s0) / (s1 - s0);
+      return y0 + (y1 - y0) * t;
+    }
+  }
+  // Above Financial Freedom — nudge a touch beyond the top rung.
+  return ladderTop(offset) + 0.3;
 }
 
 // What each rung means, in the user's own life-terms (kept short; the fuller
@@ -79,8 +115,12 @@ export const TIER_MEANING: Record<LadderTier, { en: string; ar: string }> = {
     ar: 'متّسع للتنفّس. تبدأ الأمور بالتحرّك — خروج إضافي، ورحلة أخرى في السنة.',
   },
   lavish: {
-    en: 'Financial freedom — the top you aspire to, where what you want is within reach.',
-    ar: 'الحرّية المالية — القمّة التي تطمح إليها، حيث ما تريده في متناول يدك.',
+    en: 'Living large — a premium home, cars and travel, with few limits on spending.',
+    ar: 'حياة رغدة — بيت ومركبات وسفر من الفئة الراقية، بقيود قليلة على الإنفاق.',
+  },
+  financial_freedom: {
+    en: 'True freedom — your wealth pays for your life; work becomes a choice, not a need.',
+    ar: 'الحرّية الحقيقية — ثروتك تدفع تكاليف حياتك؛ ويصبح العمل خياراً لا ضرورة.',
   },
 };
 
@@ -115,6 +155,7 @@ export const TIER_COLOR: Record<Tier, string> = {
   basic: '#4A78C4',
   decent: '#1D9E75',
   lavish: '#C9A84C',
+  financial_freedom: '#17B8C9',
 };
 
 export interface LifestyleItem {
@@ -165,14 +206,25 @@ export const LIFESTYLE: Record<Tier, LifestyleTier> = {
     ],
   },
   lavish: {
-    income: 'SAR 40,000+/month or strong asset income',
+    income: 'SAR 40,000+/month',
     items: [
       { icon: '🏠', label: 'Housing', desc: 'A large villa in a prime district, possibly a second property' },
       { icon: '🚗', label: 'Transport', desc: 'Premium vehicles, replaced often, no strain' },
       { icon: '✈️', label: 'Travel', desc: 'Frequent international travel, business class' },
       { icon: '🎓', label: 'Schooling', desc: 'Top international schools; education fully funded' },
       { icon: '🧑‍🍳', label: 'Daily life', desc: 'Household help, fine dining, few financial limits' },
-      { icon: '💼', label: 'Wealth', desc: 'Investments that generate income on their own' },
+      { icon: '📈', label: 'Wealth', desc: 'A large, growing investment portfolio' },
+    ],
+  },
+  financial_freedom: {
+    income: 'passive income covers your lifestyle — work is optional',
+    items: [
+      { icon: '🏠', label: 'Housing', desc: 'Home(s) owned outright, no mortgage pressure' },
+      { icon: '🚗', label: 'Transport', desc: 'Whatever you choose, paid for outright' },
+      { icon: '🕊', label: 'Time', desc: 'Your time is yours — work becomes a choice' },
+      { icon: '✈️', label: 'Travel', desc: 'Go when you like, on your own schedule' },
+      { icon: '💼', label: 'Wealth', desc: 'Investments alone generate enough to live on, indefinitely' },
+      { icon: '🌱', label: 'Legacy', desc: 'Giving, an endowment (waqf), and provision for the next generation' },
     ],
   },
 };
@@ -212,14 +264,25 @@ export const LIFESTYLE_AR: Record<Tier, LifestyleTier> = {
     ],
   },
   lavish: {
-    income: '40,000+ ريال/شهر أو دخل أصول قويّ',
+    income: '40,000+ ريال/شهر',
     items: [
       { icon: '🏠', label: 'السكن', desc: 'فيلا كبيرة في حيّ راقٍ، وربما عقار ثانٍ' },
       { icon: '🚗', label: 'التنقّل', desc: 'مركبات فاخرة، تُستبدَل كثيراً، دون عناء' },
       { icon: '✈️', label: 'السفر', desc: 'سفر دولي متكرّر، درجة رجال الأعمال' },
       { icon: '🎓', label: 'التعليم', desc: 'أفضل المدارس الدولية؛ التعليم مموَّل بالكامل' },
       { icon: '🧑‍🍳', label: 'الحياة اليومية', desc: 'مساعدة منزلية، مطاعم راقية، قيود مالية قليلة' },
-      { icon: '💼', label: 'الثروة', desc: 'استثمارات تولّد دخلاً بذاتها' },
+      { icon: '📈', label: 'الثروة', desc: 'محفظة استثمارية كبيرة ومتنامية' },
+    ],
+  },
+  financial_freedom: {
+    income: 'دخل غير نشط يغطّي نمط حياتك — والعمل اختياري',
+    items: [
+      { icon: '🏠', label: 'السكن', desc: 'مسكن (أو أكثر) مملوك بالكامل، دون عبء تمويل' },
+      { icon: '🚗', label: 'التنقّل', desc: 'ما تختاره، مدفوعاً بالكامل' },
+      { icon: '🕊', label: 'الوقت', desc: 'وقتك ملكك — يصبح العمل خياراً' },
+      { icon: '✈️', label: 'السفر', desc: 'تسافر متى شئت، وفق جدولك أنت' },
+      { icon: '💼', label: 'الثروة', desc: 'استثماراتك وحدها تولّد ما يكفي للعيش، بلا حدّ' },
+      { icon: '🌱', label: 'الإرث', desc: 'عطاء، ووقف، وتأمين للجيل القادم' },
     ],
   },
 };
@@ -290,8 +353,12 @@ const SUGGESTIONS: Record<Tier, { en: PhaseSuggestion; ar: PhaseSuggestion }> = 
     ar: { theme: ['حياة مريحة', 'استثمارات متنامية'], todo: ['ابدأ خطة استثمار متنوّعة', 'موّل هدف التعليم'], growth: 'تنمية محفظتك الاستثمارية باطّراد' },
   },
   lavish: {
-    en: { theme: ['Financial freedom', 'Give back'], todo: ['Deploy idle cash into income assets', 'Set up an endowment or waqf'], growth: 'Build income-producing assets that cover your lifestyle' },
-    ar: { theme: ['الحرّية المالية', 'العطاء'], todo: ['وظّف النقد المعطّل في أصول مدرّة للدخل', 'أنشئ وقفاً أو صندوقاً'], growth: 'بناء أصول تولّد دخلاً يغطّي نمط حياتك' },
+    en: { theme: ['Live well, sustainably', 'Compound the surplus'], todo: ['Upgrade lifestyle within a set budget', 'Keep investing a fixed share'], growth: 'Grow assets faster than lifestyle' },
+    ar: { theme: ['عِش جيّداً باستدامة', 'ضاعِف الفائض'], todo: ['ارفع نمط حياتك ضمن ميزانية محدّدة', 'استمرّ باستثمار حصّة ثابتة'], growth: 'نموّ الأصول أسرع من نموّ نمط الحياة' },
+  },
+  financial_freedom: {
+    en: { theme: ['Financial freedom', 'Give back'], todo: ['Deploy idle cash into income assets', 'Set up an endowment or waqf'], growth: 'Build passive income that covers your lifestyle' },
+    ar: { theme: ['الحرّية المالية', 'العطاء'], todo: ['وظّف النقد المعطّل في أصول مدرّة للدخل', 'أنشئ وقفاً أو صندوقاً'], growth: 'بناء دخل غير نشط يغطّي نمط حياتك' },
   },
 };
 
@@ -309,59 +376,61 @@ export function solStatus(actual: number | null, target: number): SolStatus {
   return 'ontrack';
 }
 
-// ── Income-scale planned/actual series (the new SoL chart) ──────────────
-// The y-axis is monthly income in SAR. The planned line is a DIAGONAL: within
-// each period it ramps from the previous rung to that period's target rung, so
-// the climb from Basic → Decent → Financial Freedom reads as smooth upward
-// mobility. The actual line is the user's real logged income per year.
-export interface IncomePoint { year: number; planned: number; actual: number | null }
+// ── Abstract planned/actual series (the new SoL chart) ──────────────────
+// Everything is on the ABSTRACT axis (no numbers). The planned line is a
+// DIAGONAL: within each period it ramps from the previous rung's level to this
+// period's target level, so the climb reads as smooth upward mobility. The
+// actual line is the user's real logged income, mapped onto the same abstract
+// scale via impliedSar/incomeToAbstractY.
+export interface AbstractPoint { year: number; planned: number; actual: number | null }
 
-export function buildIncomeSeries(
+export function buildAbstractSeries(
   phases: Phase[],
-  ladder: Ladder,
-  incomeByYear: Record<number, number>,
-  startFloor: number = NATIONAL_AVG_INCOME
-): IncomePoint[] {
+  offset: number,
+  incomeByYear: Record<number, number>
+): AbstractPoint[] {
   if (phases.length === 0) return [];
   const sorted = [...phases].sort((a, b) => a.start_year - b.start_year);
-  let prev = startFloor;
+  // The climb starts from the national-average baseline.
+  let prev = NAT_Y;
   const segs = sorted.map((p) => {
-    const to = ladderValue(ladder, p.target_tier);
+    const tier = (LADDER_TIERS.includes(p.target_tier as LadderTier) ? p.target_tier : 'basic') as LadderTier;
+    const to = ladderY(tier, offset);
     const seg = { start: p.start_year, end: p.end_year, from: prev, to };
     prev = to;
     return seg;
   });
   const first = sorted[0].start_year;
   const last = Math.max(...sorted.map((p) => p.end_year));
-  const out: IncomePoint[] = [];
+  const out: AbstractPoint[] = [];
   for (let y = first; y <= last; y++) {
     const seg = segs.find((s) => y >= s.start && y <= s.end) ?? segs[segs.length - 1];
     const span = seg.end - seg.start;
     const t = span <= 0 ? 1 : (y - seg.start) / span;
     out.push({
       year: y,
-      planned: Math.round(seg.from + (seg.to - seg.from) * t),
-      actual: incomeByYear[y] ?? null,
+      planned: seg.from + (seg.to - seg.from) * t,
+      actual: incomeByYear[y] != null ? incomeToAbstractY(incomeByYear[y], offset) : null,
     });
   }
   return out;
 }
 
-// Ahead / on-track / behind by comparing real income to the planned line,
-// with a ±12% tolerance band.
-export function incomeStatus(actual: number | null, planned: number): SolStatus {
+// Ahead / on-track / behind by comparing actual to planned on the abstract
+// axis, with a tolerance of ~a third of a level.
+export function pathStatus(actual: number | null, planned: number): SolStatus {
   if (actual == null) return 'not-logged';
-  const tol = planned * 0.12;
-  if (actual > planned + tol) return 'ahead';
-  if (actual < planned - tol) return 'behind';
+  if (actual > planned + 0.35) return 'ahead';
+  if (actual < planned - 0.35) return 'behind';
   return 'ontrack';
 }
 
-// Which rung a given monthly income currently sits on, for course-correction
+// Which rung a real monthly income currently sits on, for course-correction
 // messaging ("you're between Basic and Decent").
-export function ladderTierForIncome(income: number, ladder: Ladder): LadderTier | 'below' {
-  if (income >= ladder.lavish) return 'lavish';
-  if (income >= ladder.decent) return 'decent';
-  if (income >= ladder.basic) return 'basic';
+export function ladderTierForIncome(income: number, offset: number): LadderTier | 'below' {
+  if (income >= impliedSar('financial_freedom', offset)) return 'financial_freedom';
+  if (income >= impliedSar('lavish', offset)) return 'lavish';
+  if (income >= impliedSar('decent', offset)) return 'decent';
+  if (income >= impliedSar('basic', offset)) return 'basic';
   return 'below';
 }

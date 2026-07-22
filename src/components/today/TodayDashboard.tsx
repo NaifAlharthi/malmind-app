@@ -22,7 +22,7 @@ import { computeRisks, type RiskInputs, type RiskResult } from '@/lib/risks';
 import { computeFreedom } from '@/lib/financialFreedom';
 import { BANDS, SCORE_MIN, SCORE_MAX, bandFor, bandLabel } from '@/lib/creditScore';
 import {
-  tierFromIncome, tierIndex, tierLabel, getLifestyle, buildYearSeries,
+  tierFromIncome, tierIndex, tierLabel, tierShortLabel, getLifestyle, buildYearSeries,
   TIERS, TIER_COLOR, type Tier, type Phase,
 } from '@/lib/standardOfLiving';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
@@ -890,10 +890,10 @@ export default function TodayDashboard() {
                       <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
                       <XAxis dataKey="year" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                       <YAxis
-                        domain={[0, 3]} ticks={[0, 1, 2, 3]}
+                        domain={[0, TIERS.length - 1]} ticks={TIERS.map((_, i) => i)}
                         tick={{ fontSize: 9, fill: 'var(--ink-2)' }}
-                        tickFormatter={(v) => tierLabel(TIERS[v], locale)}
-                        width={locale === 'ar' ? 82 : 96} axisLine={false} tickLine={false}
+                        tickFormatter={(v) => tierShortLabel(TIERS[v], locale)}
+                        width={locale === 'ar' ? 60 : 64} axisLine={false} tickLine={false}
                       />
                       <Tooltip
                         formatter={(value, name) => [value == null ? '—' : tierLabel(TIERS[Math.round(Number(value))], locale), name]}
