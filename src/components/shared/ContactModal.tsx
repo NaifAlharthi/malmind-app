@@ -5,8 +5,12 @@
 // and (when configured) emails the right inbox. Fully bilingual + RTL-aware,
 // self-contained so any page can drop in <ContactModal open .../>.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+
+const MAX_FILE_BYTES = 4 * 1024 * 1024; // keep in sync with the API route
+const okFileType = (t: string) => t === 'application/pdf' || t.startsWith('image/');
+const prettySize = (b: number) => (b < 1024 * 1024 ? `${Math.round(b / 1024)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
 
 type Category = 'support' | 'investment' | 'partnership' | 'general';
 
@@ -38,6 +42,9 @@ export default function ContactModal({
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [company, setCompany] = useState(''); // honeypot — must stay empty
+  const [file, setFile] = useState<File | null>(null);
+  const [fileErr, setFileErr] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -47,6 +54,8 @@ export default function ContactModal({
       setCategory(defaultCategory);
       setStatus('idle');
       setErrorMsg('');
+      setFile(null);
+      setFileErr('');
     }
   }, [open, defaultCategory]);
 
@@ -60,22 +69,39 @@ export default function ContactModal({
 
   if (!open) return null;
 
+  function pickFile(f: File | null) {
+    setFileErr('');
+    if (!f) { setFile(null); return; }
+    if (!okFileType(f.type)) {
+      setFileErr(L('يُسمح بصورة أو ملف PDF فقط.', 'Only an image or a PDF is allowed.'));
+      return;
+    }
+    if (f.size > MAX_FILE_BYTES) {
+      setFileErr(L('الملف كبير جداً — الحد الأقصى 4 ميغابايت.', 'That file is too large — the limit is 4 MB.'));
+      return;
+    }
+    setFile(f);
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setStatus('sending');
     setErrorMsg('');
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, name, email, subject, message, company, source, locale }),
-      });
+      const body = new FormData();
+      Object.entries({ category, name, email, subject, message, company, source, locale }).forEach(
+        ([k, v]) => body.append(k, v)
+      );
+      if (file) body.append('file', file);
+
+      // No explicit Content-Type — the browser sets the multipart boundary.
+      const res = await fetch('/api/contact', { method: 'POST', body });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'failed');
       }
       setStatus('sent');
-      setName(''); setEmail(''); setSubject(''); setMessage('');
+      setName(''); setEmail(''); setSubject(''); setMessage(''); setFile(null);
     } catch (err) {
       setStatus('error');
       setErrorMsg(err instanceof Error && err.message !== 'failed' ? err.message : '');
@@ -177,6 +203,43 @@ export default function ContactModal({
                 <div>
                   <label className="text-xs text-[var(--muted)] block mb-1">{L('رسالتك', 'Your message')}</label>
                   <textarea required rows={4} value={message} onChange={(e) => setMessage(e.target.value)} className={`${field} resize-none`} />
+                </div>
+
+                {/* attachment: an image or a PDF */}
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+                  />
+                  {file ? (
+                    <div className="flex items-center gap-2 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2">
+                      <span className="text-base shrink-0">{file.type === 'application/pdf' ? '📄' : '🖼️'}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs text-[var(--ink)] truncate">{file.name}</div>
+                        <div className="text-[10px] text-[var(--muted)]">{prettySize(file.size)}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                        className="text-[var(--muted)] hover:text-[var(--red-dark-text)] text-sm shrink-0"
+                        aria-label={L('إزالة المرفق', 'Remove attachment')}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 border border-dashed border-[var(--border-medium)] rounded-lg px-3 py-2 text-xs text-[var(--muted)] hover:border-[var(--green)] hover:text-[var(--green-dark)] transition-colors"
+                    >
+                      📎 {L('أرفق صورة أو PDF (اختياري)', 'Attach an image or PDF (optional)')}
+                    </button>
+                  )}
+                  {fileErr && <p className="text-[11px] text-[var(--red-dark-text)] mt-1">{fileErr}</p>}
                 </div>
 
                 {/* honeypot: hidden from users, catches bots */}
