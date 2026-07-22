@@ -6,32 +6,82 @@ export type Tier = 'national_average' | 'basic' | 'decent' | 'lavish';
 
 export const TIERS: Tier[] = ['national_average', 'basic', 'decent', 'lavish'];
 
+// "lavish" is surfaced to users as "Financial Freedom" — the aspiration the
+// whole product is built around. The enum value stays 'lavish' so existing
+// data and the DB check constraint don't have to change.
 export const TIER_LABEL: Record<Tier, string> = {
   national_average: 'National Average',
   basic: 'Basic',
   decent: 'Decent',
-  lavish: 'Lavish',
+  lavish: 'Financial Freedom',
 };
 
 export const TIER_SHORT_LABEL: Record<Tier, string> = {
   national_average: 'Nat. Avg',
   basic: 'Basic',
   decent: 'Decent',
-  lavish: 'Lavish',
+  lavish: 'Freedom',
 };
 
 export const TIER_LABEL_AR: Record<Tier, string> = {
   national_average: 'المتوسط الوطني',
   basic: 'أساسي',
   decent: 'لائق',
-  lavish: 'مرفَّه',
+  lavish: 'الحرّية المالية',
 };
 
 export const TIER_SHORT_LABEL_AR: Record<Tier, string> = {
   national_average: 'المتوسط',
   basic: 'أساسي',
   decent: 'لائق',
-  lavish: 'مرفَّه',
+  lavish: 'حرّية',
+};
+
+// ── National average, grounded in real Saudi data ───────────────────────
+// GaStat Household Income & Expenditure Survey: the average monthly income of
+// a Saudi household was SAR 14,823 (2018 survey). The latest 2023 survey puts
+// average monthly *disposable* income for Saudi households at SAR 18,056.
+// We anchor the baseline on the 2018 gross-income figure (comparable to the
+// income users log) and surface both so the number stays transparent and
+// easy to refresh as GaStat publishes new rounds.
+export const NATIONAL_AVG_INCOME = 14823;
+export const NATIONAL_AVG_SOURCE = {
+  en: 'GaStat Household Income & Expenditure Survey — avg. Saudi household income SAR 14,823/mo (2018); latest 2023 round: SAR 18,056/mo disposable.',
+  ar: 'مسح دخل وإنفاق الأسرة (الهيئة العامة للإحصاء) — متوسط دخل الأسرة السعودية 14,823 ريال/شهر (2018)؛ وأحدث جولة 2023: 18,056 ريال/شهر دخل متاح.',
+};
+
+// The three tiers a user positions form a "ladder" of monthly-income levels.
+// national_average is a fixed reference line, not part of the ladder.
+export type LadderTier = 'basic' | 'decent' | 'lavish';
+export const LADDER_TIERS: LadderTier[] = ['basic', 'decent', 'lavish'];
+export interface Ladder { basic: number; decent: number; lavish: number }
+
+// Default ladder, anchored on the national average: basic ≈ national average,
+// then a climb. Users slide these up or down relative to the baseline.
+export const DEFAULT_LADDER: Ladder = { basic: 15000, decent: 30000, lavish: 60000 };
+
+export function ladderValue(ladder: Ladder, tier: Tier): number {
+  if (tier === 'basic') return ladder.basic;
+  if (tier === 'decent') return ladder.decent;
+  if (tier === 'lavish') return ladder.lavish;
+  return NATIONAL_AVG_INCOME;
+}
+
+// What each rung means, in the user's own life-terms (kept short; the fuller
+// Saudi-context breakdown lives in LIFESTYLE below).
+export const TIER_MEANING: Record<LadderTier, { en: string; ar: string }> = {
+  basic: {
+    en: 'Your floor. The basics are covered but it’s tight — go below this and life stops working.',
+    ar: 'أرضيّتك. الأساسيّات مغطّاة لكن بالكاد — تحت هذا المستوى تتوقّف الحياة عن العمل.',
+  },
+  decent: {
+    en: 'Room to breathe. Things start moving — an extra outing, one more trip a year.',
+    ar: 'متّسع للتنفّس. تبدأ الأمور بالتحرّك — خروج إضافي، ورحلة أخرى في السنة.',
+  },
+  lavish: {
+    en: 'Financial freedom — the top you aspire to, where what you want is within reach.',
+    ar: 'الحرّية المالية — القمّة التي تطمح إليها، حيث ما تريده في متناول يدك.',
+  },
 };
 
 export function tierLabel(t: Tier, locale: 'ar' | 'en' = 'en'): string {
@@ -257,4 +307,61 @@ export function solStatus(actual: number | null, target: number): SolStatus {
   if (actual > target + 0.15) return 'ahead';
   if (actual < target - 0.15) return 'behind';
   return 'ontrack';
+}
+
+// ── Income-scale planned/actual series (the new SoL chart) ──────────────
+// The y-axis is monthly income in SAR. The planned line is a DIAGONAL: within
+// each period it ramps from the previous rung to that period's target rung, so
+// the climb from Basic → Decent → Financial Freedom reads as smooth upward
+// mobility. The actual line is the user's real logged income per year.
+export interface IncomePoint { year: number; planned: number; actual: number | null }
+
+export function buildIncomeSeries(
+  phases: Phase[],
+  ladder: Ladder,
+  incomeByYear: Record<number, number>,
+  startFloor: number = NATIONAL_AVG_INCOME
+): IncomePoint[] {
+  if (phases.length === 0) return [];
+  const sorted = [...phases].sort((a, b) => a.start_year - b.start_year);
+  let prev = startFloor;
+  const segs = sorted.map((p) => {
+    const to = ladderValue(ladder, p.target_tier);
+    const seg = { start: p.start_year, end: p.end_year, from: prev, to };
+    prev = to;
+    return seg;
+  });
+  const first = sorted[0].start_year;
+  const last = Math.max(...sorted.map((p) => p.end_year));
+  const out: IncomePoint[] = [];
+  for (let y = first; y <= last; y++) {
+    const seg = segs.find((s) => y >= s.start && y <= s.end) ?? segs[segs.length - 1];
+    const span = seg.end - seg.start;
+    const t = span <= 0 ? 1 : (y - seg.start) / span;
+    out.push({
+      year: y,
+      planned: Math.round(seg.from + (seg.to - seg.from) * t),
+      actual: incomeByYear[y] ?? null,
+    });
+  }
+  return out;
+}
+
+// Ahead / on-track / behind by comparing real income to the planned line,
+// with a ±12% tolerance band.
+export function incomeStatus(actual: number | null, planned: number): SolStatus {
+  if (actual == null) return 'not-logged';
+  const tol = planned * 0.12;
+  if (actual > planned + tol) return 'ahead';
+  if (actual < planned - tol) return 'behind';
+  return 'ontrack';
+}
+
+// Which rung a given monthly income currently sits on, for course-correction
+// messaging ("you're between Basic and Decent").
+export function ladderTierForIncome(income: number, ladder: Ladder): LadderTier | 'below' {
+  if (income >= ladder.lavish) return 'lavish';
+  if (income >= ladder.decent) return 'decent';
+  if (income >= ladder.basic) return 'basic';
+  return 'below';
 }
