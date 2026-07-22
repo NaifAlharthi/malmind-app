@@ -28,6 +28,11 @@ import {
   type Tier, type Phase, type LadderTier,
 } from '@/lib/standardOfLiving';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
+import {
+  PERIODS, periodLabel, periodPer, scaleToPeriod, buildDailyItems, sumBy,
+  futureValue, DEFAULT_RETURN, DEBT_RATE, KIND_COLOR,
+  type Period, type StackItem, type Kind,
+} from '@/lib/dailyStack';
 import { BENCHMARK_START_AGE, buildBenchmarkCurves, buildYouSeries } from '@/lib/positioningBenchmarks';
 import { buildProjection } from '@/lib/lifetimeProjection';
 import ExplainButton, { type ExplainContent } from '@/components/shared/ExplainButton';
@@ -151,6 +156,8 @@ export default function TodayDashboard() {
   const [data, setData] = useState<Data | null>(null);
   const [credit, setCredit] = useState<{ score: number | null; prev: number | null } | null>(null);
   const [sol, setSol] = useState<{ phases: SolPhaseRow[]; actualsByYear: Record<number, Tier>; offset: number } | null>(null);
+  const [stack, setStack] = useState<StackItem[] | null>(null);
+  const [stackPeriod, setStackPeriod] = useState<Period>('day');
   const [selRisk, setSelRisk] = useState<string | null>(null);
   const [cashView, setCashView] = useState<'six' | 'ytd'>('six');
   const [srcInfo, setSrcInfo] = useState(false);
@@ -271,6 +278,21 @@ export default function TodayDashboard() {
         if (v != null && Number.isFinite(Number(v))) offset = Number(v);
       } catch { /* ignore */ }
       setSol({ phases: (ph ?? []) as SolPhaseRow[], actualsByYear, offset });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The daily stack — recurring choices normalised to a per-day amount.
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const [{ data: exp }, { data: subs }, { data: loans }] = await Promise.all([
+        supabase.from('expenses').select('name, category, amount, frequency').eq('user_id', user.id),
+        supabase.from('subscriptions').select('name, amount, billing_cycle, category').eq('user_id', user.id),
+        supabase.from('loans').select('name, monthly_payment, loan_type').eq('user_id', user.id),
+      ]);
+      setStack(buildDailyItems((exp ?? []) as never, (subs ?? []) as never, (loans ?? []) as never));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -611,6 +633,13 @@ export default function TodayDashboard() {
       action: 'Design the phases of the life you want on the Standard of Living page — and see what it takes to climb to the next tier.',
       ask: 'What standard of living does my income support, and what would it take to reach the next level?',
     },
+    stack: {
+      title: 'The Daily Stack',
+      what: 'Your recurring spending seen as a stack of daily choices — needs, wants and debt — and the snowball it becomes when a day repeats: invested surplus grows your wealth, while the same spending, had it been invested, is the wealth you give up.',
+      how: 'Every expense, subscription and loan payment is normalised to a per-day amount from your Bills & Commitments. Surplus = income − spending, per day; the snowball compounds it at ~7%/year.',
+      action: 'Trim one “want” today. Because it repeats, even a small daily cut compounds — and reaches your targets sooner (see Velocity of Money).',
+      ask: 'Break down my daily cost of living and show which recurring choices to cut for the biggest long-term gain.',
+    },
     credit: {
       title: t('today.credit.title'),
       what: 'Your SIMAH MOLIM score (300–900) and how far it has moved since the previous report you recorded.',
@@ -864,6 +893,61 @@ export default function TodayDashboard() {
           )}
         </Card>
       </div>
+
+      {/* ── The Daily Stack — a day of choices, and the snowball it becomes ── */}
+      {stack && stack.length > 0 && avgIncome > 0 && (() => {
+        const dailySpend = sumBy(stack);
+        const dailyIncome = avgIncome / 30.44;
+        const surplus = dailyIncome - dailySpend;
+        const positive = surplus >= 0;
+        const needD = sumBy(stack, 'need'), wantD = sumBy(stack, 'want'), debtD = sumBy(stack, 'debt');
+        const spendP = scaleToPeriod(dailySpend, stackPeriod);
+        const surplusP = scaleToPeriod(surplus, stackPeriod);
+        const snow20 = futureValue(Math.max(0, surplus), 20, DEFAULT_RETURN);
+        const monster20 = futureValue(Math.max(0, -surplus), 20, DEBT_RATE);
+        return (
+          <Card title={locale === 'ar' ? 'كومة اليوم' : 'The Daily Stack'} href="/daily-stack" explain={EX.stack} className="mb-4">
+            <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-3">
+              {PERIODS.map((p) => (
+                <button key={p} onClick={() => setStackPeriod(p)}
+                  className={`px-2.5 py-1 text-[11px] font-medium ${stackPeriod === p ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}>
+                  {periodLabel(p, locale)}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-end justify-between gap-3 mb-3">
+              <div className="min-w-0">
+                <div className="font-serif text-2xl font-bold text-[var(--ink)]">{money(spendP)}</div>
+                <div className="text-[10px] text-[var(--muted)]">{locale === 'ar' ? `تكلفة مستوى معيشتك ${periodPer(stackPeriod, locale)}` : `your standard of living costs, ${periodPer(stackPeriod, locale)}`}</div>
+              </div>
+              <div className="text-end shrink-0">
+                <div className="font-serif text-lg font-bold" style={{ color: positive ? 'var(--green-dark)' : 'var(--red-2)' }}>{positive ? '+' : '−'}{money(Math.abs(surplusP))}</div>
+                <div className="text-[10px] text-[var(--muted)]">{positive ? (locale === 'ar' ? 'يبقى معك' : 'you keep') : (locale === 'ar' ? 'عجز' : 'shortfall')}</div>
+              </div>
+            </div>
+            <div className="flex h-2.5 rounded-full overflow-hidden mb-1.5" dir="ltr">
+              {(['need', 'want', 'debt'] as Kind[]).map((k) => {
+                const v = k === 'need' ? needD : k === 'want' ? wantD : debtD;
+                return v > 0 ? <div key={k} style={{ width: `${(v / dailySpend) * 100}%`, background: KIND_COLOR[k] }} /> : null;
+              })}
+            </div>
+            <div className="flex gap-3 flex-wrap text-[10px] text-[var(--muted)]">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: KIND_COLOR.need }} />{locale === 'ar' ? 'احتياجات' : 'Needs'}</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: KIND_COLOR.want }} />{locale === 'ar' ? 'اختيارات' : 'Wants'} {Math.round((wantD / dailySpend) * 100)}%</span>
+              {debtD > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: KIND_COLOR.debt }} />{locale === 'ar' ? 'ديون' : 'Debt'}</span>}
+            </div>
+            <div className="mt-3 pt-3 border-t border-[var(--border-default)] text-[11px] leading-relaxed text-[var(--ink-2)]">
+              {positive
+                ? (locale === 'ar'
+                  ? <>🌱 كرّر يومك واستثمر الفائض ← <strong className="text-[var(--green-dark)]">+{money(snow20)}</strong> خلال 20 سنة.</>
+                  : <>🌱 Repeat your day and invest the surplus → <strong className="text-[var(--green-dark)]">+{money(snow20)}</strong> in 20 years.</>)
+                : (locale === 'ar'
+                  ? <>👹 يتراكم العجز إلى وحشٍ بـ <strong className="text-[var(--red-2)]">−{money(monster20)}</strong> خلال 20 سنة.</>
+                  : <>👹 The daily gap compounds into a <strong className="text-[var(--red-2)]">−{money(monster20)}</strong> monster in 20 years.</>)}
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* ── Standard of living — the life this income affords, next to
              "where you stand" ── */}
