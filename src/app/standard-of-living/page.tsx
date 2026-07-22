@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { isDemoActive } from '@/lib/demoSupabase';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
-  tierLabel, getLifestyle, ageForYear, suggestForTier, TIER_COLOR,
+  ladderLabel, ladderShortLabel, getLifestyle, ageForYear, suggestForTier, TIER_COLOR,
   NATIONAL_AVG_INCOME, NATIONAL_AVG_SOURCE, LADDER_TIERS, TIER_MEANING,
   NAT_Y, OFFSET_MIN, OFFSET_MAX, DEFAULT_OFFSET, OFFSET_BELOW, OFFSET_AT, OFFSET_ABOVE,
   Y_MIN, Y_MAX, ladderY, ladderBandBottom, buildAbstractSeries, pathStatus,
@@ -69,9 +69,9 @@ function LadderPlacement({ offset, setOffset, ar, locale }: {
   offset: number; setOffset: (v: number) => void; ar: boolean; locale: 'ar' | 'en';
 }) {
   const L = (a: string, e: string) => (ar ? a : e);
-  const H = 330;
-  const PLOT_LEFT = 150;
-  const BOTTOM_PAD = 22;
+  const H = 384;
+  const PLOT_LEFT = 156;
+  const BOTTOM_PAD = 30;
   const span = Y_MAX - Y_MIN;
   const pxPerUnit = (H - BOTTOM_PAD) / span;
   const yToTop = (yUnit: number) => (Y_MAX - yUnit) * pxPerUnit;
@@ -108,8 +108,8 @@ function LadderPlacement({ offset, setOffset, ar, locale }: {
 
       {/* level names in the gutter, between the ladder and the y-axis (move with the ladder) */}
       {LADDER_TIERS.map((t) => (
-        <div key={t} className="absolute text-right font-serif font-semibold leading-tight" style={{ left: 44, width: PLOT_LEFT - 44 - 12, top: yToTop(ladderY(t, offset)) - 9, color: TIER_COLOR[t], fontSize: 13 }}>
-          {tierLabel(t, locale)}
+        <div key={t} className="absolute text-right font-serif font-semibold leading-tight" style={{ left: 44, width: PLOT_LEFT - 44 - 12, top: yToTop(ladderY(t, offset)) - 10, color: TIER_COLOR[t], fontSize: 13 }}>
+          {ladderLabel(t, locale)}
         </div>
       ))}
 
@@ -123,9 +123,14 @@ function LadderPlacement({ offset, setOffset, ar, locale }: {
         <div className="absolute rounded-full" style={{ left: 4, top: 0, bottom: 0, width: 5, background: '#C9843E' }} />
         <div className="absolute rounded-full" style={{ right: 4, top: 0, bottom: 0, width: 5, background: '#C9843E' }} />
         <div className="absolute flex flex-col justify-around" style={{ left: 6, right: 6, top: 8, bottom: 8 }}>
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="rounded-full" style={{ height: 4, background: '#C9843E' }} />)}
+          {Array.from({ length: 7 }).map((_, i) => <div key={i} className="rounded-full" style={{ height: 4, background: '#C9843E' }} />)}
         </div>
         <div className="absolute -right-4 top-1/2 -translate-y-1/2 text-[var(--muted)] group-hover:text-[var(--green-dark)] text-sm">⇕</div>
+      </div>
+
+      {/* caption under the ladder */}
+      <div className="absolute text-[9px] text-[var(--muted)] text-center leading-tight" style={{ left: -6, width: 86, bottom: 2 }}>
+        {L('السُّلّم الاجتماعي', 'Socioeconomic ladder')}
       </div>
     </div>
   );
@@ -288,8 +293,8 @@ function StandardOfLivingInner() {
   // Abstract y-axis ticks: one per ladder level, labelled (never a number).
   const tierYs = LADDER_TIERS.map((t) => ({ t, y: ladderY(t, offset) }));
   const yTicks = tierYs.map((o) => o.y);
-  const tickLabel = (v: number) => tierLabel(tierYs.reduce((best, o) => Math.abs(o.y - v) < Math.abs(best.y - v) ? o : best).t, locale);
-  const nearestTier = (v: number): Tier => tierYs.reduce((best, o) => Math.abs(o.y - v) < Math.abs(best.y - v) ? o : best).t;
+  const nearestTier = (v: number): LadderTier => tierYs.reduce((best, o) => Math.abs(o.y - v) < Math.abs(best.y - v) ? o : best).t;
+  const tickLabel = (v: number) => ladderShortLabel(nearestTier(v), locale);
 
   function switchMode(m: 'plan' | 'track') {
     setMode(m);
@@ -356,13 +361,13 @@ function StandardOfLivingInner() {
               style={lsTier === t
                 ? { background: TIER_COLOR[t], color: '#fff', borderColor: TIER_COLOR[t] }
                 : { background: 'var(--surface-card)', color: 'var(--ink-2)', borderColor: 'var(--border-default)' }}>
-              {tierLabel(t, locale)}
+              {ladderLabel(t, locale)}
             </button>
           ))}
         </div>
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
           <div className="flex items-baseline gap-3 mb-2 flex-wrap">
-            <div className="font-serif text-xl font-semibold" style={{ color: TIER_COLOR[lsTier] }}>{tierLabel(lsTier, locale)}</div>
+            <div className="font-serif text-xl font-semibold" style={{ color: TIER_COLOR[lsTier] }}>{ladderLabel(lsTier, locale)}</div>
             <div className="text-xs text-[var(--muted)]">{getLifestyle(lsTier, locale).income}</div>
           </div>
           <div className="text-xs text-[var(--ink-2)] mb-4 italic">{ar ? TIER_MEANING[lsTier].ar : TIER_MEANING[lsTier].en}</div>
@@ -462,7 +467,7 @@ function StandardOfLivingInner() {
               </div>
               {/* every year is shown with its age; the chart scrolls if the span is long */}
               <div className="mt-2 overflow-x-auto" dir="ltr">
-              <div style={{ width: Math.max(680, series.length * 44), height: 320 }}>
+              <div style={{ width: Math.max(680, series.length * 44), height: 380 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={series} margin={{ top: 16, right: 12, left: 6, bottom: 0 }}>
                     <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
@@ -477,7 +482,7 @@ function StandardOfLivingInner() {
                     {xAxis}
                     {yAxis}
                     <Tooltip
-                      formatter={(value, name) => [value == null ? L('غير مسجَّل', 'Not logged') : tierLabel(nearestTier(Number(value)), locale), name]}
+                      formatter={(value, name) => [value == null ? L('غير مسجَّل', 'Not logged') : ladderLabel(nearestTier(Number(value)), locale), name]}
                       labelFormatter={(y) => (ageBase ? `${y} · ${L(`${ageForYear(profileAge, currentYear, Number(y))} سنة`, `age ${ageForYear(profileAge, currentYear, Number(y))}`)}` : String(y))}
                     />
                     <Line type="linear" dataKey="planned" name={L('المخطَّط', 'Planned')} stroke="var(--ink)" strokeWidth={2.5} dot={false} />
@@ -491,7 +496,7 @@ function StandardOfLivingInner() {
                   <button key={p.id} onMouseEnter={(e) => showTierMeaning(p.target_tier, e.currentTarget)} onMouseLeave={() => setTierHover(null)}
                     className="text-[11px] rounded-full px-3 py-1 border cursor-help"
                     style={{ color: TIER_COLOR[p.target_tier], borderColor: `${TIER_COLOR[p.target_tier]}55`, background: `${TIER_COLOR[p.target_tier]}12` }}>
-                    {p.phase_name}: {p.start_year}–{p.end_year} · {tierLabel(p.target_tier, locale)} ⓘ
+                    {p.phase_name}: {p.start_year}–{p.end_year} · {ladderLabel(p.target_tier as LadderTier, locale)} ⓘ
                   </button>
                 ))}
               </div>
@@ -538,7 +543,7 @@ function StandardOfLivingInner() {
                               <select value={p.target_tier} onChange={(e) => updatePhase(p.id, { target_tier: e.target.value as Tier })}
                                 className="bg-[var(--surface-0)] border rounded-md px-2 py-1 text-[11px] font-medium outline-none"
                                 style={{ color: TIER_COLOR[p.target_tier], borderColor: `${TIER_COLOR[p.target_tier]}66` }}>
-                                {LADDER_TIERS.map((t) => <option key={t} value={t} style={{ color: 'var(--ink)' }}>{tierLabel(t, locale)}</option>)}
+                                {LADDER_TIERS.map((t) => <option key={t} value={t} style={{ color: 'var(--ink)' }}>{ladderLabel(t, locale)}</option>)}
                               </select>
                               <button onMouseEnter={(e) => showTierMeaning(p.target_tier, e.currentTarget)} onMouseLeave={() => setTierHover(null)}
                                 className="w-5 h-5 rounded-full border border-[var(--border-medium)] text-[10px] text-[var(--muted)] hover:border-[var(--green)] hover:text-[var(--green-dark)] cursor-help shrink-0" aria-label={L('ماذا يعني هذا المستوى', 'What this tier means')}>ⓘ</button>
@@ -605,7 +610,7 @@ function StandardOfLivingInner() {
                 <>
                   {latest && latestStatus && (
                     <div className={`rounded-xl border p-4 mb-3 text-xs leading-relaxed ${STATUS_CLASS[latestStatus]}`}>
-                      <strong>{latest.year} · {ar ? STATUS_LABEL_AR[latestStatus] : STATUS_LABEL[latestStatus]} — {L(`الفعلي عند «${tierLabel(nearestTier(latest.actual!), locale)}» مقابل خطّة «${tierLabel(nearestTier(latest.planned), locale)}»`, `actual at “${tierLabel(nearestTier(latest.actual!), locale)}” vs planned “${tierLabel(nearestTier(latest.planned), locale)}”`)}</strong>
+                      <strong>{latest.year} · {ar ? STATUS_LABEL_AR[latestStatus] : STATUS_LABEL[latestStatus]} — {L(`الفعلي عند «${ladderLabel(nearestTier(latest.actual!), locale)}» مقابل خطّة «${ladderLabel(nearestTier(latest.planned), locale)}»`, `actual at “${ladderLabel(nearestTier(latest.actual!), locale)}” vs planned “${ladderLabel(nearestTier(latest.planned), locale)}”`)}</strong>
                       {latestStatus === 'behind' && (
                         <span className="block mt-1">{L('أنت دون مسارك المخطَّط. صحّح المسار: ', "You're below your planned path. Course-correct: ")}
                           <Link href="/budgeting" className="underline font-medium">{L('الميزنة', 'Budgeting')}</Link>{' · '}
@@ -625,8 +630,8 @@ function StandardOfLivingInner() {
                           <div className="text-sm font-medium text-[var(--ink)]">{s.year}{age != null && age >= 0 && <span className="text-[11px] text-[var(--muted)] font-normal ms-1.5">· {L(`${age} سنة`, `age ${age}`)}</span>}</div>
                           <div className="flex items-center gap-3.5">
                             <div className="text-xs text-[var(--muted)] text-end">
-                              <div>{L('خطّة:', 'Plan:')} <strong className="text-[var(--ink-2)]">{tierLabel(nearestTier(s.planned), locale)}</strong></div>
-                              <div>{L('فعلي:', 'Actual:')} <strong className="text-[var(--ink-2)]">{s.actual != null ? tierLabel(nearestTier(s.actual), locale) : '—'}</strong></div>
+                              <div>{L('خطّة:', 'Plan:')} <strong className="text-[var(--ink-2)]">{ladderLabel(nearestTier(s.planned), locale)}</strong></div>
+                              <div>{L('فعلي:', 'Actual:')} <strong className="text-[var(--ink-2)]">{s.actual != null ? ladderLabel(nearestTier(s.actual), locale) : '—'}</strong></div>
                             </div>
                             <span className={`text-[11px] font-semibold px-3 py-1.5 rounded-full border whitespace-nowrap ${STATUS_CLASS[status]}`}>{ar ? STATUS_LABEL_AR[status] : STATUS_LABEL[status]}</span>
                           </div>
@@ -644,7 +649,7 @@ function StandardOfLivingInner() {
       {tierHover && (
         <div className="fixed z-[80] w-[280px] bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-2xl p-4 pointer-events-none" style={{ left: tierHover.x, top: tierHover.y }}>
           <div className="flex items-baseline gap-2 mb-2.5">
-            <span className="font-serif text-sm font-semibold" style={{ color: TIER_COLOR[tierHover.tier] }}>{tierLabel(tierHover.tier, locale)}</span>
+            <span className="font-serif text-sm font-semibold" style={{ color: TIER_COLOR[tierHover.tier] }}>{ladderLabel(tierHover.tier as LadderTier, locale)}</span>
             <span className="text-[10px] text-[var(--muted)]">{getLifestyle(tierHover.tier, locale).income}</span>
           </div>
           <div className="grid grid-cols-1 gap-1.5">

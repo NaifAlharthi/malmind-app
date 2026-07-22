@@ -22,8 +22,10 @@ import { computeRisks, type RiskInputs, type RiskResult } from '@/lib/risks';
 import { computeFreedom } from '@/lib/financialFreedom';
 import { BANDS, SCORE_MIN, SCORE_MAX, bandFor, bandLabel } from '@/lib/creditScore';
 import {
-  tierFromIncome, tierIndex, tierLabel, tierShortLabel, getLifestyle, buildYearSeries,
-  TIERS, TIER_COLOR, type Tier, type Phase,
+  tierFromIncome, tierIndex, tierLabel, getLifestyle,
+  TIERS, TIER_COLOR, LADDER_TIERS, NAT_Y, Y_MIN, Y_MAX,
+  ladderY, ladderBandBottom, ladderLabel, ladderShortLabel, buildAbstractSeries,
+  type Tier, type Phase, type LadderTier,
 } from '@/lib/standardOfLiving';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
 import { BENCHMARK_START_AGE, buildBenchmarkCurves, buildYouSeries } from '@/lib/positioningBenchmarks';
@@ -148,7 +150,7 @@ export default function TodayDashboard() {
   const { t, locale } = useLocale();
   const [data, setData] = useState<Data | null>(null);
   const [credit, setCredit] = useState<{ score: number | null; prev: number | null } | null>(null);
-  const [sol, setSol] = useState<{ phases: SolPhaseRow[]; actualsByYear: Record<number, Tier> } | null>(null);
+  const [sol, setSol] = useState<{ phases: SolPhaseRow[]; actualsByYear: Record<number, Tier>; offset: number } | null>(null);
   const [selRisk, setSelRisk] = useState<string | null>(null);
   const [cashView, setCashView] = useState<'six' | 'ytd'>('six');
   const [srcInfo, setSrcInfo] = useState(false);
@@ -262,7 +264,13 @@ export default function TodayDashboard() {
       ((ac ?? []) as { year: number; actual_tier: Tier | null }[]).forEach((r) => {
         if (r.actual_tier) actualsByYear[r.year] = r.actual_tier;
       });
-      setSol({ phases: (ph ?? []) as SolPhaseRow[], actualsByYear });
+      // The ladder placement the user chose on the Standard of Living page.
+      let offset = 0;
+      try {
+        const v = localStorage.getItem(`mm-sol-offset:${user.id}`) ?? localStorage.getItem('mm-sol-offset');
+        if (v != null && Number.isFinite(Number(v))) offset = Number(v);
+      } catch { /* ignore */ }
+      setSol({ phases: (ph ?? []) as SolPhaseRow[], actualsByYear, offset });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -870,9 +878,17 @@ export default function TodayDashboard() {
             target_tier: p.target_tier, theme: p.theme ?? [], todo: p.todo ?? [], net_worth_goal: p.net_worth_goal,
           }));
         const hasPhases = phasesForSeries.length > 0;
-        const chartData = hasPhases
-          ? buildYearSeries(phasesForSeries, sol?.actualsByYear ?? {}).map((s) => ({ year: s.year, target: s.target, actual: s.actual }))
-          : [];
+        const solOffset = sol?.offset ?? 0;
+        // Actual standard of living, derived from real logged income per year.
+        const incomeByYear: Record<number, number> = {};
+        {
+          const acc: Record<number, number[]> = {};
+          (d?.snaps ?? []).forEach((s) => { if (s.income != null && Number(s.income) > 0) (acc[s.year] ??= []).push(Number(s.income)); });
+          Object.entries(acc).forEach(([y, arr]) => { incomeByYear[+y] = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length); });
+        }
+        const chartData = hasPhases ? buildAbstractSeries(phasesForSeries, solOffset, incomeByYear) : [];
+        const solTierYs = LADDER_TIERS.map((tt) => ({ tt, y: ladderY(tt, solOffset) }));
+        const nearestLadder = (v: number): LadderTier => solTierYs.reduce((best, o) => Math.abs(o.y - v) < Math.abs(best.y - v) ? o : best).tt;
         return (
           <Card title={t('today.sol.title')} href="/standard-of-living" explain={EX.sol}>
             <div className="flex items-baseline gap-2.5 flex-wrap mb-3">
@@ -883,23 +899,28 @@ export default function TodayDashboard() {
 
             {hasPhases ? (
               <>
-                {/* the life staircase: target vs actual standard of living */}
-                <div className="h-44" dir="ltr">
+                {/* the climb: transparent level bands · diagonal plan · real actual */}
+                <div className="h-52" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
                       <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                      {LADDER_TIERS.map((tt) => (
+                        <ReferenceArea key={tt} y1={ladderBandBottom(tt, solOffset)} y2={ladderBandBottom(tt, solOffset) + 1}
+                          fill={TIER_COLOR[tt]} fillOpacity={0.13} stroke="none" />
+                      ))}
+                      <ReferenceLine y={NAT_Y} stroke="var(--gold)" strokeDasharray="5 3" strokeWidth={1.5} />
                       <XAxis dataKey="year" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                       <YAxis
-                        domain={[0, TIERS.length - 1]} ticks={TIERS.map((_, i) => i)}
+                        domain={[Y_MIN, Y_MAX]} ticks={solTierYs.map((o) => o.y)}
                         tick={{ fontSize: 9, fill: 'var(--ink-2)' }}
-                        tickFormatter={(v) => tierShortLabel(TIERS[v], locale)}
-                        width={locale === 'ar' ? 60 : 64} axisLine={false} tickLine={false}
+                        tickFormatter={(v) => ladderShortLabel(nearestLadder(Number(v)), locale)}
+                        width={locale === 'ar' ? 60 : 70} axisLine={false} tickLine={false} interval={0}
                       />
                       <Tooltip
-                        formatter={(value, name) => [value == null ? '—' : tierLabel(TIERS[Math.round(Number(value))], locale), name]}
+                        formatter={(value, name) => [value == null ? '—' : ladderLabel(nearestLadder(Number(value)), locale), name]}
                         labelFormatter={(v) => String(v)}
                       />
-                      <Line type="stepAfter" dataKey="target" name={t('today.sol.target')} stroke="var(--ink)" strokeWidth={2.5} dot={false} />
+                      <Line type="linear" dataKey="planned" name={t('today.sol.target')} stroke="var(--ink)" strokeWidth={2.5} dot={false} />
                       <Line type="monotone" dataKey="actual" name={t('today.sol.actual')} stroke="var(--blue)" strokeWidth={2.5} dot={{ r: 2.5 }} connectNulls />
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -907,6 +928,7 @@ export default function TodayDashboard() {
                 <div className="flex gap-4 justify-center text-[10px] text-[var(--ink-2)] mb-1">
                   <span className="flex items-center gap-1.5"><span className="w-3.5 h-0.5 bg-[var(--ink)] inline-block" />{t('today.sol.target')}</span>
                   <span className="flex items-center gap-1.5"><span className="w-3.5 h-0.5 bg-[var(--blue)] inline-block" />{t('today.sol.actual')}</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3.5 h-0 border-t border-dashed border-[var(--gold)] inline-block" />{locale === 'ar' ? 'المتوسط الوطني' : 'National avg'}</span>
                 </div>
 
                 {/* phases table: theme · what needs doing · quantified growth */}
@@ -919,7 +941,7 @@ export default function TodayDashboard() {
                           <th key={p.id} className="text-start p-1.5 align-bottom">
                             <div className="font-semibold text-[var(--ink)]">{p.phase_name}</div>
                             <div className="text-[10px] text-[var(--muted)] font-normal">
-                              {p.start_year}–{p.end_year} · <span style={{ color: TIER_COLOR[p.target_tier] }}>{tierLabel(p.target_tier, locale)}</span>
+                              {p.start_year}–{p.end_year} · <span style={{ color: TIER_COLOR[p.target_tier] }}>{ladderLabel(p.target_tier as LadderTier, locale)}</span>
                             </div>
                           </th>
                         ))}

@@ -62,17 +62,18 @@ export type LadderTier = 'basic' | 'decent' | 'lavish' | 'financial_freedom';
 export const LADDER_TIERS: LadderTier[] = ['basic', 'decent', 'lavish', 'financial_freedom'];
 
 export const NAT_Y = 1;           // national-average line sits here on the abstract axis
-export const OFFSET_MIN = -1.5;
-export const OFFSET_MAX = 3;
+export const OFFSET_MIN = -1;
+export const OFFSET_MAX = 1.5;
 export const DEFAULT_OFFSET = 0;  // Basic-area CENTRE sits on the national average
 // Quick-place: the CENTRE of the Basic area, relative to the national average.
 export const OFFSET_BELOW = -1;
 export const OFFSET_AT = 0;
 export const OFFSET_ABOVE = 1;
 // A FIXED abstract domain, so the four-level band keeps a constant size as it
-// slides up and down (the band is 4 units tall; the domain is taller).
-export const Y_MIN = NAT_Y + OFFSET_MIN - 1.1;                       // ≈ -1.6
-export const Y_MAX = NAT_Y + OFFSET_MAX + LADDER_TIERS.length + 0.1; // ≈ 8.1
+// slides up and down. Kept snug around the band + drag range so each of the
+// four level areas reads large, not cramped.
+export const Y_MIN = NAT_Y + OFFSET_MIN - 0.7;                       // ≈ -0.7
+export const Y_MAX = NAT_Y + OFFSET_MAX + LADDER_TIERS.length + 0.2; // ≈ 6.7
 
 // The CENTRE of a level's area on the abstract axis — where its planned/actual
 // point sits. offset moves the whole fixed-size band; offset 0 puts the Basic
@@ -144,6 +145,15 @@ export function tierLabel(t: Tier, locale: 'ar' | 'en' = 'en'): string {
 
 export function tierShortLabel(t: Tier, locale: 'ar' | 'en' = 'en'): string {
   return locale === 'ar' ? TIER_SHORT_LABEL_AR[t] : TIER_SHORT_LABEL[t];
+}
+
+// Personalised labels for the user's OWN ladder ("My Basic" …). Arabic uses
+// the natural possessive prefix "مستواي" (my level).
+export function ladderLabel(t: LadderTier, locale: 'ar' | 'en' = 'en'): string {
+  return locale === 'ar' ? `${TIER_LABEL_AR[t]} (مستواي)` : `My ${TIER_LABEL[t]}`;
+}
+export function ladderShortLabel(t: LadderTier, locale: 'ar' | 'en' = 'en'): string {
+  return locale === 'ar' ? TIER_SHORT_LABEL_AR[t] : `My ${TIER_SHORT_LABEL[t]}`;
 }
 
 export function tierIndex(t: Tier): number {
