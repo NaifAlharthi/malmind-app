@@ -360,8 +360,13 @@ export interface CreditAccess {
   cardHeadroomExtra: number;         // above current card limits
   marginLow: number;                 // illustrative margin against marketable holdings
   marginHigh: number;
+  homeEquity: number;                // illustrative equity release against property
+  totalAccessible: number;           // conservative sum of the sources above
   eligible: boolean;                 // score good enough for meaningful new credit
 }
+
+// Illustrative loan-to-value a lender might refinance a property to.
+export const HOME_LTV = 0.7;
 
 // Rough principal a given monthly payment supports over `months` at `annualRate`.
 function principalFromPayment(payment: number, annualRate: number, months: number): number {
@@ -376,6 +381,8 @@ export function computeAccess(
   m: CreditMetrics,
   monthlyIncome: number,
   marketablePortfolio: number,
+  realEstateValue = 0,
+  mortgageOutstanding = 0,
 ): CreditAccess {
   const band = score != null ? bandFor(score).key : 'good';
   const eligible = score == null ? false : score >= 580; // below "Fair" → little room
@@ -398,6 +405,13 @@ export function computeAccess(
   const marginLow = eligible ? marketablePortfolio * 0.5 : 0;
   const marginHigh = eligible ? marketablePortfolio * 1.0 : 0;
 
+  // Home equity: refinance up to ~70% of the property value, less what's still
+  // owed on it — the equity you could release.
+  const homeEquity = eligible ? Math.max(0, realEstateValue * HOME_LTV - mortgageOutstanding) : 0;
+
+  // A conservative total of what you could responsibly access right now.
+  const totalAccessible = personalLoanPrincipal + cardHeadroomExtra + marginLow + homeEquity;
+
   return {
     personalLoanMonthlyRoom,
     personalLoanPrincipal,
@@ -405,6 +419,8 @@ export function computeAccess(
     cardHeadroomExtra,
     marginLow,
     marginHigh,
+    homeEquity,
+    totalAccessible,
     eligible,
   };
 }

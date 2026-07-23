@@ -62,6 +62,7 @@ export default function CreditPage() {
   const [setupError, setSetupError] = useState(false);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [portfolio, setPortfolio] = useState(0);
+  const [assets, setAssets] = useState<{ cash: number; investments: number; realEstate: number; other: number; liabilities: number } | null>(null);
   const [snapshots, setSnapshots] = useState<SnapshotRow[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
@@ -95,12 +96,23 @@ export default function CreditPage() {
     if (!user) { router.push('/login'); return; }
     setUserId(user.id);
 
-    const [{ data: profile }, { data: invest }] = await Promise.all([
+    const [{ data: profile }, { data: invest }, { data: snaps }] = await Promise.all([
       supabase.from('profiles').select('monthly_income').eq('id', user.id).single(),
       supabase.from('investment_settings').select('portfolio_value').eq('user_id', user.id).maybeSingle(),
+      supabase.from('financial_snapshots').select('year, month, cash, stocks, real_estate, equity, other_assets, liabilities').eq('user_id', user.id).order('year', { ascending: true }).order('month', { ascending: true }),
     ]);
     if (profile?.monthly_income != null) setMonthlyIncome(Number(profile.monthly_income));
     if (invest?.portfolio_value != null) setPortfolio(Number(invest.portfolio_value));
+    if (snaps && snaps.length) {
+      const s = snaps[snaps.length - 1] as { cash: number; stocks: number; real_estate: number; equity: number; other_assets: number; liabilities: number };
+      setAssets({
+        cash: Number(s.cash) || 0,
+        investments: (Number(s.stocks) || 0) + (Number(s.equity) || 0),
+        realEstate: Number(s.real_estate) || 0,
+        other: Number(s.other_assets) || 0,
+        liabilities: Number(s.liabilities) || 0,
+      });
+    }
 
     const { data, error } = await supabase
       .from('credit_snapshots')
@@ -131,9 +143,13 @@ export default function CreditPage() {
     () => active && metrics ? readFactors(active, metrics) : [],
     [active, metrics]
   );
+  const mortgageOutstanding = useMemo(
+    () => accounts.filter((a) => a.product_type === 'mortgage').reduce((s, a) => s + (Number(a.outstanding) || 0), 0),
+    [accounts]
+  );
   const access = useMemo(
-    () => metrics ? computeAccess(active?.molim_score ?? null, metrics, monthlyIncome, portfolio) : null,
-    [metrics, active, monthlyIncome, portfolio]
+    () => metrics ? computeAccess(active?.molim_score ?? null, metrics, monthlyIncome, portfolio, assets?.realEstate ?? 0, mortgageOutstanding) : null,
+    [metrics, active, monthlyIncome, portfolio, assets, mortgageOutstanding]
   );
 
   const delta = scoreDelta(active?.molim_score ?? null, previous?.molim_score ?? null);
@@ -396,6 +412,11 @@ export default function CreditPage() {
             </div>
           </div>
 
+          {/* ── borrowing power: what you own vs what you could access ── */}
+          {access && assets && (assets.cash + assets.investments + assets.realEstate + assets.other) > 0 && (
+            <BorrowingPower assets={assets} access={access} ar={ar} L={L} money={money} />
+          )}
+
           {/* ── access to credit & margin ── */}
           {access && (
             <AccessSection access={access} metrics={metrics} monthlyIncome={monthlyIncome} portfolio={portfolio} ar={ar} L={L} money={money} />
@@ -524,6 +545,132 @@ function GoodBadDebt({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ── Borrowing power: what you own, next to what you could access ────────────
+interface PowerSeg { key: string; label: string; value: number; color: string; note: string }
+
+function BorrowingPower({
+  assets, access, ar, L, money,
+}: {
+  assets: { cash: number; investments: number; realEstate: number; other: number; liabilities: number };
+  access: NonNullable<ReturnType<typeof computeAccess>>;
+  ar: boolean; L: (a: string, e: string) => string; money: (n: number) => string;
+}) {
+  const [hover, setHover] = useState<{ side: 'own' | 'access'; key: string } | null>(null);
+
+  const own: PowerSeg[] = [
+    { key: 'realEstate', label: L('عقارات', 'Real estate'), value: assets.realEstate, color: '#C9A84C', note: L('أصل يمكن الاقتراض عليه بأمان.', 'An asset you can borrow against safely.') },
+    { key: 'investments', label: L('استثمارات', 'Investments'), value: assets.investments, color: '#1D9E75', note: L('يمكن استخدامها كضمان لهامش.', 'Can back a margin facility.') },
+    { key: 'cash', label: L('نقد', 'Cash'), value: assets.cash, color: '#4A78C4', note: L('سيولتك الجاهزة — لا حاجة للاقتراض عليها.', 'Your ready liquidity — no need to borrow against it.') },
+    { key: 'other', label: L('أخرى', 'Other'), value: assets.other, color: '#8a99a8', note: L('أصول أخرى تملكها.', 'Other things you own.') },
+  ].filter((s) => s.value > 0);
+
+  const accessSegs: PowerSeg[] = [
+    { key: 'home', label: L('حقوق ملكية العقار', 'Home equity'), value: access.homeEquity, color: '#C9A84C', note: L('أرخص اقتراض — بضمان عقارك (حتى ~70% ناقص المتبقّي). قويّ للأصول المنتجة، مُكلِف إن أُنفِق.', 'The cheapest borrowing — secured by your property (~70% LTV less what you owe). Powerful for productive assets, costly if spent.') },
+    { key: 'margin', label: L('هامش على المحفظة', 'Portfolio margin'), value: access.marginLow, color: '#1D9E75', note: L('بضمان محفظتك. يضخّم الأرباح والخسائر — للمتمرّسين.', 'Against your portfolio. Amplifies gains and losses — for the experienced.') },
+    { key: 'personal', label: L('تمويل شخصي', 'Personal financing'), value: access.personalLoanPrincipal, color: '#17B8C9', note: L('غير مضمون، تحت سقف ساما 33%. مرن لكن راقِب الكلفة.', "Unsecured, under SAMA's 33% cap. Flexible, but watch the rate.") },
+    { key: 'card', label: L('حدود البطاقات', 'Card headroom'), value: access.cardHeadroomExtra, color: '#B06A3A', note: L('أغلى الأموال — للراحة قصيرة الأجل فقط.', 'The most expensive money — short-term convenience only.') },
+  ].filter((s) => s.value > 0);
+
+  const totalOwn = own.reduce((s, x) => s + x.value, 0);
+  const totalAccess = access.totalAccessible;
+  const netWorth = totalOwn - assets.liabilities;
+  const scale = Math.max(totalOwn, totalAccess, 1);
+  const H = 320;
+  const px = H / scale;
+  const accessPct = totalOwn > 0 ? Math.round((totalAccess / totalOwn) * 100) : 0;
+
+  const hovered = hover ? (hover.side === 'own' ? own : accessSegs).find((s) => s.key === hover.key) ?? null : null;
+
+  const Bar = ({ side, segs, total, title }: { side: 'own' | 'access'; segs: PowerSeg[]; total: number; title: string }) => {
+    let run = 0;
+    return (
+      <div className="flex flex-col items-center">
+        <div className="text-[10px] tracking-[0.06em] uppercase text-[var(--muted)] mb-1.5 text-center">{title}</div>
+        <div className="font-serif text-lg font-bold text-[var(--ink)] mb-2">{money(total)}</div>
+        <div className="relative" style={{ width: 96, height: H }} dir="ltr">
+          {/* baseline track */}
+          <div className="absolute inset-0 rounded-lg bg-[var(--surface-1)] border border-[var(--border-faint)]" />
+          {segs.map((s) => {
+            const h = s.value * px;
+            const b = run; run += h;
+            const active = hover?.side === side && hover.key === s.key;
+            return (
+              <div key={s.key}
+                onMouseEnter={() => setHover({ side, key: s.key })}
+                className="absolute inset-x-0 rounded-md flex items-center justify-center cursor-pointer transition-all"
+                style={{ bottom: b, height: Math.max(2, h - 2), background: `linear-gradient(180deg, ${s.color}f2, ${s.color}c8)`, boxShadow: active ? `0 0 0 2px var(--surface-card), 0 0 0 4px ${s.color}` : 'none', zIndex: active ? 5 : 1 }}>
+                {h > 22 && <span className="text-[10px] font-semibold text-white text-center px-1 leading-tight">{s.label}</span>}
+              </div>
+            );
+          })}
+          {/* net-worth line on the "own" bar */}
+          {side === 'own' && netWorth > 0 && netWorth < totalOwn && (
+            <div className="absolute inset-x-0 flex items-center pointer-events-none" style={{ bottom: netWorth * px }}>
+              <div className="flex-1 border-t-2 border-dashed border-[var(--ink)] opacity-70" />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="mb-5">
+      <div className="font-serif text-lg font-medium text-[var(--ink)] mb-1">{L('قوّتك الاقتراضية', 'Your borrowing power')}</div>
+      <div className="text-sm text-[var(--ink-2)] mb-3 max-w-2xl">
+        {L('ما تملكه اليوم، وبجانبه ما يمكنك الوصول إليه مقابله — بالمقياس نفسه. هذه أرضية اللعب: أين تكمن قوّتك، وكيف تستخدمها بحكمة.',
+          'What you own today, next to what you could access against it — at the same scale. This is the playing field: where your power sits, and how to use it wisely.')}
+      </div>
+
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
+        <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
+          {/* the two proportional bars */}
+          <div className="flex gap-5 shrink-0 mx-auto sm:mx-0">
+            <Bar side="own" segs={own} total={totalOwn} title={L('ما تملك', 'What you own')} />
+            <Bar side="access" segs={accessSegs} total={totalAccess} title={L('ما يمكنك الوصول إليه', 'What you can access')} />
+          </div>
+
+          {/* insight / guidance */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            {hovered ? (
+              <div className="rounded-xl border p-4" style={{ borderColor: `${hovered.color}66`, background: `${hovered.color}0f` }}>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="w-3 h-3 rounded-sm" style={{ background: hovered.color }} />
+                  <span className="font-serif text-lg font-semibold text-[var(--ink)]">{hovered.label}</span>
+                </div>
+                <div className="font-serif text-2xl font-bold" style={{ color: hovered.color }}>{money(hovered.value)}</div>
+                <div className="text-[11px] text-[var(--ink-2)] mt-2 leading-relaxed">{hovered.note}</div>
+              </div>
+            ) : (
+              <>
+                <div className="text-sm text-[var(--ink)] leading-relaxed">
+                  {L(
+                    `صافي ثروتك نحو `, `Your net worth is about `)}
+                  <strong>{money(Math.max(0, netWorth))}</strong>.{' '}
+                  {access.eligible
+                    ? <>{L('ومقابل ما تملك، يمكنك الوصول بمسؤولية إلى نحو ', 'Against what you own, you could responsibly access about ')}<strong className="text-[var(--green-dark)]">{money(totalAccess)}</strong>{L(` — أي نحو ${accessPct}% مما تملك.`, ` — roughly ${accessPct}% of what you own.`)}</>
+                    : L('ارفع درجتك الائتمانية أولاً لتفتح خيارات وصول ذات معنى.', 'Lift your credit score first to open meaningful access.')}
+                </div>
+                <div className="text-[11px] text-[var(--muted)] mt-2">{L('مرّر فوق أي طبقة لفهمها وكيفية استخدامها.', 'Hover any layer to see what it is and how to use it.')}</div>
+              </>
+            )}
+
+            <div className="mt-auto pt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px]">
+              {accessSegs.map((s) => (
+                <span key={s.key} className="inline-flex items-center gap-1.5 text-[var(--ink-2)]"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} />{s.label} · <strong className="text-[var(--ink)] font-medium">{money(s.value)}</strong></span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="text-[10px] text-[var(--muted)] mt-4 pt-3 border-t border-[var(--border-faint)]">
+          {L('تقديرات تعليمية توضيحية وفق حدود ساما وممارسات السوق — ليست عرض تمويل ولا نصيحة. الدَّين المسؤول أداة، لا هدف.',
+            "Illustrative educational estimates against SAMA caps and market practice — not an offer or advice. Responsible debt is a tool, not a goal.")}
+        </div>
       </div>
     </div>
   );
