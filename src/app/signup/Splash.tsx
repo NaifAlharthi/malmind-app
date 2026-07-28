@@ -20,6 +20,7 @@ interface Content {
   stats: [string, string][];
   chips: string[];
   tools: { icon: string; name: string; desc: string }[];
+  trust: { icon: string; text: string }[];
 }
 
 const CONTENT: Record<'ar' | 'en', Content> = {
@@ -63,6 +64,11 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       { icon: '🔮', name: 'ماذا لو', desc: 'جرّب الفيلا، الترقية، انقطاعاً مهنياً — قبل أن تقرّر' },
       { icon: '💬', name: 'مستشار ذكي', desc: 'يعرف قصتك كاملة، ويستشهد بأرقامك الحقيقية' },
     ],
+    trust: [
+      { icon: '🔒', text: 'بياناتك ملكك — تُحفظ بأمان' },
+      { icon: '🚫', text: 'لا تُباع ولا تُدرَّب عليها النماذج' },
+      { icon: '🇸🇦', text: 'صُنع للسعودية، بواقعها وأنظمتها' },
+    ],
   },
   en: {
     tag: 'Made for Saudi Arabia',
@@ -104,6 +110,11 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       { icon: '🔮', name: 'What if', desc: 'model the villa, the raise, the career break — before deciding' },
       { icon: '💬', name: 'AI advisor', desc: 'knows your whole story, cites your actual numbers' },
     ],
+    trust: [
+      { icon: '🔒', text: 'Your data is yours — stored securely' },
+      { icon: '🚫', text: 'Never sold, never used to train models' },
+      { icon: '🇸🇦', text: 'Built for Saudi reality and regulation' },
+    ],
   },
 };
 
@@ -139,8 +150,15 @@ export default function Splash() {
         @keyframes mmAurora { 0%,100% { transform: translate3d(0,0,0) scale(1); } 33% { transform: translate3d(6%,-4%,0) scale(1.12); } 66% { transform: translate3d(-5%,3%,0) scale(0.94); } }
         @keyframes mmSheen { 0% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
         @keyframes mmGlow { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
+        @keyframes mmShimmer { 0% { background-position: 200% 50%; } 100% { background-position: -200% 50%; } }
         .mm-fade { animation: mmFade 0.7s ease both; }
         .mm-pop { animation: mmPop 0.6s ease both; }
+        .mm-shimmer {
+          background: linear-gradient(110deg, #FFFFFF 38%, #7FE8C4 50%, #FFFFFF 62%);
+          background-size: 220% 100%;
+          -webkit-background-clip: text; background-clip: text; color: transparent;
+          animation: mmShimmer 7s linear infinite;
+        }
       `}</style>
 
       {/* ambient aurora — slow-drifting light fields give the AI-grade atmosphere */}
@@ -181,7 +199,9 @@ export default function Splash() {
         {/* copy */}
         <div className="flex-1 max-w-xl" key={`copy-${act}`}>
           <div className="mm-fade text-[11px] tracking-[0.18em] uppercase text-[#C9A84C] mb-3" style={{ animationDelay: '0.05s' }}>{a.eyebrow}</div>
-          <h1 className="mm-fade font-serif text-3xl sm:text-4xl font-semibold text-white leading-tight mb-4" style={{ animationDelay: '0.15s' }}>{a.title}</h1>
+          <h1 className="mm-fade font-serif text-3xl sm:text-4xl font-semibold leading-tight mb-4 pb-1" style={{ animationDelay: '0.15s' }}>
+            <span className="mm-shimmer">{a.title}</span>
+          </h1>
           <p className="mm-fade text-sm sm:text-base text-white/65 leading-relaxed mb-8" style={{ animationDelay: '0.3s' }}>{a.body}</p>
 
           <div className="mm-fade flex flex-wrap items-center gap-3" style={{ animationDelay: '0.45s' }}>
@@ -196,10 +216,19 @@ export default function Splash() {
             </button>
             <button
               onClick={startDemo}
-              className="text-sm font-medium text-[#5DCAA5] rounded-xl px-6 py-3 transition-colors bg-white/[0.04] border border-[#5DCAA5]/35 hover:border-[#5DCAA5] hover:bg-white/[0.07] backdrop-blur-sm"
+              className="text-sm font-medium text-[#5DCAA5] rounded-xl px-6 py-3 transition-all hover:-translate-y-0.5 bg-white/[0.04] border border-[#5DCAA5]/35 hover:border-[#5DCAA5] hover:bg-white/[0.07] backdrop-blur-sm"
             >
               {c.ctaDemo}
             </button>
+          </div>
+
+          {/* trust chips — quiet credibility, always visible */}
+          <div className="mm-fade flex flex-wrap gap-2 mt-6" style={{ animationDelay: '0.6s' }}>
+            {c.trust.map((tr) => (
+              <span key={tr.text} className="inline-flex items-center gap-1.5 text-[11px] text-white/60 bg-white/[0.05] border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                <span className="text-xs leading-none">{tr.icon}</span> {tr.text}
+              </span>
+            ))}
           </div>
         </div>
 

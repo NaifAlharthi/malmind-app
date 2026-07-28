@@ -4,11 +4,50 @@
 // quadrant — that a guest can walk the whole product as. Picking one drops
 // straight into a full guided walkthrough seeded with that persona's data.
 
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { enterDemo } from '@/lib/demoSupabase';
 import { DEMO_PERSONAS, type Quadrant } from '@/lib/demoWorld';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import PersonaAvatar from './PersonaAvatar';
+
+// Scroll-reveal: children rise into place the first time they enter the
+// viewport, with a per-element delay for a staged, cinematic entrance.
+function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let done = false;
+    const show = () => { if (!done) { done = true; setShown(true); cleanup(); } };
+    const inView = () => { const r = el.getBoundingClientRect(); return r.top < window.innerHeight * 0.92 && r.bottom > 0; };
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) show(); }, { threshold: 0.18 });
+    io.observe(el);
+    // Fallbacks for environments where IO is throttled (background/embedded
+    // tabs): a scroll/resize rect check, plus an initial-visibility check.
+    const onScroll = () => { if (inView()) show(); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    const t = window.setTimeout(onScroll, 900);
+    function cleanup() {
+      io.disconnect();
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      window.clearTimeout(t);
+    }
+    return cleanup;
+  }, []);
+  return (
+    <div ref={ref} className={className} style={{
+      opacity: shown ? 1 : 0,
+      transform: shown ? 'none' : 'translateY(26px)',
+      transition: `opacity 700ms cubic-bezier(0.22,1,0.36,1) ${delay}ms, transform 700ms cubic-bezier(0.22,1,0.36,1) ${delay}ms`,
+    }}>
+      {children}
+    </div>
+  );
+}
 
 const QUAD_LABEL: Record<Quadrant, { ar: string; en: string }> = {
   A: { ar: 'وضع البناء', en: 'Build mode' },
@@ -37,7 +76,7 @@ export default function PersonaPicker() {
       <div className="absolute -top-24 start-[10%] w-[420px] h-[420px] rounded-full blur-[130px] opacity-40 pointer-events-none"
         style={{ background: 'radial-gradient(circle, #17B8C9 0%, transparent 68%)' }} />
       <div className="relative max-w-5xl mx-auto">
-        <div className="text-center mb-10">
+        <Reveal className="text-center mb-10">
           <div className="text-[11px] tracking-[0.16em] uppercase text-[#C9A84C] font-semibold mb-3">{L('جولة كاملة في المنتج', 'A full product walk-through')}</div>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-3">{L('اختر من يشبهك، وامشِ في حياته المالية', 'Pick who you relate to, and walk their financial life')}</h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto leading-relaxed">
@@ -46,19 +85,22 @@ export default function PersonaPicker() {
               'Four Saudi personas, each at a different stage of the money journey. Choose one to experience every MalMind tool on their full data — no account, nothing saved.'
             )}
           </p>
-        </div>
+        </Reveal>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          {DEMO_PERSONAS.map((p) => (
+          {DEMO_PERSONAS.map((p, pi) => (
+            <Reveal key={p.id} delay={pi * 110}>
             <button
-              key={p.id}
               onClick={() => pick(p.id)}
-              className="group text-start rounded-2xl p-5 transition-all hover:-translate-y-1"
+              className="group w-full h-full text-start rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1.5"
               style={{
                 background: 'linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02))',
                 border: '1px solid rgba(255,255,255,0.12)',
                 boxShadow: '0 18px 50px -24px rgba(0,0,0,0.6)',
+                ['--pa' as string]: p.accent,
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${p.accent}88`; e.currentTarget.style.boxShadow = `0 24px 60px -22px ${p.accent}55, 0 18px 50px -24px rgba(0,0,0,0.6)`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.boxShadow = '0 18px 50px -24px rgba(0,0,0,0.6)'; }}
             >
               <div className="flex items-start gap-4 mb-3">
                 <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 ring-2" style={{ ['--tw-ring-color' as string]: `${p.accent}66` }}>
@@ -93,6 +135,7 @@ export default function PersonaPicker() {
                 {L(`امشِ في حياة ${p.firstName}`, `Walk through as ${p.firstName}`)} <span>{ar ? '←' : '→'}</span>
               </span>
             </button>
+            </Reveal>
           ))}
         </div>
 
