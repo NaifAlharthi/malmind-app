@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { isDemoActive, exitDemo } from '@/lib/demoSupabase';
 import { joinName } from '@/lib/name';
 import { useT } from '@/lib/i18n/LocaleProvider';
 import LanguageToggle from '@/components/shared/LanguageToggle';
@@ -12,7 +13,6 @@ import PersonaPicker from './PersonaPicker';
 
 export default function SignupPage() {
   const router = useRouter();
-  const supabase = createClient();
   const t = useT();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -21,13 +21,24 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  // Email-confirmation flow: when Supabase requires the user to confirm their
+  // address, signUp succeeds but returns NO session. We must not push them
+  // into the (auth-guarded) app — show a clear "check your inbox" step.
+  const [confirmSentTo, setConfirmSentTo] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    // If the visitor was mid-demo, leave it — a real account always beats the
+    // mock client (whose signUp is intentionally disabled).
+    if (isDemoActive()) exitDemo();
+    const client = createClient(); // fresh: guaranteed the REAL client now
+
+    const { data, error } = await client.auth.signUp({
       email,
       password,
       options: {
@@ -38,10 +49,33 @@ export default function SignupPage() {
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      // Friendlier message for the most common trip-up.
+      if (/already registered/i.test(error.message)) {
+        setError(t('auth.signup.exists'));
+      } else {
+        setError(error.message);
+      }
       return;
     }
-    router.push('/onboarding?justSignedUp=1');
+    // "Confirm email" ON in Supabase → user exists but no session yet: they
+    // must click the link first. Only enter the app when we hold a session.
+    if (data.session) {
+      router.push('/onboarding?justSignedUp=1');
+    } else {
+      setConfirmSentTo(email);
+    }
+  }
+
+  async function resendConfirmation() {
+    if (!confirmSentTo) return;
+    setResending(true);
+    await createClient().auth.resend({
+      type: 'signup',
+      email: confirmSentTo,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    setResending(false);
+    setResent(true);
   }
 
   return (
@@ -60,6 +94,37 @@ export default function SignupPage() {
           <span className="text-xs leading-none">🇸🇦</span>
         </div>
         <div className="text-[11px] text-[var(--green-dark)] mb-4">{t('common.saudiFirst')}</div>
+        {confirmSentTo ? (
+          /* email-confirmation step — the account exists, the inbox holds the key */
+          <div className="text-center py-2">
+            <div className="w-12 h-12 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-2xl mx-auto mb-4">
+              ✉️
+            </div>
+            <h1 className="font-serif text-xl font-semibold text-[var(--ink)] mb-2">
+              {t('auth.confirm.title')}
+            </h1>
+            <p className="text-sm text-[var(--ink-2)] leading-relaxed mb-1">
+              {t('auth.confirm.body', { email: confirmSentTo })}
+            </p>
+            <p className="text-xs text-[var(--muted)] leading-relaxed mb-5">
+              {t('auth.confirm.hint')}
+            </p>
+            <button
+              onClick={resendConfirmation}
+              disabled={resending || resent}
+              className="w-full bg-[var(--green-dark)] text-white rounded-lg py-2.5 text-sm font-medium disabled:opacity-50 mb-2"
+            >
+              {resent ? t('auth.confirm.resent') : resending ? t('auth.magic.sending') : t('auth.confirm.resend')}
+            </button>
+            <button
+              onClick={() => { setConfirmSentTo(null); setResent(false); }}
+              className="w-full text-xs text-[var(--muted)] hover:text-[var(--ink-2)] py-1"
+            >
+              {t('auth.magic.useDifferent')}
+            </button>
+          </div>
+        ) : (
+        <>
         <h1 className="font-serif text-2xl font-semibold text-[var(--ink)] mb-1">
           {t('auth.signup.title')}
         </h1>
@@ -155,6 +220,8 @@ export default function SignupPage() {
             </p>
           </button>
         </div>
+        </>
+        )}
       </div>
       </div>
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} source="signup" />

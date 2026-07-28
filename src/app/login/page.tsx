@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null); // magic-link confirmation
   const [contactOpen, setContactOpen] = useState(false);
+  const [notice, setNotice] = useState<boolean>(false); // expired/dead email link
 
   // Prefill the email we remembered last time (and reflect that as "remembered").
   useEffect(() => {
@@ -30,6 +31,13 @@ export default function LoginPage() {
     if (saved) {
       setEmail(saved);
       setRemember(true);
+    }
+    // The auth callback lands here when an email link is dead or expired —
+    // explain it and put them on the fastest path to a fresh link.
+    const reason = new URLSearchParams(window.location.search).get('reason');
+    if (reason === 'link_expired' || reason === 'missing_code') {
+      setNotice(true); // translated at render time so it follows the locale
+      setMode('link');
     }
   }, []);
 
@@ -101,6 +109,12 @@ export default function LoginPage() {
             <p className="text-sm text-[var(--ink-2)] mb-5">
               {t('auth.login.subtitle')}
             </p>
+
+            {notice && (
+              <div className="text-xs text-[var(--gold-text-body)] bg-[var(--gold-bg)] border border-[var(--gold)] rounded-lg px-3 py-2.5 mb-4 leading-relaxed">
+                {t('auth.login.linkExpired')}
+              </div>
+            )}
 
             {/* mode tabs */}
             <div className="flex bg-[var(--surface-1)] rounded-lg p-0.5 mb-5">
