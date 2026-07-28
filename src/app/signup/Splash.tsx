@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { LogoMark } from '@/components/shared/Logo';
 
 interface Act { eyebrow: string; title: string; body: string }
 interface Content {
@@ -191,7 +192,10 @@ export default function Splash() {
 
       {/* wordmark + Saudi badge */}
       <div className="relative z-10 px-8 pt-8 flex items-center gap-3 flex-wrap">
-        <span dir="ltr" className="font-serif text-2xl font-semibold text-white">Mal<span className="text-[#5DCAA5]">Mind</span></span>
+        <span dir="ltr" className="flex items-center gap-2.5 font-serif text-2xl font-semibold text-white">
+          <LogoMark size={34} />
+          <span>Mal<span className="text-[#5DCAA5]">Mind</span></span>
+        </span>
         <SaudiBadge tag={c.tag} />
       </div>
 

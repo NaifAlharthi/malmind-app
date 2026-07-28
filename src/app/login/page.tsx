@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n/LocaleProvider';
 import LanguageToggle from '@/components/shared/LanguageToggle';
 import ContactModal from '@/components/shared/ContactModal';
+import { LogoMark } from '@/components/shared/Logo';
 import { applyLoginPrefs, rememberedEmail } from '@/lib/authPrefs';
 
 type Mode = 'password' | 'link';
@@ -91,8 +92,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6">
       <div className="max-w-sm w-full bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8">
         <div className="flex items-center justify-between mb-1">
-          <div className="font-serif text-xl font-semibold flex items-center gap-1.5">
-            Mal<span className="text-[var(--green)]">Mind</span>
+          <div className="font-serif text-xl font-semibold flex items-center gap-2">
+            <LogoMark size={30} />
+            <span>Mal<span className="text-[var(--green)]">Mind</span></span>
             <span className="text-xs leading-none">🇸🇦</span>
           </div>
           <LanguageToggle />

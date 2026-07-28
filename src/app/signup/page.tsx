@@ -8,6 +8,7 @@ import { joinName } from '@/lib/name';
 import { useT } from '@/lib/i18n/LocaleProvider';
 import LanguageToggle from '@/components/shared/LanguageToggle';
 import ContactModal from '@/components/shared/ContactModal';
+import { LogoMark } from '@/components/shared/Logo';
 import Splash from './Splash';
 import PersonaPicker from './PersonaPicker';
 
@@ -89,8 +90,9 @@ export default function SignupPage() {
         style={{ background: 'radial-gradient(circle, var(--green) 0%, transparent 70%)' }} aria-hidden />
       <div className="relative max-w-sm w-full bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-8 shadow-2xl shadow-black/10 overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-1" style={{ background: 'linear-gradient(90deg, #1D9E75, #17B8C9, #C9A84C)' }} aria-hidden />
-        <div className="font-serif text-xl font-semibold mb-1 flex items-center gap-1.5">
-          Mal<span className="text-[var(--green)]">Mind</span>
+        <div className="font-serif text-xl font-semibold mb-1 flex items-center gap-2">
+          <LogoMark size={30} />
+          <span>Mal<span className="text-[var(--green)]">Mind</span></span>
           <span className="text-xs leading-none">🇸🇦</span>
         </div>
         <div className="text-[11px] text-[var(--green-dark)] mb-4">{t('common.saudiFirst')}</div>
