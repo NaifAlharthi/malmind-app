@@ -7,6 +7,7 @@ import { useT } from '@/lib/i18n/LocaleProvider';
 import LanguageToggle from '@/components/shared/LanguageToggle';
 import ContactModal from '@/components/shared/ContactModal';
 import { applyLoginPrefs, rememberedEmail } from '@/lib/authPrefs';
+import { hasAuthErrorInUrl } from '@/lib/authError';
 
 type Mode = 'password' | 'link';
 
@@ -33,9 +34,10 @@ export default function LoginPage() {
       setRemember(true);
     }
     // The auth callback lands here when an email link is dead or expired —
-    // explain it and put them on the fastest path to a fresh link.
+    // explain it and put them on the fastest path to a fresh link. Also catch
+    // Supabase's own #error=access_denied fragments landing directly here.
     const reason = new URLSearchParams(window.location.search).get('reason');
-    if (reason === 'link_expired' || reason === 'missing_code') {
+    if (reason === 'link_expired' || reason === 'missing_code' || hasAuthErrorInUrl()) {
       setNotice(true); // translated at render time so it follows the locale
       setMode('link');
     }

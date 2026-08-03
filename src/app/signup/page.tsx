@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { isDemoActive, exitDemo } from '@/lib/demoSupabase';
 import { joinName } from '@/lib/name';
+import { hasAuthErrorInUrl } from '@/lib/authError';
 import { useT } from '@/lib/i18n/LocaleProvider';
 import LanguageToggle from '@/components/shared/LanguageToggle';
 import ContactModal from '@/components/shared/ContactModal';
@@ -14,6 +15,14 @@ import PersonaPicker from './PersonaPicker';
 export default function SignupPage() {
   const router = useRouter();
   const t = useT();
+
+  // A failed email link (expired / already consumed by an inbox scanner) can
+  // land here with #error=access_denied — route to recovery, not a dead end.
+  useEffect(() => {
+    if (hasAuthErrorInUrl()) router.replace('/login?reason=link_expired');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');

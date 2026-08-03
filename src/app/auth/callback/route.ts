@@ -1,26 +1,50 @@
 // src/app/auth/callback/route.ts
-// Supabase sends users here after they click the confirmation link in their
-// signup email (or a magic sign-in link). This exchanges the link's code for
-// a real logged-in session, then routes them to the right place: brand-new
-// users go to onboarding, returning users go home, and a dead/expired link
-// falls back to login with a clear reason instead of a silent dead end.
+// Supabase sends users here after they click the link in a signup-confirmation
+// or magic sign-in email. Two link formats are supported:
+//
+//   1. token_hash + type  — the robust format (set in the Supabase email
+//      templates). Verified server-side with verifyOtp, so it works on ANY
+//      device — including the very common "signed up on laptop, opened the
+//      email on my phone" case.
+//   2. code               — the PKCE format from the default templates.
+//      exchangeCodeForSession requires the code-verifier cookie from the
+//      browser that STARTED the flow, so it only works on the same device.
+//
+// Success routes brand-new users to onboarding and returning users home; a
+// dead or expired link falls back to login with a clear reason instead of a
+// silent dead end.
 
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import type { EmailOtpType } from '@supabase/supabase-js';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
+  const tokenHash = searchParams.get('token_hash');
+  const type = searchParams.get('type') as EmailOtpType | null;
   const code = searchParams.get('code');
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/login?reason=missing_code`);
+  // Supabase reports link problems via error params (e.g. otp_expired).
+  if (searchParams.get('error') || searchParams.get('error_code')) {
+    return NextResponse.redirect(`${origin}/login?reason=link_expired`);
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) {
-    // Expired or already-used link — let them request a fresh one.
-    return NextResponse.redirect(`${origin}/login?reason=link_expired`);
+
+  if (tokenHash && type) {
+    // Cross-device safe: the token hash is verified entirely server-side.
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+    if (error) {
+      return NextResponse.redirect(`${origin}/login?reason=link_expired`);
+    }
+  } else if (code) {
+    // Same-device PKCE exchange (needs this browser's code-verifier cookie).
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      return NextResponse.redirect(`${origin}/login?reason=link_expired`);
+    }
+  } else {
+    return NextResponse.redirect(`${origin}/login?reason=missing_code`);
   }
 
   // Fresh confirmation vs returning user: if they haven't onboarded yet
