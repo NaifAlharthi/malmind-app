@@ -6,6 +6,8 @@
 // offerings lives in lib/compareData.ts.
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   fixedTotal, perUnitTotal, monthlyTotal, costPerUnit, breakevenVolume,
@@ -14,6 +16,62 @@ import {
 import { CATEGORIES, AS_OF } from '@/lib/compareData';
 
 const fmt = (n: number, dp = 0) => n.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
+
+// "You've compared — now act": per-category follow-through tools.
+const CATEGORY_ACTIONS: Record<string, { icon: string; href: string; label: L10n; desc: L10n }[]> = {
+  flying: [
+    { icon: '🎯', href: '/goal-fund', label: { ar: 'وجّه ما وفّرته', en: 'Point the saving at a goal' }, desc: { ar: 'أنشئ صندوق سفر يلتقط الفرق', en: 'A travel fund that captures the difference' } },
+    { icon: '⏱', href: '/velocity', label: { ar: 'شغّل الفارق', en: 'Put the gap to work' }, desc: { ar: 'كم يسرّع هذا الوفر أهدافك؟', en: 'How much faster do your targets arrive?' } },
+  ],
+  cards: [
+    { icon: '🧾', href: '/commitments', label: { ar: 'سجّل البطاقة ورسومها', en: 'Track the card & its fee' }, desc: { ar: 'أضفها إلى فواتيرك والتزاماتك', en: 'Add it to Bills & Commitments' } },
+    { icon: '📇', href: '/credit', label: { ar: 'راجع وضعك الائتماني', en: 'Check your credit standing' }, desc: { ar: 'هل تحتمل بطاقةً جديدة؟', en: 'Is there room for a new card?' } },
+  ],
+  transport: [
+    { icon: '🔮', href: '/what-if', label: { ar: 'جرّب شراء السيارة', en: 'Sandbox the car purchase' }, desc: { ar: 'أثرها على مستقبلك في «ماذا لو»', en: 'Its effect on your future, in What-if' } },
+    { icon: '🛋', href: '/budgeting', label: { ar: 'أدرجها في طابور الشراء', en: 'Queue it in Budgeting' }, desc: { ar: 'متى ينبغي أن تشتريها؟', en: 'When should you actually buy it?' } },
+  ],
+  food: [
+    { icon: '🧾', href: '/commitments', label: { ar: 'سجّل الاشتراك', en: 'Track the subscription' }, desc: { ar: 'أضفه إلى التزاماتك الشهرية', en: 'Add it to your monthly commitments' } },
+    { icon: '⏱', href: '/velocity', label: { ar: 'استثمر الفارق', en: 'Invest the difference' }, desc: { ar: 'الوفر الشهري يسرّع كل هدف', en: 'The monthly saving speeds every goal' } },
+  ],
+};
+
+// The shared follow-through rail: contextual tools + a Brain handoff that
+// carries the exact comparison into the advisor.
+function ActionRail({ catId, askText, ar }: { catId: string; askText: string; ar: boolean }) {
+  const router = useRouter();
+  const L = (a: string, e: string) => (ar ? a : e);
+  const pick = (l: L10n) => (ar ? l.ar : l.en);
+  const actions = CATEGORY_ACTIONS[catId] ?? [];
+
+  function askBrain() {
+    try { window.sessionStorage.setItem('mm-ask', askText); } catch { /* ignore */ }
+    router.push('/advisor');
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-2.5">
+        {L('قارنتَ — الآن نفّذ', "You've compared — now act")}
+      </div>
+      <div className="grid sm:grid-cols-3 gap-2.5">
+        <button onClick={askBrain}
+          className="text-start bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-3.5 hover:border-[var(--green)] transition-colors group">
+          <div className="text-sm font-semibold text-[var(--ink)] mb-0.5">🧠 {L('اسأل العقل عن هذا القرار', 'Ask the Brain about this call')}</div>
+          <div className="text-[11px] text-[var(--muted)] leading-relaxed">{L('ينتقل بمقارنتك هذه إلى المستشار', 'Hands this exact comparison to the advisor')}</div>
+        </button>
+        {actions.map((a) => (
+          <Link key={a.href} href={a.href}
+            className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-3.5 hover:border-[var(--green)] transition-colors">
+            <div className="text-sm font-semibold text-[var(--ink)] mb-0.5">{a.icon} {pick(a.label)}</div>
+            <div className="text-[11px] text-[var(--muted)] leading-relaxed">{pick(a.desc)}</div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function ComparePage() {
   const { locale } = useLocale();
@@ -54,8 +112,8 @@ export default function ComparePage() {
       <div className="text-sm text-[var(--ink-2)] italic mb-4">“{pick(scheme.question)}”</div>
 
       {scheme.kind === 'usage'
-        ? <UsageDuel key={cat.id} scheme={scheme} ar={ar} pick={pick} money={money} />
-        : <MilesDuel key={cat.id} scheme={scheme} ar={ar} pick={pick} />}
+        ? <UsageDuel key={cat.id} catId={cat.id} scheme={scheme} ar={ar} pick={pick} money={money} />
+        : <MilesDuel key={cat.id} catId={cat.id} scheme={scheme} ar={ar} pick={pick} />}
 
       <p className="text-[11px] text-[var(--muted)] mt-4 leading-relaxed">
         {L(
@@ -68,8 +126,8 @@ export default function ComparePage() {
 }
 
 // ── Usage-based duel (cards, transport, food) ───────────────────────────
-function UsageDuel({ scheme, ar, pick, money }: {
-  scheme: UsageScheme; ar: boolean; pick: (l: L10n) => string; money: (n: number, dp?: number) => string;
+function UsageDuel({ catId, scheme, ar, pick, money }: {
+  catId: string; scheme: UsageScheme; ar: boolean; pick: (l: L10n) => string; money: (n: number, dp?: number) => string;
 }) {
   const L = (a: string, e: string) => (ar ? a : e);
   const [leftId, setLeftId] = useState(scheme.defaults[0]);
@@ -101,7 +159,7 @@ function UsageDuel({ scheme, ar, pick, money }: {
           <OptionPanel side="b" option={right} otherId={left.id} scheme={scheme} volume={volume} onChoose={setRightId} ar={ar} pick={pick} money={money} />
         </div>
         <div className="absolute inset-y-3 left-1/2 w-px bg-[var(--border-medium)]" aria-hidden />
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[var(--ink)] text-[var(--surface-0)] flex items-center justify-center font-serif font-bold text-xs shadow-lg" aria-hidden>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[var(--ink)] text-[var(--surface-0)] ring-4 ring-[var(--surface-card)] flex items-center justify-center font-serif font-bold text-xs shadow-lg" aria-hidden>
           VS
         </div>
       </div>
@@ -150,6 +208,16 @@ function UsageDuel({ scheme, ar, pick, money }: {
           </div>
         )}
       </div>
+
+      <ActionRail
+        catId={catId}
+        ar={ar}
+        askText={
+          winner
+            ? `I compared "${left.name.en}" vs "${right.name.en}" at ${fmt(volume)} ${scheme.unitShort.en}/month. "${winner.name.en}" wins by SAR ${fmt(delta)}/month (SAR ${fmt(delta * 12)}/year). Help me sanity-check this and plan how to act on it.`
+            : `I compared "${left.name.en}" vs "${right.name.en}" at ${fmt(volume)} ${scheme.unitShort.en}/month and they cost the same. Which should I pick, and why?`
+        }
+      />
     </>
   );
 }
@@ -162,9 +230,12 @@ function OptionPanel({ side, option, otherId, scheme, volume, onChoose, ar, pick
   const total = monthlyTotal(option, volume);
   const cpu = costPerUnit(option, volume);
   const accent = side === 'a' ? 'var(--blue-2)' : 'var(--green)';
+  // Extra clearance on the divider-adjacent edge so the centred VS badge
+  // never sits on top of the numbers (logical props keep it correct in RTL).
+  const pad = side === 'a' ? 'py-3 ps-3 pe-7 sm:py-5 sm:ps-5 sm:pe-9' : 'py-3 pe-3 ps-7 sm:py-5 sm:pe-5 sm:ps-9';
 
   return (
-    <div className="p-3 sm:p-5 min-w-0">
+    <div className={`${pad} min-w-0`}>
       <select
         value={option.id}
         onChange={(e) => onChoose(e.target.value)}
@@ -217,8 +288,8 @@ function OptionPanel({ side, option, otherId, scheme, volume, onChoose, ar, pick
 }
 
 // ── The currency duel: a loyalty mile as a unit vs the riyal as a unit ──
-function MilesDuel({ scheme, ar, pick }: {
-  scheme: MilesScheme; ar: boolean; pick: (l: L10n) => string;
+function MilesDuel({ catId, scheme, ar, pick }: {
+  catId: string; scheme: MilesScheme; ar: boolean; pick: (l: L10n) => string;
 }) {
   const L = (a: string, e: string) => (ar ? a : e);
   const [programId, setProgramId] = useState(scheme.programs[0].id);
@@ -234,7 +305,7 @@ function MilesDuel({ scheme, ar, pick }: {
       <div className="relative bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden mb-4">
         <div className="grid grid-cols-2">
           {/* side A: the mile as a unit */}
-          <div className="p-3 sm:p-5 min-w-0">
+          <div className="py-3 ps-3 pe-7 sm:py-5 sm:ps-5 sm:pe-9 min-w-0">
             <select value={programId} onChange={(e) => setProgramId(e.target.value)}
               className="w-full bg-[var(--surface-0)] border border-[var(--border-default)] rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium outline-none focus:border-[var(--green)] mb-1.5">
               {scheme.programs.map((p) => <option key={p.id} value={p.id}>✈️ {pick(p.name)}</option>)}
@@ -261,7 +332,7 @@ function MilesDuel({ scheme, ar, pick }: {
           </div>
 
           {/* side B: the riyal as a unit */}
-          <div className="p-3 sm:p-5 min-w-0">
+          <div className="py-3 pe-3 ps-7 sm:py-5 sm:pe-5 sm:ps-9 min-w-0">
             <div className="w-full bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium mb-1.5 text-[var(--ink)]">
               🪙 {L('الريال السعودي', 'The Saudi riyal')}
             </div>
@@ -282,7 +353,7 @@ function MilesDuel({ scheme, ar, pick }: {
           </div>
         </div>
         <div className="absolute inset-y-3 left-1/2 w-px bg-[var(--border-medium)]" aria-hidden />
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[var(--ink)] text-[var(--surface-0)] flex items-center justify-center font-serif font-bold text-xs shadow-lg" aria-hidden>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[var(--ink)] text-[var(--surface-0)] ring-4 ring-[var(--surface-card)] flex items-center justify-center font-serif font-bold text-xs shadow-lg" aria-hidden>
           VS
         </div>
       </div>
@@ -330,6 +401,12 @@ function MilesDuel({ scheme, ar, pick }: {
           )}
         </div>
       </div>
+
+      <ActionRail
+        catId={catId}
+        ar={ar}
+        askText={`I'm deciding whether to redeem ${program.name.en} miles or pay cash. The redemption returns ${fmt(offer, 1)} halalas per mile (typical band ${fmt(lo, 1)}–${fmt(hi, 1)}, redeem-threshold ${fmt(program.benchmarkHalalas, 1)}). The verdict says ${redeem ? 'redeem' : 'pay cash and keep the miles'} — help me sanity-check this and act on it.`}
+      />
     </>
   );
 }
