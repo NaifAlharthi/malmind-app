@@ -201,6 +201,7 @@ export default function HomePage() {
       ),
       answer: L('طبقة نمذجة وتخطيط سيناريوهات تلعب بها.', 'A modeling & scenario layer you can play with.'),
       tools: [
+        { label: L('قارن وقرّر', 'Compare & Decide'), href: '/compare' },
         { label: L('ماذا لو', 'What-if'), href: '/what-if' },
         { label: L('سرعة المال', 'Velocity'), href: '/velocity' },
         { label: L('مسار المضاعفة', 'Doubling Path'), href: '/doubling-path' },

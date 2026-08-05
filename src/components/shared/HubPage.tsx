@@ -50,6 +50,7 @@ const TOOLS: Record<ViewKey, HubTool[]> = {
   future: [
     { href: '/freedom', icon: '🕊', titleKey: 'hub.card.freedom.title', descKey: 'hub.card.freedom.desc' },
     { href: '/what-if', icon: '🔮', titleKey: 'hub.card.whatIf.title', descKey: 'hub.card.whatIf.desc' },
+    { href: '/compare', icon: '⚖️', titleKey: 'hub.card.compare.title', descKey: 'hub.card.compare.desc' },
     { href: '/doubling-path', icon: '📈', titleKey: 'home.card.doubling.title', descKey: 'home.card.doubling.desc' },
     { href: '/goal-fund', icon: '🎯', titleKey: 'home.card.goalFund.title', descKey: 'home.card.goalFund.desc' },
     { href: '/year-plan', icon: '🗓', titleKey: 'home.card.yearPlan.title', descKey: 'home.card.yearPlan.desc' },
