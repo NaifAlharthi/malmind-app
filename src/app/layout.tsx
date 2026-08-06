@@ -1,9 +1,20 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import localFont from 'next/font/local';
 import './globals.css';
 import AppShell from '@/components/shared/AppShell';
 import ThemeProvider from '@/components/shared/ThemeProvider';
 import LocaleProvider from '@/lib/i18n/LocaleProvider';
+
+// RB — the licensed Saudi Arabic face. Exposed as a CSS variable; the
+// [lang="ar"] font stacks in globals.css put it first, so Arabic text
+// renders in RB while English keeps the existing Latin stacks.
+const rb = localFont({
+  src: './fonts/RB.ttf',
+  variable: '--font-rb',
+  display: 'swap',
+  preload: true,
+});
 
 export const metadata: Metadata = {
   title: 'MalMind — Your money, finally understood.',
@@ -45,7 +56,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className="h-full antialiased" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" className={`h-full antialiased ${rb.variable}`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col font-sans">
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_INIT_SCRIPT}

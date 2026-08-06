@@ -238,14 +238,13 @@ body {
    the fixed mobile drawer, borders, and the floating Brain need help.
    ─────────────────────────────────────────────────────────────── */
 [lang="ar"] {
-  /* System Arabic faces that ship on Windows/macOS/Android — no web font,
-     so nothing to load and no CSP concerns. */
-  --font-sans-stack: 'Segoe UI', 'Tahoma', 'Geeza Pro', 'SF Arabic',
-    'Noto Sans Arabic', 'Noto Naskh Arabic', sans-serif;
-  /* Georgia/Times carry no Arabic glyphs; use a Naskh-style serif instead
-     so headings keep a distinct, bookish voice in Arabic too. */
-  --font-serif-stack: 'Noto Naskh Arabic', 'Amiri', 'Traditional Arabic',
-    'Segoe UI', 'Tahoma', serif;
+  /* RB — the brand's licensed Saudi face (bundled via next/font/local in
+     layout.tsx) — leads both stacks, with system Arabic faces as fallback
+     while it loads or for glyphs it lacks. */
+  --font-sans-stack: var(--font-rb), 'Segoe UI', 'Tahoma', 'Geeza Pro',
+    'SF Arabic', 'Noto Sans Arabic', 'Noto Naskh Arabic', sans-serif;
+  --font-serif-stack: var(--font-rb), 'Noto Naskh Arabic', 'Amiri',
+    'Traditional Arabic', 'Segoe UI', 'Tahoma', serif;
 }
 
 /* ───────────────────────────────────────────────────────────────
