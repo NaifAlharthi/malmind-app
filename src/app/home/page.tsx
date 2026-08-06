@@ -11,6 +11,7 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
 import { isDemoActive } from '@/lib/demoSupabase';
 import ContactModal from '@/components/shared/ContactModal';
+import FoundationHub from '@/components/home/FoundationHub';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -328,6 +329,9 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* ── the foundation: enter · review · link the data everything reads ── */}
+      <FoundationHub />
 
       {/* ── why we exist: problem → answer ── */}
       <div className="mb-8">
