@@ -1,11 +1,13 @@
 'use client';
 
-// The Brain — MalMind's mascot and the face of all AI interaction. A
-// voxel figure (same blocky family as the 3D avatar) that floats over
-// every page, bobs while you scroll, hops when you navigate, and visibly
-// grows as you feed it data: more voxels, grooves, golden synapses, and
-// finally orbiting sparks. Click it for its training panel and the door
-// to the advisor.
+// The Brain — MalMind's mascot, the face of all AI interaction, and now the
+// resident tour guide. A voxel figure perched at the side of the screen,
+// vertically centred on wherever you're looking. It narrates every page in a
+// speech bubble ("you're viewing X, built to help you understand Y — walk out
+// able to say Z"), can JUMP across the screen to point at a specific element
+// with a spotlight, and lets the user choose how chatty it is: narrate every
+// page, speak only when asked, or stay muted. Click it for its training panel
+// and the door to the advisor.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -18,6 +20,7 @@ import {
   BRAIN_SOURCES, BRAIN_VOXELS, brainAppearance, cacheBrainLevel, cachedBrainLevel,
   computeBrainStats, type BrainStats,
 } from '@/lib/brain';
+import { getGuide, getGuideMode, setGuideMode, type GuideMode, type GuidePoint } from '@/lib/brainGuide';
 
 const V = 0.17; // voxel size
 
@@ -76,13 +79,111 @@ function BrainFigure({ level, excitementRef }: { level: number; excitementRef: R
   );
 }
 
+// While pointing: where the Brain flew to, and what it's spotlighting.
+interface Pointing {
+  point: GuidePoint;
+  brain: { left: number; top: number };
+  target: { left: number; top: number; width: number; height: number };
+  brainOnLeft: boolean; // Brain sits to the target's left → points right
+}
+
 export default function BrainCompanion() {
   const supabase = createClient();
   const pathname = usePathname();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
   const [stats, setStats] = useState<BrainStats | null>(null);
   const [open, setOpen] = useState(false);
   const excitementRef = useRef(0);
+
+  // ── Guide state ──
+  const guide = useMemo(() => getGuide(pathname), [pathname]);
+  const [mode, setMode] = useState<GuideMode>('auto');
+  const [bubbleOpen, setBubbleOpen] = useState(false);
+  const [pointing, setPointing] = useState<Pointing | null>(null);
+  const pointingTimer = useRef<number | null>(null);
+  const settleGuard = useRef(0);
+
+  useEffect(() => { setMode(getGuideMode()); }, []);
+
+  // The demo tour runs its own spotlight walkthrough — stay quiet during it.
+  const tourActive = () => {
+    try {
+      return window.localStorage.getItem('mm-demo') === '1' && window.localStorage.getItem('mm-demo-done') !== '1';
+    } catch { return false; }
+  };
+
+  // Narrate on arrival (auto mode), and always stop pointing on navigation.
+  useEffect(() => {
+    endPointing();
+    setBubbleOpen(mode === 'auto' && !!guide && !tourActive());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, mode, guide]);
+
+  function chooseMode(m: GuideMode) {
+    setGuideMode(m);
+    setMode(m);
+    if (m === 'off') { setBubbleOpen(false); endPointing(); }
+    if (m === 'auto' && guide) setBubbleOpen(true);
+  }
+
+  function endPointing() {
+    if (pointingTimer.current) { window.clearTimeout(pointingTimer.current); pointingTimer.current = null; }
+    setPointing(null);
+  }
+
+  // Jump to an element and point at it: scroll it centre-screen, spotlight it,
+  // and land the Brain beside it with a word about what it's looking at.
+  const pointAt = useCallback((point: GuidePoint) => {
+    const el = document.querySelector(point.selector);
+    if (!el) return; // anchor not on screen (e.g. empty state) — stay put
+    setBubbleOpen(false);
+    // Instant scroll: smooth scrolling runs on rAF, which stalls entirely in
+    // background tabs — and the Brain's own flight is the animation that
+    // matters. The settle poll below still absorbs late layout shifts.
+    el.scrollIntoView({ block: 'center', behavior: 'auto' });
+    settleGuard.current = Date.now() + 3000; // our own scroll, not the user's
+
+    const start = Date.now();
+    let lastY = Number.NaN;
+    const settle = () => {
+      const y = window.scrollY;
+      const moving = Number.isNaN(lastY) || Math.abs(y - lastY) >= 2;
+      lastY = y;
+      if (moving && Date.now() - start < 2000) { window.setTimeout(settle, 130); return; }
+
+      const r = el.getBoundingClientRect();
+      // Anchor to the centre of the VISIBLE part — tall sections can exceed
+      // the viewport, and the Brain should hover next to what the eye sees.
+      const visibleCenterY = (Math.max(r.top, 0) + Math.min(r.bottom, window.innerHeight)) / 2;
+      const brainW = 96;
+      const brainOnLeft = r.left > brainW + 24; // room on the left?
+      const left = brainOnLeft ? Math.max(8, r.left - brainW - 16) : Math.min(window.innerWidth - brainW - 8, r.right + 16);
+      const top = Math.max(8, Math.min(window.innerHeight - brainW - 8, visibleCenterY - brainW / 2));
+      excitementRef.current = 2.2; // the jump
+      setPointing({
+        point,
+        brain: { left, top },
+        target: { left: r.left, top: r.top, width: r.width, height: r.height },
+        brainOnLeft,
+      });
+      settleGuard.current = Date.now() + 500; // let the landing finish
+      // Wander back to the perch after a good look.
+      pointingTimer.current = window.setTimeout(() => { setPointing(null); setBubbleOpen(getGuideMode() === 'auto'); }, 9000);
+    };
+    window.setTimeout(settle, 260);
+  }, []);
+
+  // A real user scroll or resize while pointing → the spotlight is stale; let go.
+  useEffect(() => {
+    if (!pointing) return;
+    const onMove = () => { if (Date.now() > settleGuard.current) endPointing(); };
+    window.addEventListener('scroll', onMove, { passive: true });
+    window.addEventListener('resize', onMove);
+    return () => { window.removeEventListener('scroll', onMove); window.removeEventListener('resize', onMove); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pointing]);
 
   // Train-o-meter: count rows across every table the Brain feeds on.
   const load = useCallback(async () => {
@@ -134,14 +235,42 @@ export default function BrainCompanion() {
   const levelBlurb = t(`brain.level.${level.level}.blurb`);
   const nextName = nextLevel ? t(`brain.level.${nextLevel.level}.name`) : '';
 
+  const pick = (l: { ar: string; en: string }) => (ar ? l.ar : l.en);
+  const showChip = mode === 'manual' && !!guide && !bubbleOpen && !pointing && !tourActive();
+
+  // Perch: side of the screen, centred on the viewport — or wherever it flew.
+  const brainStyle: React.CSSProperties = pointing
+    ? { left: pointing.brain.left, top: pointing.brain.top, right: 'auto', transform: 'none' }
+    : { right: 12, top: '50%', transform: 'translateY(-50%)' };
+
   return (
     <>
-      {/* the floating Brain */}
+      {/* spotlight while pointing */}
+      {pointing && (
+        <div
+          className="fixed z-[38] rounded-xl border-2 border-[#5DCAA5] pointer-events-none transition-all duration-300"
+          style={{
+            left: pointing.target.left - 6,
+            top: pointing.target.top - 6,
+            width: pointing.target.width + 12,
+            height: pointing.target.height + 12,
+            boxShadow: '0 0 0 9999px rgba(6, 18, 13, 0.45)',
+          }}
+          aria-hidden
+        />
+      )}
+
+      {/* the floating Brain — perched mid-screen, or off pointing at something */}
       <button
-        onClick={() => { setOpen((o) => !o); excitementRef.current = 2; }}
+        onClick={() => {
+          if (pointing) { endPointing(); return; }
+          setOpen((o) => !o);
+          setBubbleOpen(false);
+          excitementRef.current = 2;
+        }}
         title={t('brain.tooltip', { level: level.level, name: levelName })}
-        className="mm-brain fixed bottom-20 sm:bottom-5 right-5 z-40 w-24 h-24 rounded-full cursor-pointer focus:outline-none"
-        style={{ background: 'transparent' }}
+        className="mm-brain fixed z-40 w-20 h-20 sm:w-24 sm:h-24 rounded-full cursor-pointer focus:outline-none transition-all duration-700"
+        style={{ background: 'transparent', transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)', ...brainStyle }}
         aria-label={t('brain.open')}
       >
         <Canvas camera={{ position: [0, 0.2, 2.3], fov: 40 }} dpr={[1, 1.5]} gl={{ alpha: true }} style={{ pointerEvents: 'none' }}>
@@ -152,11 +281,108 @@ export default function BrainCompanion() {
         <span className="mm-brain-badge absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-[#085041] border border-[#5DCAA5] text-[10px] font-bold text-[#5DCAA5] flex items-center justify-center">
           {level.level}
         </span>
+        {/* the pointing hand, aimed at the spotlighted element */}
+        {pointing && (
+          <span
+            className="absolute top-1/2 -translate-y-1/2 text-2xl"
+            style={{ [pointing.brainOnLeft ? 'right' : 'left']: -26, animation: 'mmPointNudge 0.9s ease-in-out infinite' }}
+            aria-hidden
+          >
+            {pointing.brainOnLeft ? '👉' : '👈'}
+          </span>
+        )}
       </button>
+      <style>{`@keyframes mmPointNudge { 0%,100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(${'6px'}); } }`}</style>
+
+      {/* "speak" chip in ask-first mode */}
+      {showChip && (
+        <button
+          onClick={() => { setBubbleOpen(true); excitementRef.current = 1.5; }}
+          className="fixed z-40 right-4 sm:right-6 w-8 h-8 rounded-full bg-[var(--surface-card)] border border-[var(--green-border)] shadow-lg text-sm flex items-center justify-center hover:border-[var(--green)]"
+          style={{ top: 'calc(50% - 64px)' }}
+          title={L('ماذا أرى هنا؟', 'What am I looking at?')}
+          aria-label={L('اشرح هذه الصفحة', 'Explain this page')}
+        >
+          💬
+        </button>
+      )}
+
+      {/* the talking bubble */}
+      {bubbleOpen && guide && !open && !pointing && (
+        <div
+          className="fixed z-40 top-1/2 -translate-y-1/2 right-[96px] sm:right-[116px] w-[300px] max-w-[calc(100vw-120px)] bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl p-4"
+          role="dialog"
+          aria-label={L('دليل الصفحة', 'Page guide')}
+        >
+          {/* speech tail toward the Brain */}
+          <span className="absolute top-1/2 -translate-y-1/2 -right-[7px] w-3.5 h-3.5 rotate-45 bg-[var(--surface-card)] border-t border-r border-[var(--border-default)]" aria-hidden />
+
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)]">{L('دليلك هنا', 'Your guide here')}</span>
+            <button onClick={() => setBubbleOpen(false)} className="text-[var(--muted)] hover:text-[var(--ink)] text-xs" aria-label={L('إغلاق', 'Close')}>✕</button>
+          </div>
+
+          <p className="text-xs text-[var(--ink)] leading-relaxed mb-2">{pick(guide.what)}</p>
+          <p className="text-[11px] text-[var(--green-dark)] leading-relaxed border-s-2 border-[var(--green-border)] ps-2.5 mb-3 italic">
+            {pick(guide.opinion)}
+          </p>
+
+          {guide.points && guide.points.length > 0 && (
+            <div className="mb-3">
+              <div className="text-[10px] text-[var(--muted)] mb-1.5">{L('أرِني:', 'Show me:')}</div>
+              <div className="flex gap-1.5 flex-wrap">
+                {guide.points.map((p) => (
+                  <button
+                    key={p.selector}
+                    onClick={() => pointAt(p)}
+                    className="text-[10px] font-medium bg-[var(--green-bg)] border border-[var(--green-border)] text-[var(--green-dark)] rounded-full px-2.5 py-1 hover:border-[var(--green)]"
+                  >
+                    👉 {pick(p.label)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* how chatty should I be? */}
+          <div className="flex items-center gap-1 pt-2 border-t border-[var(--border-faint)]">
+            <span className="text-[10px] text-[var(--muted)] me-1">{L('وضعي:', 'My mode:')}</span>
+            {([['auto', L('تلقائي', 'Auto')], ['manual', L('عند الطلب', 'On ask')], ['off', L('كتم', 'Mute')]] as [GuideMode, string][]).map(([m, label]) => (
+              <button
+                key={m}
+                onClick={() => chooseMode(m)}
+                className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                  mode === m
+                    ? 'bg-[var(--ink)] text-[var(--surface-0)] border-[var(--ink)] font-semibold'
+                    : 'bg-transparent text-[var(--muted)] border-[var(--border-medium)] hover:text-[var(--ink-2)]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* mini-bubble while pointing */}
+      {pointing && (
+        <div
+          className="fixed z-40 w-[240px] max-w-[70vw] bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-2xl p-3"
+          style={{
+            left: Math.max(8, Math.min(window.innerWidth - 250, pointing.brain.left - 70)),
+            top: pointing.brain.top > 140 ? pointing.brain.top - 110 : pointing.brain.top + 104,
+          }}
+        >
+          <p className="text-[11px] text-[var(--ink)] leading-relaxed">{pick(pointing.point.text)}</p>
+          <button onClick={endPointing} className="text-[10px] text-[var(--muted)] hover:text-[var(--ink)] mt-1.5">
+            {L('حسناً، فهمت', 'Got it')}
+          </button>
+        </div>
+      )}
 
       {/* training panel */}
       {open && (
-        <div className="mm-brain-panel fixed bottom-44 sm:bottom-32 right-5 z-40 w-80 max-w-[92vw] bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl p-5">
+        <div className="mm-brain-panel fixed top-1/2 -translate-y-1/2 right-4 sm:right-[116px] z-50 w-80 max-w-[92vw] bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl p-5">
           <div className="flex items-start justify-between mb-1">
             <div>
               <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)]">{t('brain.title')}</div>
@@ -181,6 +407,24 @@ export default function BrainCompanion() {
               className="h-full rounded-full bg-gradient-to-r from-[#1D9E75] to-[#5DCAA5] transition-all duration-700"
               style={{ width: `${Math.max(4, progressToNext * 100)}%` }}
             />
+          </div>
+
+          {/* page-guide mode — also the recovery path once muted */}
+          <div className="flex items-center gap-1 mb-4">
+            <span className="text-[10px] text-[var(--muted)] me-1">{L('دليل الصفحات:', 'Page guide:')}</span>
+            {([['auto', L('تلقائي', 'Auto')], ['manual', L('عند الطلب', 'On ask')], ['off', L('كتم', 'Mute')]] as [GuideMode, string][]).map(([m, label]) => (
+              <button
+                key={m}
+                onClick={() => chooseMode(m)}
+                className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                  mode === m
+                    ? 'bg-[var(--ink)] text-[var(--surface-0)] border-[var(--ink)] font-semibold'
+                    : 'bg-transparent text-[var(--muted)] border-[var(--border-medium)] hover:text-[var(--ink-2)]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {suggestions.length > 0 && (

@@ -167,7 +167,7 @@ export default function DailyStackPage() {
 
             <div className="flex flex-col md:flex-row gap-6 md:gap-8">
               {/* ── the vertical stack ── */}
-              <div className="shrink-0 mx-auto md:mx-0" style={{ width: 300 }}>
+              <div data-tour="stack-tower" className="shrink-0 mx-auto md:mx-0" style={{ width: 300 }}>
                 <div className="relative overflow-hidden" style={{ width: 300, height: COL_H }} dir="ltr" onMouseLeave={() => setHoverCat(null)}>
                   <div className="absolute inset-0" style={{ transform: `scale(${zoom})`, transformOrigin: 'bottom center', transition: zoomAnim ? 'transform 560ms cubic-bezier(0.22,1,0.36,1)' : 'none' }}>
                   {/* surplus cap (you keep) — the headroom above your spending */}

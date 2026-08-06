@@ -51,7 +51,7 @@ function ActionRail({ catId, askText, ar }: { catId: string; askText: string; ar
   }
 
   return (
-    <div className="mt-4">
+    <div data-tour="compare-rail" className="mt-4">
       <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-2.5">
         {L('قارنتَ — الآن نفّذ', "You've compared — now act")}
       </div>
@@ -180,7 +180,7 @@ function UsageDuel({ catId, scheme, ar, pick, money }: {
       </div>
 
       {/* the blend */}
-      <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-5 text-white">
+      <div data-tour="compare-blend" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-5 text-white">
         <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] mb-2">{L('الخلاصة', 'The blend')}</div>
         {winner ? (
           <div className="text-sm leading-relaxed">
@@ -373,7 +373,7 @@ function MilesDuel({ catId, scheme, ar, pick }: {
       </div>
 
       {/* the blend */}
-      <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-5 text-white">
+      <div data-tour="compare-blend" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-5 text-white">
         <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] mb-2">{L('الخلاصة', 'The blend')}</div>
         <div className="text-sm leading-relaxed">
           {redeem ? (
