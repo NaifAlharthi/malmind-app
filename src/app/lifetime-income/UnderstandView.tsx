@@ -8,6 +8,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { buildProjection, monthLabel } from '@/lib/lifetimeProjection';
+import ArcSection from './ArcSection';
 
 function fmt(n: number) {
   return Math.round(n).toLocaleString();
@@ -32,6 +33,7 @@ export default function UnderstandView() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [currentIncome, setCurrentIncome] = useState(0);
+  const [age, setAge] = useState<number | null>(null);
 
   const [startYear, setStartYear] = useState(new Date().getFullYear() - 5);
   const [startIncome, setStartIncome] = useState('');
@@ -51,7 +53,7 @@ export default function UnderstandView() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('monthly_income, career_start_year, career_start_income, lifetime_save_rate')
+        .select('monthly_income, career_start_year, career_start_income, lifetime_save_rate, age')
         .eq('id', user.id)
         .single();
 
@@ -60,6 +62,7 @@ export default function UnderstandView() {
         if (data.career_start_year) setStartYear(data.career_start_year);
         if (data.career_start_income != null) setStartIncome(String(data.career_start_income));
         if (data.lifetime_save_rate != null) setSaveRatePct(String(data.lifetime_save_rate));
+        if (data.age) setAge(Number(data.age));
       }
       setLoading(false);
     })();
@@ -176,6 +179,15 @@ export default function UnderstandView() {
           </span>
         </div>
       </div>
+
+      {/* ── the arc of a whole earning life, vs Saudi benchmarks ── */}
+      <ArcSection
+        currentAge={age ?? 30}
+        startAge={Math.max(16, (age ?? 30) - (new Date().getFullYear() - startYear))}
+        startIncome={parseFloat(startIncome) || 0}
+        currentIncome={currentIncome}
+        ar={ar}
+      />
 
       {/* chart mode toggle */}
       <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-4">
