@@ -39,6 +39,7 @@ const en: Dict = {
   'nav.budgeting': 'Dynamic budgeting',
 
   'nav.brain': 'The Brain',
+  'nav.tour': 'Take a tour',
 
   'common.darkMode': 'Dark mode',
   'common.lightMode': 'Light mode',
@@ -438,6 +439,7 @@ const ar: Dict = {
   'nav.budgeting': 'الميزانية المرنة',
 
   'nav.brain': 'العقل',
+  'nav.tour': 'خذ جولة',
 
   'common.darkMode': 'الوضع الداكن',
   'common.lightMode': 'الوضع الفاتح',

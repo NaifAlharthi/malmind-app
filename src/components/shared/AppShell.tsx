@@ -137,6 +137,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <TopNavLink href="/home" labelKey="nav.home" icon="⌂" className="hidden sm:flex ms-2" />
             <TimelineNav className="hidden sm:block flex-1 min-w-0 mx-1" />
             <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" />
+            <TopNavLink href="/tour" labelKey="nav.tour" icon="🧭" className="hidden sm:flex" />
 
             {/* mobile: push utilities to the right (nav lives in the bottom bar) */}
             <div className="flex-1 sm:hidden" />

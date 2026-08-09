@@ -10,6 +10,7 @@ import { useT } from '@/lib/i18n/LocaleProvider';
 import LanguageToggle from '@/components/shared/LanguageToggle';
 import ContactModal from '@/components/shared/ContactModal';
 import Splash from './Splash';
+import FourProblems from './FourProblems';
 import PersonaPicker from './PersonaPicker';
 
 export default function SignupPage() {
@@ -91,6 +92,7 @@ export default function SignupPage() {
     <div>
       <LanguageToggle className="fixed top-4 right-4 z-50 shadow-md" />
       <Splash />
+      <FourProblems />
       <PersonaPicker />
       <div id="signup-form" className="relative min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6 py-16 overflow-hidden">
       {/* soft brand glow tying the form to the splash above */}
