@@ -1,12 +1,13 @@
 'use client';
 
-// The Foundation — home-page mission control for the data that everything
-// else is computed from. One glance shows how complete each pillar of the
-// user's financial base is (profile, monthly ledger, assets, debts & bills,
-// history); one click expands a pillar to fix it right there: inline
-// quick-entry that writes straight to the tables (with carry-forward prefill
-// for the ledger), plus the collect/link paths — CSV import, Google Sheets
-// two-way sync, and live-priced tickers.
+// The Foundation — your financial tower, under construction. Instead of a
+// checklist, the data basis is drawn as a building on the Saudi-green night:
+// the profile is the foundation slab, each logged ledger month is a floor
+// with lit windows, assets fill the vault annex with gold, debts & bills are
+// the utility lines feeding the building, and your history is the golden
+// crown (a nod to Al Faisaliah). Incomplete parts stand as dashed scaffolding
+// with a crane over the weakest one; click any part of the building to fix
+// it right there — inline quick-entry that writes straight to the tables.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -43,7 +44,6 @@ interface LatestSnap {
 type PillarKey = 'profile' | 'ledger' | 'assets' | 'debts' | 'history';
 
 const num = (v: string) => Number(String(v).replace(/[^\d.-]/g, '')) || 0;
-const fmt = (n: number) => Math.round(n).toLocaleString();
 
 export default function FoundationHub() {
   const supabase = createClient();
@@ -56,7 +56,7 @@ export default function FoundationHub() {
   const [profile, setProfile] = useState<ProfileBase | null>(null);
   const [latest, setLatest] = useState<LatestSnap | null>(null);
   const [sheets, setSheets] = useState<{ connected: boolean } | null>(null);
-  const [openPillar, setOpenPillar] = useState<PillarKey | null>(null);
+  const [selected, setSelected] = useState<PillarKey | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -90,15 +90,14 @@ export default function FoundationHub() {
     try {
       const res = await fetch('/api/integrations/google/status');
       if (res.ok) setSheets(await res.json());
-    } catch { /* tile stays neutral */ }
+    } catch { /* neutral */ }
   }, [supabase]);
 
   useEffect(() => { load(); }, [load, profileVersion]);
 
   const flash = (msg: string) => { setToast(msg); window.setTimeout(() => setToast(null), 2600); };
 
-  // ── Pillar completeness ──
-  const pillars = useMemo(() => {
+  const model = useMemo(() => {
     if (!counts) return null;
     const profileFields = [
       profile?.monthly_income, profile?.liquid_savings, profile?.monthly_debt_payments,
@@ -108,124 +107,110 @@ export default function FoundationHub() {
     const debts = counts.loans + counts.liabilities + counts.credit_cards;
     const bills = counts.subscriptions + counts.expenses;
     const history = counts.net_worth_snapshots + counts.credit_snapshots;
-    const def: {
-      key: PillarKey; icon: string; name: string; pct: number; status: string; feeds: string;
-    }[] = [
-      {
-        key: 'profile', icon: '👤',
-        name: L('الملف والدخل', 'Profile & income'),
+    const pillars: Record<PillarKey, { icon: string; name: string; pct: number; status: string; feeds: string }> = {
+      profile: {
+        icon: '🧱', name: L('قاعدة البرج — الملف والدخل', 'The slab — profile & income'),
         pct: profileSet / 5,
-        status: L(`${profileSet}/5 حقول أساسية`, `${profileSet}/5 core fields`),
+        status: L(`${profileSet}/5 حقول مصبوبة`, `${profileSet}/5 fields poured`),
         feeds: L('يغذّي: المخاطر، النسب، سرعة المال، الحرّية المالية', 'Feeds: Risks, Ratios, Velocity, Financial Freedom'),
       },
-      {
-        key: 'ledger', icon: '📒',
-        name: L('السِّجل الشهري', 'Monthly ledger'),
+      ledger: {
+        icon: '🏢', name: L('طوابق البرج — السِّجل الشهري', 'The floors — monthly ledger'),
         pct: Math.min(1, counts.financial_snapshots / 6),
         status: counts.financial_snapshots
-          ? L(`${counts.financial_snapshots} شهراً مسجَّلاً`, `${counts.financial_snapshots} months logged`)
-          : L('لا أشهر بعد — أهم إدخال في المنتج', 'No months yet — the single most important entry'),
+          ? L(`${Math.min(counts.financial_snapshots, 6)}/6 طوابق مبنية (${counts.financial_snapshots} شهراً)`, `${Math.min(counts.financial_snapshots, 6)}/6 floors built (${counts.financial_snapshots} months)`)
+          : L('لا طوابق بعد — كل شهر تسجّله طابقٌ يُبنى', 'No floors yet — every month you log builds one'),
         feeds: L('يغذّي: كل شيء تقريباً — صافي الثروة، اليوم، الاتجاهات', 'Feeds: nearly everything — net worth, Today, trends'),
       },
-      {
-        key: 'assets', icon: '💼',
-        name: L('الأصول', 'Assets'),
+      assets: {
+        icon: '🏦', name: L('الخزنة — الأصول', 'The vault — assets'),
         pct: Math.min(1, counts.assets / 3),
         status: counts.assets
-          ? L(`${counts.assets} أصلاً مسجَّلاً`, `${counts.assets} assets recorded`)
-          : L('سجّل ما تملكه — حتى الأرض والذهب', 'Record what you own — land and gold too'),
+          ? L(`${counts.assets} أصلاً في الخزنة`, `${counts.assets} assets in the vault`)
+          : L('الخزنة فارغة — سجّل ما تملكه، حتى الأرض والذهب', 'The vault is empty — record what you own, land and gold too'),
         feeds: L('يغذّي: الثروة الحقيقية، التركّز، القدرة الاقتراضية', 'Feeds: true wealth, concentration, borrowing power'),
       },
-      {
-        key: 'debts', icon: '🧾',
-        name: L('الديون والفواتير', 'Debts & bills'),
+      debts: {
+        icon: '🔌', name: L('التمديدات — الديون والفواتير', 'The utilities — debts & bills'),
         pct: Math.min(1, (debts + bills) / 5),
         status: debts + bills
-          ? L(`${debts} ديناً · ${bills} التزاماً متكرراً`, `${debts} debts · ${bills} recurring bills`)
-          : L('التدفّق الحقيقي يبدأ هنا', 'Your true outflow starts here'),
+          ? L(`${debts} ديناً · ${bills} التزاماً موصولاً`, `${debts} debts · ${bills} bills connected`)
+          : L('تمديدات غير موصولة — تدفّقك الحقيقي يبدأ هنا', 'Lines not connected — your true outflow starts here'),
         feeds: L('يغذّي: كومة اليوم، عبء الدين، كل خطة واقعية', 'Feeds: Daily Stack, debt burden, every honest plan'),
       },
-      {
-        key: 'history', icon: '📈',
-        name: L('التاريخ والائتمان', 'History & credit'),
+      history: {
+        icon: '🔆', name: L('القمة الذهبية — التاريخ والائتمان', 'The golden crown — history & credit'),
         pct: Math.min(1, history / 3),
         status: history
-          ? L(`${counts.net_worth_snapshots} لقطة ثروة · ${counts.credit_snapshots} تقرير ائتماني`, `${counts.net_worth_snapshots} net-worth snapshots · ${counts.credit_snapshots} credit reports`)
-          : L('لقطات سنوية تُظهر مسارك', 'Yearly snapshots reveal your trajectory'),
+          ? L(`${counts.net_worth_snapshots} لقطة ثروة · ${counts.credit_snapshots} تقرير سمة`, `${counts.net_worth_snapshots} net-worth snapshots · ${counts.credit_snapshots} SIMAH reports`)
+          : L('القمة مطفأة — اللقطات السنوية تضيئها', 'The crown is dark — yearly snapshots light it'),
         feeds: L('يغذّي: المقارنة بالأقران، مسارك، درجة سمة', 'Feeds: peer comparison, trajectory, SIMAH standing'),
       },
-    ];
-    return def;
+    };
+    const order: PillarKey[] = ['profile', 'ledger', 'assets', 'debts', 'history'];
+    const weakest = order.reduce((w, k) => (pillars[k].pct < pillars[w].pct ? k : w), 'profile' as PillarKey);
+    const overall = order.reduce((s, k) => s + pillars[k].pct, 0) / order.length;
+    return { pillars, weakest, overall, profileSet, months: Math.min(counts.financial_snapshots, 6), assetCount: Math.min(counts.assets, 4), debtsConnected: Math.min(debts + bills, 3), historyLit: history > 0 };
   }, [counts, profile, ar]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const overall = pillars ? pillars.reduce((s, p) => s + p.pct, 0) / pillars.length : 0;
-
-  if (!pillars) return null;
+  if (!model) return null;
+  const active: PillarKey = selected ?? model.weakest;
+  const p = model.pillars[active];
 
   return (
     <div data-tour="foundation" className="mb-8">
-      <div className="mb-1 text-[10px] tracking-[0.16em] uppercase text-[var(--gold)] font-semibold">{L('الأساس', 'The Foundation')}</div>
-      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 sm:p-6 relative overflow-hidden">
-        {/* header: ring + pitch */}
-        <div className="flex items-center gap-5 mb-5">
-          <FoundationRing pct={overall} pillars={pillars.map((p) => p.pct)} />
-          <div className="min-w-0">
-            <div className="font-serif text-lg sm:text-xl font-semibold text-[var(--ink)] leading-snug">
-              {L('بياناتك أساس كل شيء', 'Your data is the basis of everything')}
+      <div className="flex items-baseline justify-between gap-2 mb-1">
+        <div className="text-[10px] tracking-[0.16em] uppercase text-[var(--gold)] font-semibold">{L('الأساس', 'The Foundation')}</div>
+        <div className="text-[10px] text-[var(--muted)]">{L(`اكتمل ${Math.round(model.overall * 100)}%`, `${Math.round(model.overall * 100)}% built`)}</div>
+      </div>
+
+      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row">
+          {/* ── the tower ── */}
+          <div className="md:w-[320px] shrink-0 p-3 pb-0 md:pb-3">
+            <TowerScene model={model} active={active} onSelect={setSelected} ar={ar} />
+          </div>
+
+          {/* ── the workbench for the selected part ── */}
+          <div className="flex-1 min-w-0 p-5 md:ps-2">
+            <div className="font-serif text-lg font-semibold text-[var(--ink)] leading-snug mb-0.5">
+              {L('برجك المالي يُبنى من بياناتك', 'Your financial tower is built from your data')}
             </div>
-            <p className="text-xs text-[var(--ink-2)] leading-relaxed mt-1 max-w-lg">
-              {L(
-                'كل أداة في مال مايند تُحسب من هذه القاعدة. أدخِل، راجِع، اربط — وكلما اكتمل الأساس، صار كل شيء فوقه أصدق.',
-                'Every tool in MalMind is computed from this base. Enter, review, link — the more complete the foundation, the truer everything built on it.'
-              )}
+            <p className="text-[11px] text-[var(--muted)] mb-4">
+              {L('كل أداة في مال مايند تُحسب من هذا البرج — اضغط أي جزء منه لتبنيه.', 'Every tool in MalMind is computed from this tower — tap any part of it to build it.')}
             </p>
+
+            <div className="border border-[var(--border-faint)] rounded-xl p-4 bg-[var(--surface-0)]/40">
+              <div className="flex items-center gap-2.5 mb-1">
+                <span className="text-xl">{p.icon}</span>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-[var(--ink)]">{p.name}</div>
+                  <div className="text-[11px] text-[var(--muted)]">{p.status}</div>
+                </div>
+              </div>
+              <div className="h-1 my-2.5 bg-[var(--surface-1)] rounded-full overflow-hidden" dir="ltr">
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${Math.max(3, p.pct * 100)}%`, background: p.pct >= 1 ? 'var(--green)' : p.pct > 0.4 ? 'var(--gold)' : 'var(--red)' }} />
+              </div>
+              <div className="text-[10px] text-[var(--gold-text-strong)] mb-3">{p.feeds}</div>
+
+              {active === 'profile' && <ProfilePanel onEdit={openEditProfile} ar={ar} profile={profile} />}
+              {active === 'ledger' && (
+                <LedgerQuickLog
+                  key={latest ? `${latest.year}-${latest.month}` : 'empty'}
+                  latest={latest} sheets={sheets} ar={ar}
+                  onSaved={() => { flash(L('طابقٌ جديد أُضيء ✓ +8 نقاط للعقل', 'A new floor lit up ✓ +8 Brain synapses')); load(); }}
+                />
+              )}
+              {active === 'assets' && <AssetQuickAdd ar={ar} onSaved={() => { flash(L('دخل الخزنة ✓ +6 نقاط للعقل', 'Into the vault ✓ +6 Brain synapses')); load(); }} />}
+              {active === 'debts' && <DebtsPanel ar={ar} onSaved={() => { flash(L('وُصل الخط ✓ +3 نقاط للعقل', 'Line connected ✓ +3 Brain synapses')); load(); }} />}
+              {active === 'history' && <HistoryPanel ar={ar} />}
+            </div>
           </div>
         </div>
 
-        {/* pillar rows */}
-        <div className="space-y-2">
-          {pillars.map((p) => (
-            <div key={p.key} className="border border-[var(--border-faint)] rounded-xl overflow-hidden">
-              <button
-                onClick={() => setOpenPillar(openPillar === p.key ? null : p.key)}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-start hover:bg-[var(--surface-1)] transition-colors"
-              >
-                <span className="text-lg shrink-0">{p.icon}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-[var(--ink)]">{p.name}</span>
-                    <span className="text-[11px] text-[var(--muted)]">{p.status}</span>
-                  </span>
-                  <span className="block h-1 mt-1.5 bg-[var(--surface-1)] rounded-full overflow-hidden" dir="ltr">
-                    <span className="block h-full rounded-full transition-all duration-700"
-                      style={{ width: `${Math.max(3, p.pct * 100)}%`, background: p.pct >= 1 ? 'var(--green)' : p.pct > 0.4 ? 'var(--gold)' : 'var(--red)' }} />
-                  </span>
-                </span>
-                <span className={`text-[var(--muted)] text-xs transition-transform ${openPillar === p.key ? 'rotate-90' : ''}`}>{ar ? '‹' : '›'}</span>
-              </button>
-
-              {openPillar === p.key && (
-                <div className="px-3.5 pb-3.5 pt-1 border-t border-[var(--border-faint)] bg-[var(--surface-0)]/40">
-                  <div className="text-[10px] text-[var(--gold-text-strong)] mb-2.5">{p.feeds}</div>
-                  {p.key === 'profile' && <ProfilePanel onEdit={openEditProfile} ar={ar} profile={profile} />}
-                  {p.key === 'ledger' && (
-                    <LedgerQuickLog
-                      key={latest ? `${latest.year}-${latest.month}` : 'empty'}
-                      latest={latest} sheets={sheets} ar={ar}
-                      onSaved={() => { flash(L('سُجّل شهرك ✓ +8 نقاط للعقل', 'Month logged ✓ +8 Brain synapses')); load(); }}
-                    />
-                  )}
-                  {p.key === 'assets' && <AssetQuickAdd ar={ar} onSaved={() => { flash(L('أُضيف الأصل ✓ +6 نقاط للعقل', 'Asset added ✓ +6 Brain synapses')); load(); }} />}
-                  {p.key === 'debts' && <DebtsPanel ar={ar} onSaved={() => { flash(L('أُضيف ✓ +3 نقاط للعقل', 'Added ✓ +3 Brain synapses')); load(); }} />}
-                  {p.key === 'history' && <HistoryPanel ar={ar} />}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
         {toast && (
-          <div className="absolute top-3 inset-x-0 flex justify-center pointer-events-none">
+          <div className="absolute top-3 inset-x-0 flex justify-center pointer-events-none z-10">
             <span className="text-[11px] font-semibold bg-[var(--green-bg)] border border-[var(--green)] text-[var(--green-dark)] rounded-full px-3.5 py-1.5 shadow-lg">
               {toast}
             </span>
@@ -236,33 +221,157 @@ export default function FoundationHub() {
   );
 }
 
-// ── The ring: overall completeness, one arc segment per pillar ──────────
-function FoundationRing({ pct, pillars }: { pct: number; pillars: number[] }) {
-  const R = 34, C = 2 * Math.PI * R, seg = C / pillars.length, gap = 4;
+// ── The tower scene ─────────────────────────────────────────────────────
+function TowerScene({ model, active, onSelect, ar }: {
+  model: { pillars: Record<PillarKey, { pct: number }>; weakest: PillarKey; profileSet: number; months: number; assetCount: number; debtsConnected: number; historyLit: boolean };
+  active: PillarKey; onSelect: (k: PillarKey) => void; ar: boolean;
+}) {
+  const L = (a: string, e: string) => (ar ? a : e);
+  const { profileSet, months, assetCount, debtsConnected, historyLit, weakest } = model;
+  const sel = (k: PillarKey) => active === k;
+  const FLOORS = 6, FLOOR_H = 34, TOWER_X = 66, TOWER_W = 118, SLAB_Y = 318;
+  const floorY = (i: number) => SLAB_Y - (i + 1) * FLOOR_H;
+  const crownY = floorY(FLOORS - 1) - 26;
+  // Where the crane hovers: over the weakest part.
+  const CRANE_AT: Record<PillarKey, [number, number]> = {
+    profile: [125, SLAB_Y - 6], ledger: [125, floorY(months) - 4], assets: [247, 236],
+    debts: [34, 216], history: [125, crownY - 14],
+  };
+  const [cx, cy] = CRANE_AT[weakest];
+
+  const dash = 'var(--border-medium)';
+  const glowSel = { filter: 'drop-shadow(0 0 6px rgba(93,202,165,0.9))' } as React.CSSProperties;
+
   return (
-    <div className="relative shrink-0 w-[88px] h-[88px]" dir="ltr">
-      <svg viewBox="0 0 88 88" className="w-full h-full -rotate-90">
-        {pillars.map((p, i) => (
-          <g key={i}>
-            <circle cx="44" cy="44" r={R} fill="none" stroke="var(--surface-1)" strokeWidth="7"
-              strokeDasharray={`${seg - gap} ${C - seg + gap}`} strokeDashoffset={-i * seg} strokeLinecap="round" />
-            {p > 0 && (
-              <circle cx="44" cy="44" r={R} fill="none"
-                stroke={p >= 1 ? 'var(--green)' : p > 0.4 ? 'var(--gold)' : 'var(--red)'} strokeWidth="7"
-                strokeDasharray={`${Math.max(2, (seg - gap) * p)} ${C}`} strokeDashoffset={-i * seg} strokeLinecap="round"
-                className="transition-all duration-1000" />
-            )}
-          </g>
+    <div className="relative" dir="ltr">
+      <svg viewBox="0 0 320 380" className="w-full max-w-[340px] mx-auto block select-none">
+        <defs>
+          <linearGradient id="fnSky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0C4531" /><stop offset="100%" stopColor="#041F17" />
+          </linearGradient>
+          <linearGradient id="fnFloor" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0E5A3E" /><stop offset="100%" stopColor="#083A2A" />
+          </linearGradient>
+          <radialGradient id="fnOrb" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0%" stopColor="#FBE9B0" /><stop offset="55%" stopColor="#E4C465" /><stop offset="100%" stopColor="#B98B2C" />
+          </radialGradient>
+          <style>{`
+            @keyframes fnTw { 0%,100%{opacity:.25} 50%{opacity:.95} }
+            @keyframes fnPulse { 0%,100%{opacity:.5; transform:scale(1)} 50%{opacity:1; transform:scale(1.12)} }
+            @keyframes fnBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+          `}</style>
+        </defs>
+
+        <rect x="0" y="0" width="320" height="380" rx="16" fill="url(#fnSky)" />
+        {[[30, 40, 1.6], [90, 24, 1.2], [200, 30, 1.8], [268, 56, 1.3], [150, 18, 1.2], [290, 120, 1.4]].map(([x, y, r], i) => (
+          <circle key={i} cx={x} cy={y} r={r} fill="#fff" style={{ animation: `fnTw ${3 + (i % 3)}s ease-in-out ${i * 0.5}s infinite` }} />
         ))}
+        {/* ground */}
+        <rect x="0" y="344" width="320" height="36" fill="#04211A" />
+        <line x1="0" y1="344" x2="320" y2="344" stroke="#17B8C9" strokeOpacity="0.25" />
+
+        {/* ── utilities (debts & bills): lines feeding the building ── */}
+        <g onClick={() => onSelect('debts')} className="cursor-pointer" style={sel('debts') ? glowSel : undefined}>
+          <rect x="14" y="196" width="26" height="34" rx="4" fill={debtsConnected > 0 ? '#0B4832' : 'transparent'}
+            stroke={debtsConnected > 0 ? '#17B8C9' : dash} strokeDasharray={debtsConnected > 0 ? '0' : '4 3'} />
+          {debtsConnected > 0 && [0, 1, 2].slice(0, debtsConnected).map((i) => (
+            <circle key={i} cx={21 + i * 6} cy={206} r="2" fill="#E4C465" style={{ animation: `fnTw 2.5s ease-in-out ${i * 0.4}s infinite` }} />
+          ))}
+          {[236, 256].map((y, i) => (
+            <path key={i} d={`M27 230 L27 ${y} L${TOWER_X} ${y}`} fill="none"
+              stroke={i < Math.ceil(debtsConnected / 2) ? '#17B8C9' : dash}
+              strokeWidth={i < Math.ceil(debtsConnected / 2) ? 2.5 : 1.5}
+              strokeDasharray={i < Math.ceil(debtsConnected / 2) ? '0' : '4 4'} strokeOpacity={i < Math.ceil(debtsConnected / 2) ? 0.9 : 0.6} />
+          ))}
+          <title>{L('التمديدات — الديون والفواتير', 'Utilities — debts & bills')}</title>
+        </g>
+
+        {/* ── the slab (profile): 5 poured blocks ── */}
+        <g onClick={() => onSelect('profile')} className="cursor-pointer" style={sel('profile') ? glowSel : undefined}>
+          <rect x="40" y={SLAB_Y} width="170" height="26" rx="4" fill="#062B1F" stroke={profileSet > 0 ? '#C9A84C' : dash} strokeOpacity="0.7" strokeDasharray={profileSet >= 5 ? '0' : '5 4'} />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <rect key={i} x={46 + i * 32.5} y={SLAB_Y + 5} width="27" height="16" rx="2"
+              fill={i < profileSet ? '#0B4832' : 'transparent'}
+              stroke={i < profileSet ? '#5DCAA5' : dash} strokeOpacity={i < profileSet ? 0.9 : 0.5}
+              strokeDasharray={i < profileSet ? '0' : '3 3'} />
+          ))}
+          <title>{L('القاعدة — الملف والدخل', 'The slab — profile & income')}</title>
+        </g>
+
+        {/* ── the tower floors (ledger) ── */}
+        <g onClick={() => onSelect('ledger')} className="cursor-pointer" style={sel('ledger') ? glowSel : undefined}>
+          {Array.from({ length: FLOORS }).map((_, i) => {
+            const built = i < months;
+            const y = floorY(i);
+            return (
+              <g key={i}>
+                <rect x={TOWER_X} y={y} width={TOWER_W} height={FLOOR_H - 3} rx="3"
+                  fill={built ? 'url(#fnFloor)' : 'transparent'}
+                  stroke={built ? '#1D9E75' : dash} strokeOpacity={built ? 0.8 : 0.5}
+                  strokeDasharray={built ? '0' : '5 4'} />
+                {built
+                  ? [0, 1, 2].map((w) => (
+                    <rect key={w} x={TOWER_X + 16 + w * 34} y={y + 9} width="14" height="12" rx="1.5"
+                      fill={(i + w) % 3 === 0 ? '#E4C465' : '#5DCAA5'} opacity="0.85"
+                      style={{ animation: `fnTw ${3 + ((i + w) % 4)}s ease-in-out ${(i * 3 + w) * 0.3}s infinite` }} />
+                  ))
+                  : <line x1={TOWER_X + 6} y1={y + FLOOR_H - 8} x2={TOWER_X + TOWER_W - 6} y2={y + 4} stroke={dash} strokeOpacity="0.35" strokeDasharray="3 4" />}
+              </g>
+            );
+          })}
+          <title>{L('الطوابق — السِّجل الشهري', 'The floors — monthly ledger')}</title>
+        </g>
+
+        {/* ── the crown (history): spire + golden orb ── */}
+        <g onClick={() => onSelect('history')} className="cursor-pointer" style={sel('history') ? glowSel : undefined}>
+          <line x1="125" y1={crownY + 12} x2="125" y2={floorY(FLOORS - 1)} stroke={historyLit ? '#C9A84C' : dash} strokeWidth="2.5" strokeDasharray={historyLit ? '0' : '4 3'} />
+          {historyLit ? (
+            <>
+              <circle cx="125" cy={crownY} r="18" fill="url(#fnOrb)" opacity="0.35" style={{ animation: 'fnPulse 3.5s ease-in-out infinite', transformOrigin: `125px ${crownY}px` }} />
+              <circle cx="125" cy={crownY} r="10" fill="url(#fnOrb)" />
+              <circle cx="121.5" cy={crownY - 3.5} r="2.6" fill="#FFF7E0" opacity="0.95" />
+            </>
+          ) : (
+            <circle cx="125" cy={crownY} r="10" fill="none" stroke={dash} strokeDasharray="4 3" />
+          )}
+          <title>{L('القمة — التاريخ والائتمان', 'The crown — history & credit')}</title>
+        </g>
+
+        {/* ── the vault annex (assets) ── */}
+        <g onClick={() => onSelect('assets')} className="cursor-pointer" style={sel('assets') ? glowSel : undefined}>
+          <path d="M216 268 L286 268 L286 344 L216 344 Z" fill={assetCount > 0 ? '#0B4832' : 'transparent'}
+            stroke={assetCount > 0 ? '#1D9E75' : dash} strokeOpacity="0.85" strokeDasharray={assetCount > 0 ? '0' : '5 4'} />
+          <path d="M212 268 L251 252 L290 268" fill="none" stroke={assetCount > 0 ? '#C9A84C' : dash} strokeWidth="2" strokeDasharray={assetCount > 0 ? '0' : '4 3'} />
+          <circle cx="251" cy="298" r="13" fill="none" stroke={assetCount > 0 ? '#C9A84C' : dash} strokeWidth="2.5" strokeDasharray={assetCount > 0 ? '0' : '4 3'} />
+          {assetCount > 0 && (
+            <>
+              <circle cx="251" cy="298" r="4.5" fill="none" stroke="#E4C465" strokeWidth="1.5" />
+              <line x1="251" y1="285" x2="251" y2="291" stroke="#E4C465" strokeWidth="1.5" />
+            </>
+          )}
+          {Array.from({ length: assetCount }).map((_, i) => (
+            <g key={i}>
+              <ellipse cx={228 + i * 15} cy={334} rx="6" ry="2.6" fill="#E4C465" />
+              <ellipse cx={228 + i * 15} cy={330.5} rx="6" ry="2.6" fill="#FBE9B0" />
+            </g>
+          ))}
+          <title>{L('الخزنة — الأصول', 'The vault — assets')}</title>
+        </g>
+
+        {/* ── the crane over the weakest part ── */}
+        <g style={{ animation: 'fnBob 2.6s ease-in-out infinite' }} pointerEvents="none">
+          <text x={cx + 14} y={cy - 12} fontSize="17" textAnchor="middle">🏗️</text>
+          <circle cx={cx} cy={cy} r="6" fill="none" stroke="#E4C465" strokeWidth="1.5" style={{ animation: 'fnPulse 1.8s ease-in-out infinite', transformOrigin: `${cx}px ${cy}px` }} />
+        </g>
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-serif text-xl font-bold text-[var(--ink)] leading-none">{Math.round(pct * 100)}%</span>
+      <div className="text-[10px] text-[var(--muted)] text-center mt-1 md:mb-0 mb-2">
+        {L('🏗️ الرافعة تقف حيث يحتاج برجك العمل تالياً', '🏗️ the crane stands where your tower needs work next')}
       </div>
     </div>
   );
 }
 
-// ── Pillar panels ───────────────────────────────────────────────────────
+// ── Workbench panels (entry forms) ──────────────────────────────────────
 function ProfilePanel({ onEdit, ar, profile }: { onEdit: () => void; ar: boolean; profile: ProfileBase | null }) {
   const L = (a: string, e: string) => (ar ? a : e);
   const missing: string[] = [];
@@ -275,18 +384,16 @@ function ProfilePanel({ onEdit, ar, profile }: { onEdit: () => void; ar: boolean
     <div className="flex items-center justify-between gap-3 flex-wrap">
       <p className="text-[11px] text-[var(--ink-2)] leading-relaxed min-w-0">
         {missing.length
-          ? L(`الناقص: ${missing.join('، ')}.`, `Missing: ${missing.join(', ')}.`)
-          : L('ملفّك مكتمل — كل الأدوات تقرأ أرقامك الصحيحة.', 'Profile complete — every tool reads your true numbers.')}
+          ? L(`لم يُصَبّ بعد: ${missing.join('، ')}.`, `Not poured yet: ${missing.join(', ')}.`)
+          : L('القاعدة مصبوبة كاملة — كل الأدوات تقف عليها بثبات.', 'The slab is fully poured — every tool stands firmly on it.')}
       </p>
       <button onClick={onEdit} className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3.5 py-2 shrink-0">
-        {L('أكمِل الملف', 'Complete profile')}
+        {L('اصبب القاعدة', 'Pour the slab')}
       </button>
     </div>
   );
 }
 
-// The flagship: log this month inline, prefilled by carrying the latest
-// month forward so the user only adjusts what changed.
 function LedgerQuickLog({ latest, sheets, ar, onSaved }: {
   latest: LatestSnap | null; sheets: { connected: boolean } | null; ar: boolean; onSaved: () => void;
 }) {
@@ -326,7 +433,7 @@ function LedgerQuickLog({ latest, sheets, ar, onSaved }: {
           {L(`معبّأ مسبقاً من ${months[latest.month - 1]} ${latest.year} — عدّل ما تغيّر فقط.`, `Prefilled from ${months[latest.month - 1]} ${latest.year} — adjust only what changed.`)}
         </p>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2.5">
         <input type="month" value={ym} onChange={(e) => setYm(e.target.value)} className={field} dir="ltr" aria-label={L('الشهر', 'Month')} />
         {([
           [income, setIncome, L('الدخل', 'Income')],
@@ -341,7 +448,7 @@ function LedgerQuickLog({ latest, sheets, ar, onSaved }: {
       <div className="flex items-center gap-2.5 flex-wrap">
         <button onClick={save} disabled={saving}
           className="text-xs font-semibold text-white bg-[var(--green-dark)] rounded-lg px-4 py-2 disabled:opacity-50">
-          {saving ? L('يحفظ…', 'Saving…') : L('سجّل الشهر ✓', 'Log the month ✓')}
+          {saving ? L('يبني…', 'Building…') : L('ابنِ الطابق ✓', 'Build the floor ✓')}
         </button>
         <Link href="/financial-numbers" className="text-[11px] text-[var(--green-dark)] font-medium">{L('السِّجل الكامل ←', 'Full ledger →')}</Link>
         <span className="text-[var(--border-medium)]">·</span>
@@ -389,7 +496,7 @@ function AssetQuickAdd({ ar, onSaved }: { ar: boolean; onSaved: () => void }) {
       <input inputMode="numeric" placeholder={L('القيمة (ريال)', 'Value (SAR)')} value={value} onChange={(e) => setValue(e.target.value)} className={`${field} w-28`} />
       <button onClick={save} disabled={saving || !name || !num(value)}
         className="text-xs font-semibold text-white bg-[var(--green-dark)] rounded-lg px-3.5 py-2 disabled:opacity-50">
-        {L('أضِف ✓', 'Add ✓')}
+        {L('أودِع ✓', 'Deposit ✓')}
       </button>
       <Link href="/holdings" className="text-[11px] text-[var(--green-dark)] font-medium">{L('كل الأصول ←', 'All assets →')}</Link>
     </div>
@@ -421,7 +528,7 @@ function DebtsPanel({ ar, onSaved }: { ar: boolean; onSaved: () => void }) {
         <input inputMode="numeric" placeholder={L('ريال/شهر', 'SAR/mo')} value={amount} onChange={(e) => setAmount(e.target.value)} className={`${field} w-24`} />
         <button onClick={saveSub} disabled={saving || !name || !num(amount)}
           className="text-xs font-semibold text-white bg-[var(--green-dark)] rounded-lg px-3.5 py-2 disabled:opacity-50">
-          {L('أضِف ✓', 'Add ✓')}
+          {L('صِل الخط ✓', 'Connect ✓')}
         </button>
       </div>
       <div className="flex gap-2.5 flex-wrap text-[11px]">
