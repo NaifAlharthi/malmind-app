@@ -268,6 +268,14 @@ body {
 @keyframes mm-armA { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(20deg); } }
 @keyframes mm-armB { 0%, 100% { transform: rotate(20deg); } 50% { transform: rotate(-20deg); } }
 @keyframes mm-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+
+/* drifting bubbles inside the depth dive */
+@keyframes mmBubble {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  15% { opacity: 0.7; }
+  85% { opacity: 0.4; }
+  100% { transform: translateY(-46vh) scale(1.25); opacity: 0; }
+}
 .mm-figure.mm-walking .mm-bobber { animation: mm-bob 0.34s linear infinite; }
 .mm-figure.mm-walking .mm-legA { animation: mm-legA 0.34s linear infinite; }
 .mm-figure.mm-walking .mm-legB { animation: mm-legB 0.34s linear infinite; }

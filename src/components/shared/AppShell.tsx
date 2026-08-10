@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import EditProfileModal from './EditProfileModal';
 import DemoTour from './DemoTour';
 import TimelineNav from './TimelineNav';
+import DepthRail from './DepthRail';
 import { XModeProvider, XModeSwitcher } from './ExperienceMode';
 import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -252,6 +253,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }}
       />
       <DemoTour />
+      <DepthRail />
       <BrainCompanion />
       <EphemeralSessionGuard />
       </div>
