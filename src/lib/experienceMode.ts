@@ -19,12 +19,12 @@ export const XMODE_RANK: Record<XMode, number> = { guided: 1, growing: 2, pro: 3
 export const XMODE_META: Record<XMode, { icon: string; label: { ar: string; en: string }; desc: { ar: string; en: string } }> = {
   guided: {
     icon: '🤝',
-    label: { ar: 'خذ بيدي', en: 'Hold my hand' },
+    label: { ar: 'أرشدني', en: 'Guide me' },
     desc: { ar: 'خطوة بخطوة، بلا تعقيد — والعقل يشرح كل صفحة', en: 'Step by step, zero clutter — the Brain narrates every page' },
   },
   growing: {
     icon: '🌱',
-    label: { ar: 'أبدأ أتمكّن', en: 'Getting a hold' },
+    label: { ar: 'شبه محترف', en: 'Semi-pro' },
     desc: { ar: 'أدوات أكثر، وإرشاد عند الطلب', en: 'More tools on the surface, guidance on ask' },
   },
   pro: {
