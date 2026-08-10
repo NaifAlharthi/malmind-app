@@ -135,24 +135,24 @@ export default function DepthRail() {
       >
         <div className="text-[9px] text-[var(--muted)] mb-1 tracking-wide">{L('العمق', 'Depth')}</div>
         <div className="relative">
-          <svg width="46" height="240" viewBox="0 0 46 240" aria-hidden="true">
+          <svg width="56" height="240" viewBox="0 0 56 240" aria-hidden="true">
             {/* waterline */}
-            <line x1="0" y1="56" x2="46" y2="56" stroke="#4A85B9" strokeWidth="1" strokeDasharray="3 3" opacity="0.7" />
-            {/* tip above water (level 1) */}
-            <polygon points="23,4 38,54 8,54" fill={hover === 1 || (dive !== null && seaLevel === 1) ? '#F3FAFF' : '#DDEEFA'} stroke="#9CC8E8" strokeWidth="1" />
-            {/* submerged chunks (levels 2–4), widening then narrowing like a berg */}
-            <polygon points="6,58 40,58 43,112 3,112" fill={hover === 2 || (dive !== null && seaLevel === 2) ? '#7FB6DE' : '#5E9CCB'} opacity="0.92" />
-            <polygon points="3,116 43,116 39,172 7,172" fill={hover === 3 || (dive !== null && seaLevel === 3) ? '#3F7AAE' : '#2F6494'} opacity="0.92" />
-            <polygon points="7,176 39,176 27,234 19,234" fill={hover === 4 || (dive !== null && seaLevel === 4) ? '#1E4E7A' : '#153D63'} opacity="0.95" />
+            <line x1="0" y1="44" x2="56" y2="44" stroke="#4A85B9" strokeWidth="1" strokeDasharray="3 3" opacity="0.7" />
+            {/* the tip — the smallest piece, all that shows above water */}
+            <polygon points="28,14 33,27 35,42 20,42 23,25" fill={hover === 1 || (dive !== null && seaLevel === 1) ? '#F3FAFF' : '#DDEEFA'} stroke="#9CC8E8" strokeWidth="1" />
+            {/* submerged mass — each chunk wider than the one above it */}
+            <polygon points="17,48 39,48 44,100 12,102" fill={hover === 2 || (dive !== null && seaLevel === 2) ? '#7FB6DE' : '#5E9CCB'} opacity="0.92" />
+            <polygon points="10,106 46,105 51,164 6,166" fill={hover === 3 || (dive !== null && seaLevel === 3) ? '#3F7AAE' : '#2F6494'} opacity="0.92" />
+            <polygon points="4,170 52,169 47,224 28,236 9,226" fill={hover === 4 || (dive !== null && seaLevel === 4) ? '#1E4E7A' : '#153D63'} opacity="0.95" />
           </svg>
 
           {/* click zones + you-are-here marker */}
           {DEPTH_LEVELS.map((lvl) => {
             const zones = [
-              { top: 0, height: 56 },
-              { top: 56, height: 58 },
-              { top: 114, height: 60 },
-              { top: 174, height: 66 },
+              { top: 0, height: 44 },
+              { top: 44, height: 60 },
+              { top: 104, height: 64 },
+              { top: 168, height: 72 },
             ][lvl - 1];
             const meta = DEPTH_META[lvl];
             return (

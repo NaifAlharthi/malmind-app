@@ -241,9 +241,13 @@ export default function BrainCompanion() {
   const showChip = mode === 'manual' && !!guide && !bubbleOpen && !pointing && !tourActive();
 
   // Perch: side of the screen, centred on the viewport — or wherever it flew.
+  // Always the inline-END side (left in Arabic, right in English), so it
+  // never overlaps the iceberg rail perched on the start side.
   const brainStyle: React.CSSProperties = pointing
     ? { left: pointing.brain.left, top: pointing.brain.top, right: 'auto', transform: 'none' }
-    : { right: 12, top: '50%', transform: 'translateY(-50%)' };
+    : ar
+      ? { left: 12, right: 'auto', top: '50%', transform: 'translateY(-50%)' }
+      : { right: 12, left: 'auto', top: '50%', transform: 'translateY(-50%)' };
 
   return (
     <>
