@@ -15,6 +15,8 @@ import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { formatDual } from '@/lib/dates';
+import { useXMode } from './ExperienceMode';
+import { XMODE_RANK } from '@/lib/experienceMode';
 import TodayDashboard from '@/components/today/TodayDashboard';
 
 const MiniBrain = dynamic(
@@ -29,35 +31,39 @@ interface HubTool {
   icon: string;
   titleKey: string;
   descKey: string;
+  // Minimum experience mode that surfaces this tool by default:
+  // 1 guided · 2 growing · 3 pro. Lower modes stage it behind "more tools" —
+  // nothing is ever inaccessible.
+  min?: number;
 }
 
 const TOOLS: Record<ViewKey, HubTool[]> = {
   past: [
     { href: '/story', icon: '📖', titleKey: 'home.card.story.title', descKey: 'home.card.story.desc' },
     { href: '/financial-numbers', icon: '📒', titleKey: 'hub.card.financialNumbers.title', descKey: 'hub.card.financialNumbers.desc' },
-    { href: '/lifetime-income', icon: '💰', titleKey: 'home.card.lifetimeIncome.title', descKey: 'home.card.lifetimeIncome.desc' },
+    { href: '/lifetime-income', icon: '💰', titleKey: 'home.card.lifetimeIncome.title', descKey: 'home.card.lifetimeIncome.desc', min: 2 },
   ],
   today: [
     { href: '/holdings', icon: '💼', titleKey: 'hub.card.holdings.title', descKey: 'hub.card.holdings.desc' },
     { href: '/commitments', icon: '🧾', titleKey: 'hub.card.commitments.title', descKey: 'hub.card.commitments.desc' },
-    { href: '/positioning', icon: '📊', titleKey: 'home.card.positioning.title', descKey: 'home.card.positioning.desc' },
-    { href: '/ratios', icon: '🩺', titleKey: 'home.card.ratios.title', descKey: 'home.card.ratios.desc' },
-    { href: '/risks', icon: '🛡', titleKey: 'hub.card.risks.title', descKey: 'hub.card.risks.desc' },
-    { href: '/credit', icon: '📇', titleKey: 'hub.card.credit.title', descKey: 'hub.card.credit.desc' },
-    { href: '/velocity', icon: '⏱', titleKey: 'home.card.velocity.title', descKey: 'home.card.velocity.desc' },
-    { href: '/standard-of-living?mode=track', icon: '🪜', titleKey: 'hub.card.solTracked.title', descKey: 'hub.card.solTracked.desc' },
+    { href: '/positioning', icon: '📊', titleKey: 'home.card.positioning.title', descKey: 'home.card.positioning.desc', min: 2 },
+    { href: '/ratios', icon: '🩺', titleKey: 'home.card.ratios.title', descKey: 'home.card.ratios.desc', min: 2 },
+    { href: '/risks', icon: '🛡', titleKey: 'hub.card.risks.title', descKey: 'hub.card.risks.desc', min: 2 },
+    { href: '/credit', icon: '📇', titleKey: 'hub.card.credit.title', descKey: 'hub.card.credit.desc', min: 3 },
+    { href: '/velocity', icon: '⏱', titleKey: 'home.card.velocity.title', descKey: 'home.card.velocity.desc', min: 2 },
+    { href: '/standard-of-living?mode=track', icon: '🪜', titleKey: 'hub.card.solTracked.title', descKey: 'hub.card.solTracked.desc', min: 2 },
   ],
   future: [
     { href: '/freedom', icon: '🕊', titleKey: 'hub.card.freedom.title', descKey: 'hub.card.freedom.desc' },
-    { href: '/what-if', icon: '🔮', titleKey: 'hub.card.whatIf.title', descKey: 'hub.card.whatIf.desc' },
+    { href: '/what-if', icon: '🔮', titleKey: 'hub.card.whatIf.title', descKey: 'hub.card.whatIf.desc', min: 2 },
     { href: '/compare', icon: '⚖️', titleKey: 'hub.card.compare.title', descKey: 'hub.card.compare.desc' },
-    { href: '/doubling-path', icon: '📈', titleKey: 'home.card.doubling.title', descKey: 'home.card.doubling.desc' },
+    { href: '/doubling-path', icon: '📈', titleKey: 'home.card.doubling.title', descKey: 'home.card.doubling.desc', min: 3 },
     { href: '/goal-fund', icon: '🎯', titleKey: 'home.card.goalFund.title', descKey: 'home.card.goalFund.desc' },
-    { href: '/year-plan', icon: '🗓', titleKey: 'home.card.yearPlan.title', descKey: 'home.card.yearPlan.desc' },
-    { href: '/waterfall', icon: '💧', titleKey: 'home.card.waterfall.title', descKey: 'home.card.waterfall.desc' },
-    { href: '/budgeting', icon: '🛋', titleKey: 'home.card.budgeting.title', descKey: 'home.card.budgeting.desc' },
+    { href: '/year-plan', icon: '🗓', titleKey: 'home.card.yearPlan.title', descKey: 'home.card.yearPlan.desc', min: 2 },
+    { href: '/waterfall', icon: '💧', titleKey: 'home.card.waterfall.title', descKey: 'home.card.waterfall.desc', min: 3 },
+    { href: '/budgeting', icon: '🛋', titleKey: 'home.card.budgeting.title', descKey: 'home.card.budgeting.desc', min: 2 },
     { href: '/standard-of-living?mode=plan', icon: '🪜', titleKey: 'home.card.sol.title', descKey: 'home.card.sol.desc' },
-    { href: '/lifetime-income', icon: '🛤', titleKey: 'hub.card.incomeAhead.title', descKey: 'hub.card.incomeAhead.desc' },
+    { href: '/lifetime-income', icon: '🛤', titleKey: 'hub.card.incomeAhead.title', descKey: 'hub.card.incomeAhead.desc', min: 2 },
   ],
 };
 
@@ -186,6 +192,10 @@ export default function HubPage({ view }: { view: ViewKey }) {
   }
 
   const tools = TOOLS[view];
+  // Experience mode stages advanced tools behind a reveal (guided < growing < pro).
+  const { mode: xmode } = useXMode();
+  const [showAllTools, setShowAllTools] = useState(false);
+  const stagedTools = tools.filter((tl) => (tl.min ?? 1) <= XMODE_RANK[xmode]);
 
   // ── Per-view summary tiles ────────────────────────────────────────────
   const tiles = useMemo<Tile[]>(() => {
@@ -320,19 +330,32 @@ export default function HubPage({ view }: { view: ViewKey }) {
       </button>
 
       {drawerOpen && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-          {tools.map((tool) => (
-            <Link
-              key={tool.href}
-              href={tool.href}
-              className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 hover:border-[var(--green)] transition-colors"
+        <>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+            {(showAllTools ? tools : stagedTools).map((tool) => (
+              <Link
+                key={tool.href}
+                href={tool.href}
+                className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 hover:border-[var(--green)] transition-colors"
+              >
+                <div className="text-lg mb-2">{tool.icon}</div>
+                <div className="font-medium text-sm text-[var(--ink)] mb-1">{t(tool.titleKey)}</div>
+                <div className="text-xs text-[var(--muted)] leading-relaxed">{t(tool.descKey)}</div>
+              </Link>
+            ))}
+          </div>
+          {/* lower experience modes stage advanced tools — never remove them */}
+          {!showAllTools && stagedTools.length < tools.length && (
+            <button
+              onClick={() => setShowAllTools(true)}
+              className="w-full mt-3 text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-dashed border-[var(--green-border)] rounded-2xl px-5 py-3 hover:border-[var(--green)]"
             >
-              <div className="text-lg mb-2">{tool.icon}</div>
-              <div className="font-medium text-sm text-[var(--ink)] mb-1">{t(tool.titleKey)}</div>
-              <div className="text-xs text-[var(--muted)] leading-relaxed">{t(tool.descKey)}</div>
-            </Link>
-          ))}
-        </div>
+              {locale === 'ar'
+                ? `أظهِر ${tools.length - stagedTools.length} أدوات متقدمة أيضاً ▾`
+                : `Show ${tools.length - stagedTools.length} more advanced tools ▾`}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

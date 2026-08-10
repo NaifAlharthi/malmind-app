@@ -195,7 +195,7 @@ export default function HomePage() {
     },
     {
       icon: '🧮',
-      problem: L('أرصدة، لا قرارات', 'Balances, not decisions'),
+      problem: L('أرصدة مالية، لا قرارات', 'Balances, not decisions'),
       desc: L(
         'تُظهر التطبيقات ما تملكه اليوم، لكنها لا تحاكي ما تفعله علاوة أو رهن أو استثمار بمستقبلك.',
         "Apps show what you have today, but can't model what a raise, a mortgage, or investing would do to your future.",
@@ -210,7 +210,7 @@ export default function HomePage() {
     },
     {
       icon: '🔢',
-      problem: L('أرقام بلا معنى', 'Numbers without meaning'),
+      problem: L('أرقام مالية بلا معنى', 'Numbers without meaning'),
       desc: L(
         'تتراكم الأرقام دون أن تخبرك: هل أنت سليم، أم مكشوف، أم على المسار؟',
         "Figures pile up without telling you whether you're healthy, exposed, or on track.",

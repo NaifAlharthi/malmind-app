@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import EditProfileModal from './EditProfileModal';
 import DemoTour from './DemoTour';
 import TimelineNav from './TimelineNav';
+import { XModeProvider, XModeSwitcher } from './ExperienceMode';
 import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
@@ -121,6 +122,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <XModeProvider>
     <ProfileContext.Provider
       value={{ openEditProfile: () => setEditProfileOpen(true), profileVersion }}
     >
@@ -144,6 +146,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             {/* utilities */}
             <div className="flex items-center gap-1 shrink-0">
+              {/* experience mode: hold-my-hand · getting a hold · pro */}
+              <XModeSwitcher className="me-1" />
               <button
                 onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
                 title={t('common.language')}
@@ -202,5 +206,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <EphemeralSessionGuard />
       </div>
     </ProfileContext.Provider>
+    </XModeProvider>
   );
 }

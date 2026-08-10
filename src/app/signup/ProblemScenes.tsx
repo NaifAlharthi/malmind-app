@@ -7,6 +7,70 @@
 // isn't just cash". (The scattered-chips scene lives in Splash itself.)
 // Keyframes fpDraw / fpGlowIn are defined in Splash's style block.
 
+// Act 1 — the scattered life as it actually looks: three separate app
+// screens (bank · trading · subscriptions), each holding one shard of the
+// picture, visibly not talking to each other. Generic Saudi-style app UIs —
+// deliberately no real bank branding.
+export function SceneApps({ ar }: { ar: boolean }) {
+  const phone = 'absolute w-[150px] rounded-2xl border border-white/15 shadow-2xl overflow-hidden backdrop-blur-sm';
+  return (
+    <div className="relative h-full" dir={ar ? 'rtl' : 'ltr'}>
+      {/* bank app */}
+      <div className={phone} style={{ insetInlineStart: '2%', top: '6%', transform: 'rotate(-5deg)', background: '#101B3A', animation: 'mmFloat 5s ease-in-out infinite' }}>
+        <div className="px-3 py-2 text-[9px] font-semibold text-white flex items-center gap-1.5" style={{ background: 'linear-gradient(120deg, #1B2C64, #3D2B7D)' }}>
+          🏦 {ar ? 'تطبيق البنك' : 'Bank app'}
+        </div>
+        <div className="p-3">
+          <div className="text-[8px] text-white/45">{ar ? 'الحساب الجاري' : 'Current account'}</div>
+          <div className="text-[15px] font-bold text-white mb-1.5">28,450 <span className="text-[8px] font-normal text-white/50">{ar ? 'ريال' : 'SAR'}</span></div>
+          <div className="text-[8px] text-white/40 mb-2" dir="ltr">SA03 8000 •••• 2210</div>
+          <div className="flex gap-1">
+            {[ar ? 'تحويل' : 'Send', ar ? 'سداد' : 'Pay', ar ? 'فواتير' : 'Bills'].map((b) => (
+              <span key={b} className="text-[7.5px] text-white/80 bg-white/10 rounded-md px-1.5 py-1">{b}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* trading app */}
+      <div className={phone} style={{ insetInlineStart: '38%', top: '0%', transform: 'rotate(3deg)', background: '#0A231C', animation: 'mmFloat 5.6s ease-in-out 0.6s infinite' }}>
+        <div className="px-3 py-2 text-[9px] font-semibold text-white flex items-center gap-1.5" style={{ background: 'linear-gradient(120deg, #0E5A3E, #17B8C9)' }}>
+          📈 {ar ? 'تطبيق التداول' : 'Trading app'}
+        </div>
+        <div className="p-3">
+          <div className="text-[8px] text-white/45">{ar ? 'قيمة المحفظة' : 'Portfolio value'}</div>
+          <div className="text-[15px] font-bold text-white">96,300 <span className="text-[8px] font-normal text-[#7FE8C4]">+8.2%</span></div>
+          <svg viewBox="0 0 100 26" className="w-full h-6 mt-1">
+            <path d="M2 22 C20 20 30 14 45 15 C60 16 70 8 98 4" fill="none" stroke="#5DCAA5" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <div className="flex justify-between text-[7.5px] text-white/50 mt-1"><span>2222</span><span>1120</span><span>7010</span></div>
+        </div>
+      </div>
+
+      {/* subscriptions / wallet app */}
+      <div className={phone} style={{ insetInlineStart: '20%', top: '46%', transform: 'rotate(-2deg)', background: '#2A1035', animation: 'mmFloat 6.2s ease-in-out 1.1s infinite' }}>
+        <div className="px-3 py-2 text-[9px] font-semibold text-white flex items-center gap-1.5" style={{ background: 'linear-gradient(120deg, #5B2B7D, #A03A6E)' }}>
+          📱 {ar ? 'الاشتراكات' : 'Subscriptions'}
+        </div>
+        <div className="p-2.5 space-y-1">
+          {[['نتفلكس', 'Netflix', 56], ['سبوتيفاي', 'Spotify', 22], ['آيكلاود', 'iCloud', 37]].map(([a, e, v]) => (
+            <div key={e as string} className="flex justify-between text-[8.5px] text-white/80 bg-white/[0.07] rounded-md px-2 py-1">
+              <span>{ar ? a : e}</span><span className="text-white/50">−{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* the broken links between them */}
+      <svg viewBox="0 0 400 340" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden>
+        <path d="M150 90 C190 100 210 60 240 55" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeDasharray="5 7" />
+        <path d="M120 150 C150 210 160 220 175 240" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeDasharray="5 7" />
+        <text x="200" y="180" textAnchor="middle" fontSize="30" fill="rgba(255,255,255,0.14)" fontFamily="serif">؟</text>
+      </svg>
+    </div>
+  );
+}
+
 export function SceneFutures({ ar }: { ar: boolean }) {
   return (
     <div className="w-full h-full" dir="ltr">

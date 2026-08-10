@@ -28,6 +28,7 @@ import {
   type Tier, type Phase, type LadderTier,
 } from '@/lib/standardOfLiving';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
+import { useXMode } from '@/components/shared/ExperienceMode';
 import {
   PERIODS, periodLabel, periodPer, scaleToPeriod, buildDailyItems, sumBy,
   futureValue, DEFAULT_RETURN, DEBT_RATE, KIND_COLOR,
@@ -158,6 +159,10 @@ export default function TodayDashboard() {
   const [sol, setSol] = useState<{ phases: SolPhaseRow[]; actualsByYear: Record<number, Tier>; offset: number } | null>(null);
   const [stack, setStack] = useState<StackItem[] | null>(null);
   const [stackPeriod, setStackPeriod] = useState<Period>('day');
+  // Guided mode stages the densest analytics behind a one-click reveal.
+  const { mode: xmode } = useXMode();
+  const [showAdv, setShowAdv] = useState(false);
+  const advanced = xmode !== 'guided' || showAdv;
   const [selRisk, setSelRisk] = useState<string | null>(null);
   const [cashView, setCashView] = useState<'six' | 'ytd'>('six');
   const [srcInfo, setSrcInfo] = useState(false);
@@ -1341,7 +1346,20 @@ export default function TodayDashboard() {
         )}
       </Card>
 
+      {/* ── advanced analytics: staged behind a reveal in guided mode ── */}
+      {!advanced && (
+        <button
+          onClick={() => setShowAdv(true)}
+          className="w-full text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-dashed border-[var(--green-border)] rounded-2xl px-5 py-3.5 hover:border-[var(--green)]"
+        >
+          {locale === 'ar'
+            ? '🔭 أظهِر التحليلات المتقدمة — المقارنة بالأقران، وتكوين الأصول، ودخل العمر'
+            : '🔭 Show the advanced analytics — peer comparison, asset mix, lifetime income'}
+        </button>
+      )}
+
       {/* ── Row 4: net worth vs peers, by age ── */}
+      {advanced && (
       <Card title={t('today.compare.title')} href="/positioning" explain={EX.compare}>
         {age && compare.length > 1 ? (
           <>
@@ -1384,9 +1402,10 @@ export default function TodayDashboard() {
           </p>
         )}
       </Card>
+      )}
 
       {/* ── Row 4a: asset composition over time ── */}
-      {assetComposition.length > 0 && assetSeries.length > 0 && (
+      {advanced && assetComposition.length > 0 && assetSeries.length > 0 && (
         <Card title={t('today.assets.title')} href="/financial-numbers" explain={EX.assets}>
           <div className="flex bg-[var(--surface-1)] rounded-lg p-0.5 mb-2 w-fit">
             <button
@@ -1448,7 +1467,7 @@ export default function TodayDashboard() {
       )}
 
       {/* ── Row 4b: lifetime income vs savings ── */}
-      {lifeEarned > 0 && (
+      {advanced && lifeEarned > 0 && (
         <Card title={t('today.lifetime.title')} href="/lifetime-income" explain={EX.lifetime}>
           <div className="flex items-baseline gap-4 flex-wrap mb-2">
             <div>

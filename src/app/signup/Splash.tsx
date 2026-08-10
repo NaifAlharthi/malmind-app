@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { SceneFutures, SceneVitals, SceneHiddenWealth } from './ProblemScenes';
+import { SceneApps, SceneFutures, SceneVitals, SceneHiddenWealth } from './ProblemScenes';
 
 interface Act { eyebrow: string; icon: string; title: string; body: string; tackle: string }
 interface Content {
@@ -19,7 +19,6 @@ interface Content {
   ctaCreate: string;
   ctaDemo: string;
   skip: string;
-  chips: string[];
   trust: { icon: string; text: string }[];
 }
 
@@ -37,14 +36,14 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       {
         eyebrow: 'المشكلة ٢ من ٤',
         icon: '🧮',
-        title: 'أرصدة، لا قرارات',
+        title: 'أرصدة مالية، لا قرارات',
         body: 'تطبيقات البنوك تريك ما تملكه اليوم — ثم تصمت تماماً حين تسأل: ماذا لو اشتريت الفيلا؟ ماذا تفعل العلاوة بمستقبلي؟ متى أبلغ حرّيتي؟ الرصيد رقمٌ؛ والقرار يحتاج نموذجاً تجرّبه قبل أن تعيشه.',
         tackle: 'طبقة نمذجة وسيناريوهات تلعب بها — «قارن وقرّر»، و«ماذا لو»، وسرعة المال: القرار بالأرقام قبل السنوات.',
       },
       {
         eyebrow: 'المشكلة ٣ من ٤',
         icon: '🔢',
-        title: 'أرقام بلا معنى',
+        title: 'أرقام مالية بلا معنى',
         body: 'تتراكم الأرقام على الشاشات دون أن تجيب عن السؤال الوحيد المهم: هل أنا بخير؟ هل أنا مكشوف؟ هل أنا على المسار؟ رقمٌ بلا تفسير عبءٌ ذهنيّ — لا بصيرة.',
         tackle: 'اثنتا عشرة علامة حيوية ومخاطر مرسومة كما تعنيه فعلاً، وإرشاد بلغة البشر — وكل بطاقة تشرح نفسها بزرّ ⓘ.',
       },
@@ -60,16 +59,6 @@ const CONTENT: Record<'ar' | 'en', Content> = {
     ctaCreate: 'أنشئ حسابك المجاني ↓',
     ctaDemo: 'اختر شخصية وامشِ في حياتها ↓',
     skip: 'تخطٍّ ↓',
-    chips: [
-      'راتب 28,000 ريال',
-      'قرض السيارة… 42,000؟',
-      'نتفلكس · سبوتيفاي · آيكلاود…',
-      'أرضي في القصيم = ؟',
-      'الإيجار 6,500',
-      'إبلي وذهبي… بلا قيمة مسجّلة',
-      'صافي الثروة = ؟؟',
-      'المدخرات… في مكانٍ ما',
-    ],
     trust: [
       { icon: '🔒', text: 'بياناتك ملكك — تُحفظ بأمان' },
       { icon: '🚫', text: 'لا تُباع ولا تُدرَّب عليها النماذج' },
@@ -112,16 +101,6 @@ const CONTENT: Record<'ar' | 'en', Content> = {
     ctaCreate: 'Create your free account ↓',
     ctaDemo: 'Walk through as a persona ↓',
     skip: 'skip ↓',
-    chips: [
-      'SAR 28,000 salary',
-      'car loan… 42,000?',
-      'Netflix · Spotify · iCloud…',
-      'my land in Qassim = ?',
-      'rent 6,500',
-      'camels & gold… uncounted',
-      'net worth = ??',
-      'savings… somewhere',
-    ],
     trust: [
       { icon: '🔒', text: 'Your data is yours — stored securely' },
       { icon: '🚫', text: 'Never sold, never used to train models' },
@@ -261,7 +240,7 @@ export default function Splash() {
 
         {/* animated scene — one per problem */}
         <div className="flex-1 max-w-md w-full h-[300px] sm:h-[340px] relative" key={`scene-${act}`}>
-          {act === 0 && <SceneChaos chips={c.chips} />}
+          {act === 0 && <div className="absolute inset-0"><SceneApps ar={ar} /></div>}
           {act === 1 && <div className="absolute inset-0"><SceneFutures ar={ar} /></div>}
           {act === 2 && <div className="absolute inset-0"><SceneVitals ar={ar} /></div>}
           {act === 3 && <div className="absolute inset-0"><SceneHiddenWealth ar={ar} /></div>}
@@ -450,34 +429,6 @@ function RiyadhSkyline() {
   );
 }
 
-// Act 1: scattered money-life fragments drifting in the dark.
-function SceneChaos({ chips }: { chips: string[] }) {
-  const pos = [
-    { x: '4%', y: '10%', rot: '-6deg', delay: '0s' },
-    { x: '52%', y: '3%', rot: '4deg', delay: '0.4s' },
-    { x: '6%', y: '40%', rot: '3deg', delay: '0.8s' },
-    { x: '58%', y: '32%', rot: '-3deg', delay: '0.2s' },
-    { x: '30%', y: '54%', rot: '5deg', delay: '0.6s' },
-    { x: '54%', y: '62%', rot: '-5deg', delay: '1s' },
-    { x: '2%', y: '72%', rot: '2deg', delay: '1.2s' },
-    { x: '34%', y: '86%', rot: '-4deg', delay: '1.4s' },
-  ];
-  return (
-    <div className="absolute inset-0" dir="rtl">
-      {chips.map((text, i) => (
-        <div
-          key={text}
-          className="mm-pop absolute text-[11px] sm:text-xs text-white/75 bg-white/[0.06] border border-white/15 rounded-full px-3.5 py-2 backdrop-blur-sm whitespace-nowrap"
-          style={{ insetInlineStart: pos[i].x, top: pos[i].y, ['--rot' as string]: pos[i].rot, animation: `mmPop 0.6s ease ${pos[i].delay} both, mmFloat 4.5s ease-in-out ${pos[i].delay} infinite` }}
-        >
-          {text}
-        </div>
-      ))}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="font-serif text-5xl text-white/10 select-none">؟</span>
-      </div>
-    </div>
-  );
-}
+// Act 1's scene (the separate app screens) lives in ./ProblemScenes.
 
 // Acts 2–4 render the shared problem scenes from ./ProblemScenes.

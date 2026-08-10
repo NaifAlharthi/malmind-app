@@ -47,7 +47,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     challenge: { ar: 'لا دخل ثابت بعد', en: 'No steady income yet' },
     interest: { ar: 'البرمجة والتقنية', en: 'Coding & tech' },
     goal: { ar: 'أول 10,000 ريال', en: 'First SAR 10,000' },
-    problem: { n: 3, icon: '🔢', ar: 'أرقام بلا معنى', en: 'Numbers without meaning' },
+    problem: { n: 3, icon: '🔢', ar: 'أرقام مالية بلا معنى', en: 'Numbers without meaning' },
   },
   {
     id: 'faisal', firstName: 'Faisal', firstNameAr: 'فيصل', name: 'Faisal Al-Otaibi', age: 24, gender: 'male',
@@ -77,7 +77,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     challenge: { ar: 'عالقة عند التعادل', en: 'Stuck at break-even' },
     interest: { ar: 'الأسرة والمنزل', en: 'Family & home' },
     goal: { ar: 'صندوق تعليم الأبناء', en: "Kids' education fund" },
-    problem: { n: 2, icon: '🧮', ar: 'أرصدة، لا قرارات', en: 'Balances, not decisions' },
+    problem: { n: 2, icon: '🧮', ar: 'أرصدة مالية، لا قرارات', en: 'Balances, not decisions' },
   },
   {
     id: 'khalid', firstName: 'Khalid', firstNameAr: 'خالد', name: 'Khalid Al-Dossari', age: 48, gender: 'male',
