@@ -280,9 +280,6 @@ export default function BrainCompanion() {
           <directionalLight position={[3, 4, 5]} intensity={1.1} />
           <BrainFigure level={level.level} excitementRef={excitementRef} />
         </Canvas>
-        <span className="mm-brain-badge absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-[#085041] border border-[#5DCAA5] text-[10px] font-bold text-[#5DCAA5] flex items-center justify-center">
-          {level.level}
-        </span>
         {/* the pointing hand, aimed at the spotlighted element */}
         {pointing && (
           <span

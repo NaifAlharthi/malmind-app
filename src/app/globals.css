@@ -292,7 +292,3 @@ body {
   right: auto;
   left: 1.25rem;
 }
-[dir="rtl"] .mm-brain-badge {
-  right: auto;
-  left: -0.25rem;
-}
