@@ -109,13 +109,18 @@ export default function TourPage() {
                   <PersonaAvatar id={p.id} />
                 </div>
                 <div className="min-w-0">
-                  <div className="font-serif text-sm font-semibold text-[var(--ink)] leading-tight">{p.firstName}<span className="text-[var(--muted)] font-normal">، {p.age}</span></div>
+                  <div className="font-serif text-sm font-semibold text-[var(--ink)] leading-tight">{ar ? p.firstNameAr : p.firstName}<span className="text-[var(--muted)] font-normal">، {p.age}</span></div>
                   <div className="text-[10px] text-[var(--muted)] truncate">{ar ? p.role.ar : p.role.en}</div>
                 </div>
               </div>
+              <div className="text-[10px] text-[var(--gold-text-strong)] mb-1.5">
+                {p.problem.icon} {ar
+                  ? `${p.gender === 'female' ? 'مشكلتها' : 'مشكلته'}: ${p.problem.ar}`
+                  : `Struggles with: ${p.problem.en}`}
+              </div>
               <div className="text-[11px] leading-snug mb-2" style={{ color: p.accent }}>“{ar ? p.tagline.ar : p.tagline.en}”</div>
               <div className="text-[11px] font-semibold text-[var(--green-dark)] group-hover:underline">
-                {L(`ابدأ بصفتك ${p.firstName} ←`, `Start as ${p.firstName} →`)}
+                {L(`ابدأ بصفتك ${p.firstNameAr} ←`, `Start as ${p.firstName} →`)}
               </div>
             </button>
           ))}

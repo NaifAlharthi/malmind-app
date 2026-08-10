@@ -112,9 +112,17 @@ export default function PersonaPicker() {
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: p.accent, background: `${p.accent}22` }}>{ar ? QUAD_LABEL[p.quadrant].ar : QUAD_LABEL[p.quadrant].en}</span>
                     <span className="text-[11px] text-white/40 ms-auto">{p.netWorth[ar ? 'ar' : 'en']}</span>
                   </div>
-                  <div className="font-serif text-lg font-semibold text-white leading-tight">{p.firstName}<span className="text-white/45 text-sm font-normal">، {p.age}</span></div>
+                  <div className="font-serif text-lg font-semibold text-white leading-tight">{ar ? p.firstNameAr : p.firstName}<span className="text-white/45 text-sm font-normal">، {p.age}</span></div>
                   <div className="text-[11px] text-white/55 truncate">{p.role[ar ? 'ar' : 'en']}</div>
                 </div>
+              </div>
+
+              {/* the explicit link to one of the four fundamental problems */}
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold rounded-lg px-2.5 py-1.5 mb-2.5 border"
+                style={{ color: '#E4C465', background: '#C9A84C14', borderColor: '#C9A84C44' }}>
+                {p.problem.icon} {ar
+                  ? `${p.gender === 'female' ? 'مشكلتها' : 'مشكلته'}: ${p.problem.ar}`
+                  : `Struggles with: ${p.problem.en}`}
               </div>
 
               <p className="text-[13px] font-medium mb-2 leading-snug" style={{ color: p.accent }}>“{p.tagline[ar ? 'ar' : 'en']}”</p>
@@ -132,7 +140,7 @@ export default function PersonaPicker() {
 
               <span className="inline-flex items-center gap-1.5 text-sm font-semibold rounded-xl px-4 py-2 text-white transition-transform group-hover:gap-2.5"
                 style={{ background: `linear-gradient(120deg, ${p.accent}, ${p.accent}CC)`, boxShadow: `0 10px 26px -10px ${p.accent}99` }}>
-                {L(`امشِ في حياة ${p.firstName}`, `Walk through as ${p.firstName}`)} <span>{ar ? '←' : '→'}</span>
+                {L(`امشِ في حياة ${p.firstNameAr}`, `Walk through as ${p.firstName}`)} <span>{ar ? '←' : '→'}</span>
               </span>
             </button>
             </Reveal>

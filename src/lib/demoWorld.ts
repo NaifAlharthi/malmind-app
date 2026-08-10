@@ -15,6 +15,7 @@ type Row = Record<string, unknown>;
 export interface DemoPersona {
   id: string;
   firstName: string;
+  firstNameAr: string;
   name: string;
   age: number;
   gender: 'male' | 'female';
@@ -27,11 +28,14 @@ export interface DemoPersona {
   challenge: { ar: string; en: string };
   interest: { ar: string; en: string };
   goal: { ar: string; en: string };
+  // Which of the four fundamental problems this persona's life embodies —
+  // the picker draws the link explicitly (one persona per problem).
+  problem: { n: number; icon: string; ar: string; en: string };
 }
 
 export const DEMO_PERSONAS: DemoPersona[] = [
   {
-    id: 'layla', firstName: 'Layla', name: 'Layla Al-Ghamdi', age: 20, gender: 'female',
+    id: 'layla', firstName: 'Layla', firstNameAr: 'ليلى', name: 'Layla Al-Ghamdi', age: 20, gender: 'female',
     quadrant: 'A', accent: '#4A78C4',
     role: { ar: 'طالبة حاسب في جامعة الملك سعود', en: 'CS student, King Saud University' },
     tagline: { ar: 'أبني عاداتي الأولى قبل أن أبني ثروتي.', en: 'Building my first habits before my first wealth.' },
@@ -43,9 +47,10 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     challenge: { ar: 'لا دخل ثابت بعد', en: 'No steady income yet' },
     interest: { ar: 'البرمجة والتقنية', en: 'Coding & tech' },
     goal: { ar: 'أول 10,000 ريال', en: 'First SAR 10,000' },
+    problem: { n: 3, icon: '🔢', ar: 'أرقام بلا معنى', en: 'Numbers without meaning' },
   },
   {
-    id: 'faisal', firstName: 'Faisal', name: 'Faisal Al-Otaibi', age: 24, gender: 'male',
+    id: 'faisal', firstName: 'Faisal', firstNameAr: 'فيصل', name: 'Faisal Al-Otaibi', age: 24, gender: 'male',
     quadrant: 'B', accent: '#D89A3E',
     role: { ar: 'محلّل مبتدئ في بنك بالرياض', en: 'Junior analyst at a Riyadh bank' },
     tagline: { ar: 'راتبي جيّد… فلماذا لا يبقى منه شيء؟', en: 'Good salary — so why is nothing left?' },
@@ -57,9 +62,10 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     challenge: { ar: 'الإنفاق يسبق الدخل', en: 'Outflow beats income' },
     interest: { ar: 'السيارات والتقنية', en: 'Cars & gadgets' },
     goal: { ar: 'أوقف النزيف', en: 'Stop the bleed' },
+    problem: { n: 1, icon: '🧩', ar: 'بياناته المالية مبعثرة في كل مكان', en: 'Financial data scattered everywhere' },
   },
   {
-    id: 'reem', firstName: 'Reem', name: 'Reem Al-Harbi', age: 34, gender: 'female',
+    id: 'reem', firstName: 'Reem', firstNameAr: 'ريم', name: 'Reem Al-Harbi', age: 34, gender: 'female',
     quadrant: 'C', accent: '#1D9E75',
     role: { ar: 'موظّفة في وزارة حكومية', en: 'Government ministry employee' },
     tagline: { ar: 'أغطّي كل شيء… لكن لا يتبقّى للبناء.', en: 'I cover everything — but nothing is left to build with.' },
@@ -71,9 +77,10 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     challenge: { ar: 'عالقة عند التعادل', en: 'Stuck at break-even' },
     interest: { ar: 'الأسرة والمنزل', en: 'Family & home' },
     goal: { ar: 'صندوق تعليم الأبناء', en: "Kids' education fund" },
+    problem: { n: 2, icon: '🧮', ar: 'أرصدة، لا قرارات', en: 'Balances, not decisions' },
   },
   {
-    id: 'khalid', firstName: 'Khalid', name: 'Khalid Al-Dossari', age: 48, gender: 'male',
+    id: 'khalid', firstName: 'Khalid', firstNameAr: 'خالد', name: 'Khalid Al-Dossari', age: 48, gender: 'male',
     quadrant: 'D', accent: '#C9A84C',
     role: { ar: 'صاحب أعمال (مقاولات وتجارة)', en: 'Business owner (trading & contracting)' },
     tagline: { ar: 'الجزء الصعب انتهى — الآن أضاعف وأعطي.', en: 'The hard part is done — now I multiply and give.' },
@@ -85,6 +92,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     challenge: { ar: 'نقد معطّل وتركّز', en: 'Idle cash & concentration' },
     interest: { ar: 'العقار والعطاء', en: 'Real estate & giving' },
     goal: { ar: 'وقف عائلي وإرث', en: 'A family waqf & legacy' },
+    problem: { n: 4, icon: '🐫', ar: 'ثروته ليست نقداً فقط', en: "Wealth isn't just cash" },
   },
 ];
 

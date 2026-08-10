@@ -1,25 +1,25 @@
 'use client';
 
 // The landing splash — Saudi-first and Arabic by default. A self-running,
-// three-act animated story (the problem → one living picture → the toolkit)
-// set against a Saudi-green night sky with the Riyadh skyline and the national
-// emblem, before inviting the visitor to sign up or drop into the live demo.
-// Bilingual (flips with the language toggle); pure CSS/SVG, no assets.
+// four-act cinematic: each act gives ONE of the four fundamental problems the
+// visitor's full attention — the issue properly stated, exactly how MalMind
+// tackles it, and a living scene that draws it — set against a Saudi-green
+// night sky with the Riyadh skyline and the national emblem. Bilingual
+// (flips with the language toggle); pure CSS/SVG, no assets.
 
 import { useEffect, useState } from 'react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { SceneFutures, SceneVitals, SceneHiddenWealth } from './ProblemScenes';
 
-interface Act { eyebrow: string; title: string; body: string }
+interface Act { eyebrow: string; icon: string; title: string; body: string; tackle: string }
 interface Content {
   tag: string;
   acts: Act[];
+  tackleLabel: string;
   ctaCreate: string;
   ctaDemo: string;
   skip: string;
-  sceneNetWorth: string;
-  stats: [string, string][];
   chips: string[];
-  tools: { icon: string; name: string; desc: string }[];
   trust: { icon: string; text: string }[];
 }
 
@@ -28,26 +28,38 @@ const CONTENT: Record<'ar' | 'en', Content> = {
     tag: 'صُنع للسعودية',
     acts: [
       {
-        eyebrow: 'المشكلة',
-        title: 'دخلك جيّد… فلماذا الصورة ضبابية؟',
-        body: 'الراتب في تطبيق، والقروض في آخر، والاشتراكات في كل مكان — وحتى أرضك وذهبك وإبلك لا أداة تلتقط قيمتها. أغلبنا لا يعرف صافي ثروته الحقيقية، ولا يجيب عن أبسط سؤال: هل أتقدّم فعلاً؟',
+        eyebrow: 'المشكلة ١ من ٤',
+        icon: '🧩',
+        title: 'بياناتك المالية مبعثرة في كل مكان',
+        body: 'الراتب في تطبيق البنك، والأسهم عند الوسيط، والقروض في تطبيق ثالث، والاشتراكات تُخصم بصمت. لا شيء يريك الصورة كاملة، فتعيش حياتك المالية مشاهدَ متفرقة بلا فيلم — ولا تستطيع الإجابة عن أبسط سؤال: هل أتقدّم فعلاً؟',
+        tackle: 'مال مايند يجمعها في سِجلٍّ واحد مترابط: خمس دقائق شهرياً، وكل أداة في المنتج تُحسب من الصورة نفسها.',
       },
       {
-        eyebrow: 'الحل',
-        title: 'مال مايند تحوّل أموالك إلى صورةٍ واحدة حيّة.',
-        body: 'سجّل أرقامك مرّة — أو زامِن جدولاً — ويحتسب كل شيء نفسه: صافي الثروة عبر الزمن، والنِّسب الصحية، والمخاطر، وعالمٌ ثلاثي الأبعاد تقف فيه حياتك المالية أمامك.',
+        eyebrow: 'المشكلة ٢ من ٤',
+        icon: '🧮',
+        title: 'أرصدة، لا قرارات',
+        body: 'تطبيقات البنوك تريك ما تملكه اليوم — ثم تصمت تماماً حين تسأل: ماذا لو اشتريت الفيلا؟ ماذا تفعل العلاوة بمستقبلي؟ متى أبلغ حرّيتي؟ الرصيد رقمٌ؛ والقرار يحتاج نموذجاً تجرّبه قبل أن تعيشه.',
+        tackle: 'طبقة نمذجة وسيناريوهات تلعب بها — «قارن وقرّر»، و«ماذا لو»، وسرعة المال: القرار بالأرقام قبل السنوات.',
       },
       {
-        eyebrow: 'الأدوات',
-        title: 'اِرَها. ناقِشها. صمّمها.',
-        body: 'مجموعة أدوات ومستشارٌ ذكي يعرف قصتك كاملة — من كل ما كسبته في حياتك، إلى متى تتضاعف محفظتك، إلى ماذا يحدث لو اشتريت الفيلا عام 2028.',
+        eyebrow: 'المشكلة ٣ من ٤',
+        icon: '🔢',
+        title: 'أرقام بلا معنى',
+        body: 'تتراكم الأرقام على الشاشات دون أن تجيب عن السؤال الوحيد المهم: هل أنا بخير؟ هل أنا مكشوف؟ هل أنا على المسار؟ رقمٌ بلا تفسير عبءٌ ذهنيّ — لا بصيرة.',
+        tackle: 'اثنتا عشرة علامة حيوية ومخاطر مرسومة كما تعنيه فعلاً، وإرشاد بلغة البشر — وكل بطاقة تشرح نفسها بزرّ ⓘ.',
+      },
+      {
+        eyebrow: 'المشكلة ٤ من ٤',
+        icon: '🐫',
+        title: 'ثروتك ليست نقداً فقط',
+        body: 'أرضك في القصيم، وإبلك، وذهب البيت، وحصّتك في مشروع عائلي — قيمة حقيقية لا يلتقطها أي تطبيق بنكي، فيظهر «صافي ثروتك» أصغر بكثير من حقيقته، وتُبنى قراراتك على صورة ناقصة.',
+        tackle: 'سجّل كل أصل حقيقي بقيمته — أرضاً كان أم ماشيةً أم ذهباً — ليظهر صافي ثروتك الحقيقي وتقف كل أداة عليه.',
       },
     ],
+    tackleLabel: 'كيف نعالجها',
     ctaCreate: 'أنشئ حسابك المجاني ↓',
     ctaDemo: 'اختر شخصية وامشِ في حياتها ↓',
     skip: 'تخطٍّ ↓',
-    sceneNetWorth: 'صافي الثروة — يُحتسب مباشرة',
-    stats: [['صافي الثروة', '1.0M ريال'], ['مدى الأمان', '7.8 أشهر'], ['معدل الادخار', '34%']],
     chips: [
       'راتب 28,000 ريال',
       'قرض السيارة… 42,000؟',
@@ -57,12 +69,6 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       'إبلي وذهبي… بلا قيمة مسجّلة',
       'صافي الثروة = ؟؟',
       'المدخرات… في مكانٍ ما',
-    ],
-    tools: [
-      { icon: '🧍', name: 'حياتك بالأبعاد الثلاثة', desc: 'شخصيتك على خط زمنك، وأصولك واقفةٌ بجانبك' },
-      { icon: '🩺', name: '12 نسبة صحية', desc: 'مدى الأمان، معدل الادخار، الدين — كلٌّ مرسومٌ كما يعنيه' },
-      { icon: '🔮', name: 'ماذا لو', desc: 'جرّب الفيلا، الترقية، انقطاعاً مهنياً — قبل أن تقرّر' },
-      { icon: '💬', name: 'مستشار ذكي', desc: 'يعرف قصتك كاملة، ويستشهد بأرقامك الحقيقية' },
     ],
     trust: [
       { icon: '🔒', text: 'بياناتك ملكك — تُحفظ بأمان' },
@@ -74,26 +80,38 @@ const CONTENT: Record<'ar' | 'en', Content> = {
     tag: 'Made for Saudi Arabia',
     acts: [
       {
-        eyebrow: 'The problem',
-        title: 'You earn well. So why is the picture blurry?',
-        body: "Salary in one app, loans in another, subscriptions everywhere — and the land, gold, and camels you own? No tool captures their value at all. Most of us don't know our true net worth, or whether we're actually getting ahead.",
+        eyebrow: 'Problem 1 of 4',
+        icon: '🧩',
+        title: 'Your financial data, scattered everywhere',
+        body: "Your salary in the bank app, stocks at a broker, loans in a third app, subscriptions quietly draining. Nothing shows the whole picture, so you live your financial life as scattered scenes with no film — unable to answer the simplest question: am I actually getting ahead?",
+        tackle: 'MalMind pulls it into one connected ledger: five minutes a month, and every tool in the product computes from the same picture.',
       },
       {
-        eyebrow: 'The answer',
-        title: 'MalMind turns your money into one living picture.',
-        body: 'Log your numbers once — or sync a spreadsheet — and everything computes itself: net worth over time, health ratios, risks, and a 3D world where your financial life literally stands in front of you.',
+        eyebrow: 'Problem 2 of 4',
+        icon: '🧮',
+        title: 'Balances, not decisions',
+        body: "Bank apps show what you have today — then go silent when you ask: what if I buy the villa? What does the raise do to my future? When do I reach freedom? A balance is a number; a decision needs a model you can try before you live it.",
+        tackle: 'A modeling & scenario layer you can play with — Compare & Decide, What-If, Velocity: the decision in numbers before it costs you years.',
       },
       {
-        eyebrow: 'The toolkit',
-        title: 'See it. Question it. Design it.',
-        body: "A toolkit and an AI advisor that knows your whole story — from what you've earned in your lifetime, to when your portfolio doubles, to what happens if you buy the villa in 2028.",
+        eyebrow: 'Problem 3 of 4',
+        icon: '🔢',
+        title: 'Numbers without meaning',
+        body: "Figures pile up on screens without answering the only question that matters: am I healthy? Am I exposed? Am I on track? A number without an interpretation is mental load — not insight.",
+        tackle: 'Twelve vital signs and risks drawn as what they actually mean, guidance in human language — and every card explains itself with ⓘ.',
+      },
+      {
+        eyebrow: 'Problem 4 of 4',
+        icon: '🐫',
+        title: "Wealth isn't just cash",
+        body: 'Your land in Qassim, your camels, the household gold, a stake in a family venture — real value no banking app captures. Your "net worth" reads far smaller than the truth, and your decisions build on an incomplete picture.',
+        tackle: 'Log every real asset at its value — land, livestock, gold — so your true net worth appears and every tool stands on it.',
       },
     ],
+    tackleLabel: 'How we tackle it',
     ctaCreate: 'Create your free account ↓',
     ctaDemo: 'Walk through as a persona ↓',
     skip: 'skip ↓',
-    sceneNetWorth: 'Net worth — computed live',
-    stats: [['Net worth', 'SAR 1.0M'], ['Runway', '7.8 months'], ['Savings rate', '34%']],
     chips: [
       'SAR 28,000 salary',
       'car loan… 42,000?',
@@ -104,12 +122,6 @@ const CONTENT: Record<'ar' | 'en', Content> = {
       'net worth = ??',
       'savings… somewhere',
     ],
-    tools: [
-      { icon: '🧍', name: 'Your life, in 3D', desc: 'an avatar on your timeline, assets standing beside you' },
-      { icon: '🩺', name: '12 health ratios', desc: 'runway, savings rate, debt — each drawn as what it means' },
-      { icon: '🔮', name: 'What if', desc: 'model the villa, the raise, the career break — before deciding' },
-      { icon: '💬', name: 'AI advisor', desc: 'knows your whole story, cites your actual numbers' },
-    ],
     trust: [
       { icon: '🔒', text: 'Your data is yours — stored securely' },
       { icon: '🚫', text: 'Never sold, never used to train models' },
@@ -118,17 +130,21 @@ const CONTENT: Record<'ar' | 'en', Content> = {
   },
 };
 
-const ACT_MS = 5200;
+// Long enough to actually read and digest one problem before the next.
+const ACT_MS = 8000;
 
 export default function Splash() {
   const { locale } = useLocale();
-  const c = CONTENT[locale === 'ar' ? 'ar' : 'en'];
+  const ar = locale === 'ar';
+  const c = CONTENT[ar ? 'ar' : 'en'];
   const [act, setAct] = useState(0);
 
+  // One timeout per act (not a global interval) so a manual jump gives that
+  // problem its full reading time too.
   useEffect(() => {
-    const t = setInterval(() => setAct((x) => (x + 1) % 3), ACT_MS);
-    return () => clearInterval(t);
-  }, []);
+    const t = setTimeout(() => setAct((x) => (x + 1) % 4), ACT_MS);
+    return () => clearTimeout(t);
+  }, [act]);
 
   const scrollToForm = () => document.getElementById('signup-form')?.scrollIntoView({ behavior: 'smooth' });
   const startDemo = () => document.getElementById('persona-picker')?.scrollIntoView({ behavior: 'smooth' });
@@ -151,6 +167,8 @@ export default function Splash() {
         @keyframes mmSheen { 0% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
         @keyframes mmGlow { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
         @keyframes mmShimmer { 0% { background-position: 200% 50%; } 100% { background-position: -200% 50%; } }
+        @keyframes fpDraw { from { stroke-dashoffset: 300; } to { stroke-dashoffset: 0; } }
+        @keyframes fpGlowIn { 0% { opacity: 0.15; filter: grayscale(1); } 100% { opacity: 1; filter: grayscale(0); } }
         .mm-fade { animation: mmFade 0.7s ease both; }
         .mm-pop { animation: mmPop 0.6s ease both; }
         .mm-shimmer {
@@ -198,13 +216,22 @@ export default function Splash() {
       <div className="relative z-10 flex-1 flex flex-col lg:flex-row items-center justify-center gap-10 px-8 py-10 max-w-6xl mx-auto w-full">
         {/* copy */}
         <div className="flex-1 max-w-xl" key={`copy-${act}`}>
-          <div className="mm-fade text-[11px] tracking-[0.18em] uppercase text-[#C9A84C] mb-3" style={{ animationDelay: '0.05s' }}>{a.eyebrow}</div>
-          <h1 className="mm-fade font-serif text-3xl sm:text-4xl font-semibold leading-tight mb-4 pb-1" style={{ animationDelay: '0.15s' }}>
+          <div className="mm-fade inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] uppercase text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-full px-3 py-1 mb-4" style={{ animationDelay: '0.05s' }}>
+            {a.eyebrow}
+          </div>
+          <h1 className="mm-fade font-serif text-3xl sm:text-4xl font-semibold leading-tight mb-4 pb-1 flex items-start gap-3" style={{ animationDelay: '0.15s' }}>
+            <span className="text-3xl sm:text-4xl leading-none mt-1">{a.icon}</span>
             <span className="mm-shimmer">{a.title}</span>
           </h1>
-          <p className="mm-fade text-sm sm:text-base text-white/65 leading-relaxed mb-8" style={{ animationDelay: '0.3s' }}>{a.body}</p>
+          <p className="mm-fade text-sm sm:text-base text-white/65 leading-relaxed mb-5" style={{ animationDelay: '0.3s' }}>{a.body}</p>
 
-          <div className="mm-fade flex flex-wrap items-center gap-3" style={{ animationDelay: '0.45s' }}>
+          {/* how we tackle it */}
+          <div className="mm-fade border-s-2 border-[#5DCAA5] ps-3.5 mb-7" style={{ animationDelay: '0.42s' }}>
+            <div className="text-[10px] tracking-[0.12em] uppercase text-[#5DCAA5] mb-1">{c.tackleLabel}</div>
+            <p className="text-sm text-[#BFF3DE] leading-relaxed">{a.tackle}</p>
+          </div>
+
+          <div className="mm-fade flex flex-wrap items-center gap-3" style={{ animationDelay: '0.55s' }}>
             <button
               onClick={scrollToForm}
               className="group relative overflow-hidden text-sm font-semibold text-white rounded-xl px-6 py-3 transition-transform hover:-translate-y-0.5"
@@ -232,17 +259,18 @@ export default function Splash() {
           </div>
         </div>
 
-        {/* animated scene */}
+        {/* animated scene — one per problem */}
         <div className="flex-1 max-w-md w-full h-[300px] sm:h-[340px] relative" key={`scene-${act}`}>
           {act === 0 && <SceneChaos chips={c.chips} />}
-          {act === 1 && <ScenePicture label={c.sceneNetWorth} stats={c.stats} />}
-          {act === 2 && <SceneToolkit tools={c.tools} />}
+          {act === 1 && <div className="absolute inset-0"><SceneFutures ar={ar} /></div>}
+          {act === 2 && <div className="absolute inset-0"><SceneVitals ar={ar} /></div>}
+          {act === 3 && <div className="absolute inset-0"><SceneHiddenWealth ar={ar} /></div>}
         </div>
       </div>
 
       {/* act dots */}
       <div className="relative z-10 flex items-center justify-center gap-2.5 pb-8">
-        {[0, 1, 2].map((i) => (
+        {c.acts.map((_, i) => (
           <button key={i} onClick={() => setAct(i)} aria-label={`${i + 1}`}
             className="h-1.5 rounded-full transition-all duration-300"
             style={{ width: i === act ? 28 : 10, background: i === act ? '#5DCAA5' : 'rgba(255,255,255,0.25)' }} />
@@ -452,66 +480,4 @@ function SceneChaos({ chips }: { chips: string[] }) {
   );
 }
 
-// Act 2: the net-worth line draws itself over a settling grid of tiles.
-function ScenePicture({ label, stats }: { label: string; stats: [string, string][] }) {
-  return (
-    <div className="absolute inset-0 flex flex-col justify-center">
-      <div className="rounded-2xl p-5 backdrop-blur-md"
-        style={{ background: 'linear-gradient(160deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))', border: '1px solid rgba(255,255,255,0.14)', boxShadow: '0 20px 60px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)' }}>
-        <div className="text-[10px] tracking-[0.12em] uppercase text-[#C9A84C] mb-3">{label}</div>
-        <svg viewBox="0 0 360 140" className="w-full h-32">
-          <defs>
-            <linearGradient id="mmLine" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#17B8C9" />
-              <stop offset="100%" stopColor="#5DCAA5" />
-            </linearGradient>
-            <linearGradient id="mmArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#5DCAA5" stopOpacity="0.30" />
-              <stop offset="100%" stopColor="#5DCAA5" stopOpacity="0" />
-            </linearGradient>
-            <filter id="mmLineGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3.5" result="b" />
-              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
-          </defs>
-          {[0, 35, 70, 105, 140].map((y) => (
-            <line key={y} x1="0" y1={y} x2="360" y2={y} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
-          ))}
-          <path d="M4,128 C60,120 80,112 120,98 C160,84 180,80 220,60 C260,40 300,30 356,10 L356,140 L4,140 Z"
-            fill="url(#mmArea)" opacity="0" style={{ animation: 'mmFade 1s ease 1.6s both' }} />
-          <path
-            d="M4,128 C60,120 80,112 120,98 C160,84 180,80 220,60 C260,40 300,30 356,10"
-            fill="none" stroke="url(#mmLine)" strokeWidth="3" strokeLinecap="round" filter="url(#mmLineGlow)"
-            strokeDasharray="620" style={{ animation: 'mmDraw 2.4s ease-out 0.2s both' }}
-          />
-          <circle cx="356" cy="10" r="5" fill="#EAFBF3" stroke="#5DCAA5" strokeWidth="2" style={{ animation: 'mmPop 0.4s ease 2.4s both' }} />
-        </svg>
-        <div className="grid grid-cols-3 gap-2 mt-3">
-          {stats.map(([k, v], i) => (
-            <div key={k} className="mm-pop bg-white/[0.06] border border-white/10 rounded-lg p-2.5" style={{ animationDelay: `${0.8 + i * 0.3}s` }}>
-              <div className="text-[9px] text-white/45">{k}</div>
-              <div className="text-sm font-serif font-bold text-white">{v}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Act 3: the toolkit cards pop in.
-function SceneToolkit({ tools }: { tools: { icon: string; name: string; desc: string }[] }) {
-  return (
-    <div className="absolute inset-0 flex flex-col justify-center gap-2.5">
-      {tools.map((tool, i) => (
-        <div key={tool.name} className="mm-pop flex items-center gap-3 bg-white/[0.06] border border-white/12 rounded-xl px-4 py-3 backdrop-blur-sm" style={{ animationDelay: `${i * 0.25}s` }}>
-          <span className="text-xl">{tool.icon}</span>
-          <div>
-            <div className="text-sm font-semibold text-white">{tool.name}</div>
-            <div className="text-[11px] text-white/55">{tool.desc}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+// Acts 2–4 render the shared problem scenes from ./ProblemScenes.

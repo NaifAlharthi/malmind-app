@@ -181,7 +181,7 @@ export default function HomePage() {
   const PROBLEMS = [
     {
       icon: '🧩',
-      problem: L('مبعثرة في كل مكان', 'Scattered everywhere'),
+      problem: L('بياناتك المالية مبعثرة في كل مكان', 'Your financial data, scattered everywhere'),
       desc: L(
         'مالك يعيش في تطبيقات البنوك والوسطاء والجداول — ولا مكان واحد يُظهر الصورة كاملة.',
         'Your money lives across bank apps, brokers and spreadsheets — no single place shows the whole picture.'
