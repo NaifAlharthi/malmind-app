@@ -165,11 +165,19 @@
   --font-serif: var(--font-serif-stack);
 }
 
+/* The root scroller never rubber-bands past its edges — elastic overscroll
+   drags every fixed/sticky element (top bar, iceberg, Brain) down with the
+   visual viewport and leaves the page looking detached. */
+html {
+  overscroll-behavior-y: none;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans-stack);
   transition: background-color 0.15s ease, color 0.15s ease;
+  overscroll-behavior-y: none;
 }
 
 .font-serif {

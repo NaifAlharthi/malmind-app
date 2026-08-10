@@ -258,13 +258,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-28 max-w-4xl mx-auto w-full">
+        <main className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-8 sm:pt-24 max-w-4xl mx-auto w-full">
           {children}
         </main>
 
         {/* ── the floating timeline: the horizontal (time) axis of the 2D map,
-               mirroring the iceberg's vertical (depth) axis ── */}
-        <div className="hidden sm:block fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg">
+               hovering just below the top bar, facing the iceberg's vertical axis ── */}
+        <div className="hidden sm:block fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg">
           <TimelineNav />
         </div>
 
