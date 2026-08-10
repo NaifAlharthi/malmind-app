@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -60,6 +60,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [initials, setInitials] = useState('?');
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileVersion, setProfileVersion] = useState(0);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  // The ☰ menu closes on outside click or Escape.
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMoreOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [moreOpen]);
 
   useEffect(() => {
     if (FULL_BLEED_PATHS.includes(pathname)) return;
@@ -152,35 +171,63 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               {/* experience mode: hold-my-hand · getting a hold · pro */}
               <XModeSwitcher className="me-1" />
               <button
-                onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
-                title={t('common.language')}
-                className="h-8 px-2 rounded-lg text-xs text-[var(--ink-2)] hover:bg-[var(--surface-1)] flex items-center gap-1"
-              >
-                <span>🌐</span>
-                <span className="font-medium">{locale === 'en' ? 'ع' : 'EN'}</span>
-              </button>
-              <button
-                onClick={toggleTheme}
-                title={theme === 'dark' ? t('common.lightMode') : t('common.darkMode')}
-                className="h-8 w-8 rounded-lg text-[var(--ink-2)] hover:bg-[var(--surface-1)] flex items-center justify-center text-sm"
-              >
-                {theme === 'dark' ? '☀' : '☾'}
-              </button>
-              <button
                 onClick={() => setEditProfileOpen(true)}
                 title={t('common.editProfile')}
                 className="w-8 h-8 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-[10px] font-semibold text-[var(--green-dark)] hover:bg-[var(--green-hover-bg)] transition-colors"
               >
                 {initials}
               </button>
-              <button
-                onClick={handleSignOut}
-                title={t('common.signOut')}
-                className="h-8 px-2 rounded-lg text-xs text-[var(--muted)] hover:bg-[var(--surface-1)] flex items-center"
-              >
-                <span className="hidden md:inline">{t('common.signOut')}</span>
-                <span className="md:hidden text-sm">⏻</span>
-              </button>
+
+              {/* ☰ more: language · theme · sign out */}
+              <div ref={moreRef} className="relative">
+                <button
+                  onClick={() => setMoreOpen((o) => !o)}
+                  title={t('common.more')}
+                  aria-haspopup="menu"
+                  aria-expanded={moreOpen}
+                  className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${
+                    moreOpen ? 'bg-[var(--surface-1)] text-[var(--ink)]' : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
+                  }`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                    <line x1="2.5" y1="4.5" x2="13.5" y2="4.5" />
+                    <line x1="2.5" y1="8" x2="13.5" y2="8" />
+                    <line x1="2.5" y1="11.5" x2="13.5" y2="11.5" />
+                  </svg>
+                </button>
+                {moreOpen && (
+                  <div
+                    role="menu"
+                    className="absolute end-0 top-full mt-1.5 z-50 min-w-44 rounded-xl border border-[var(--border-default)] bg-[var(--surface-card)] shadow-lg py-1.5 text-sm"
+                  >
+                    <button
+                      role="menuitem"
+                      onClick={() => { setLocale(locale === 'en' ? 'ar' : 'en'); setMoreOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[var(--ink-2)] hover:bg-[var(--surface-1)] text-start"
+                    >
+                      <span>🌐</span>
+                      <span>{locale === 'en' ? 'العربية' : 'English'}</span>
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => { toggleTheme(); setMoreOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[var(--ink-2)] hover:bg-[var(--surface-1)] text-start"
+                    >
+                      <span>{theme === 'dark' ? '☀' : '☾'}</span>
+                      <span>{theme === 'dark' ? t('common.lightMode') : t('common.darkMode')}</span>
+                    </button>
+                    <div className="my-1.5 border-t border-[var(--border-default)]" />
+                    <button
+                      role="menuitem"
+                      onClick={() => { setMoreOpen(false); handleSignOut(); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[var(--muted)] hover:bg-[var(--surface-1)] hover:text-[var(--ink-2)] text-start"
+                    >
+                      <span>⏻</span>
+                      <span>{t('common.signOut')}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
