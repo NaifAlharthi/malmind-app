@@ -8,7 +8,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { firstNameOf } from '@/lib/name';
+import { localizedFirstName } from '@/lib/name';
 import { suggestForTier, tierLabel, type Tier } from '@/lib/standardOfLiving';
 
 export const runtime = 'nodejs';
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     .eq('id', user.id)
     .single();
 
-  const name = firstNameOf(profile?.name) || (locale === 'ar' ? 'المستخدم' : 'the user');
+  const name = localizedFirstName(profile?.name, locale === 'ar') || (locale === 'ar' ? 'المستخدم' : 'the user');
   const ctx = [
     profile?.age ? `age ${profile.age}` : null,
     profile?.employment || null,

@@ -46,6 +46,21 @@ export default function TimelineNav({ className = '' }: { className?: string }) 
   const [expanded, setExpanded] = useState(false);
   const prev = useRef(activeIndex);
 
+  // When the top bar gets crowded the band can be squeezed until the three
+  // labels overlap — measure ourselves and drop to dots-only (tooltips keep
+  // the names) whenever there isn't honest room for text.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [showLabels, setShowLabels] = useState(true);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setShowLabels(entry.contentRect.width >= 165);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   useEffect(() => {
     if (prev.current === activeIndex) return;
     setDir(activeIndex > prev.current ? 1 : -1);
@@ -62,7 +77,7 @@ export default function TimelineNav({ className = '' }: { className?: string }) 
   const leftPct = ((activeIndex + 0.5) / NODES.length) * 100;
 
   return (
-    <div dir="ltr" className={`mm-band relative ${expanded ? 'h-16' : 'h-12'} ${className}`}>
+    <div ref={rootRef} dir="ltr" className={`mm-band relative ${expanded ? 'h-16' : 'h-12'} ${className}`}>
       {/* the line */}
       <div className="absolute inset-x-3 top-1/2 -translate-y-1/2 h-[2px] rounded-full bg-[var(--border-medium)]" />
       {/* travelled segment up to the figure */}
@@ -84,13 +99,15 @@ export default function TimelineNav({ className = '' }: { className?: string }) 
                     : 'w-2 h-2 bg-[var(--border-strong)] group-hover:bg-[var(--muted)]'
                 }`}
               />
-              <span
-                className={`absolute left-1/2 -translate-x-1/2 top-1/2 mt-2.5 whitespace-nowrap text-[10px] transition-colors ${
-                  active ? 'text-[var(--ink)] font-semibold' : 'text-[var(--muted)] group-hover:text-[var(--ink-2)]'
-                }`}
-              >
-                {t(n.labelKey)}
-              </span>
+              {showLabels && (
+                <span
+                  className={`absolute left-1/2 -translate-x-1/2 top-1/2 mt-2.5 whitespace-nowrap text-[10px] transition-colors ${
+                    active ? 'text-[var(--ink)] font-semibold' : 'text-[var(--muted)] group-hover:text-[var(--ink-2)]'
+                  }`}
+                >
+                  {t(n.labelKey)}
+                </span>
+              )}
             </Link>
           );
         })}

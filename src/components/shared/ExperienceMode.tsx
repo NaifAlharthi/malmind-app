@@ -60,7 +60,7 @@ export function XModeSwitcher({ className = '' }: { className?: string }) {
             }`}
           >
             <span className="leading-none">{meta.icon}</span>
-            <span className="hidden md:inline">{ar ? meta.label.ar : meta.label.en}</span>
+            <span className="hidden lg:inline">{ar ? meta.label.ar : meta.label.en}</span>
           </button>
         );
       })}

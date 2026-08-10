@@ -5,7 +5,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sky, Text, Billboard } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { createClient } from '@/lib/supabase/client';
-import { firstNameOf } from '@/lib/name';
+import { localizedFirstName } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // WebGL text (troika) can't shape Arabic with the default Latin font, so
@@ -322,7 +322,7 @@ export default function Metaverse3D() {
       supabase.from('assets').select('id, name, asset_type, value').eq('user_id', user.id).order('created_at', { ascending: true }),
     ]);
 
-    if (profile?.name) setName(firstNameOf(profile.name));
+    if (profile?.name) setName(localizedFirstName(profile.name, ar));
     if (profile?.age) {
       setCurrentAge(profile.age);
       setViewAge(profile.age);
@@ -330,7 +330,7 @@ export default function Metaverse3D() {
     if (profile?.liquid_savings != null) setLiquidSavings(Number(profile.liquid_savings));
     if (invest?.portfolio_value != null) setPortfolioValue(Number(invest.portfolio_value));
     if (assetRows) setAssets(assetRows as { id: string; name: string; asset_type: AssetType; value: number }[]);
-  }, [supabase]);
+  }, [supabase, ar]);
 
   useEffect(() => {
     load();

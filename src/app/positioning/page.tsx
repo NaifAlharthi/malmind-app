@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
-import { firstNameOf } from '@/lib/name';
+import { localizedFirstName } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import UnderstandPositioning from './UnderstandPositioning';
 
@@ -51,7 +51,7 @@ export default function PositioningPage() {
       .select('name')
       .eq('id', user.id)
       .single();
-    if (profile?.name) setName(firstNameOf(profile.name));
+    if (profile?.name) setName(localizedFirstName(profile.name, ar));
 
     const { data } = await supabase
       .from('net_worth_snapshots')
@@ -61,7 +61,7 @@ export default function PositioningPage() {
 
     if (data) setRows(data as NetWorthRow[]);
     setLoading(false);
-  }, [supabase, router]);
+  }, [supabase, router, ar]);
 
   useEffect(() => {
     loadData();

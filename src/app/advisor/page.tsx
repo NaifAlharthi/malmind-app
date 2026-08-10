@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { firstNameOf } from '@/lib/name';
-import { useT } from '@/lib/i18n/LocaleProvider';
+import { localizedFirstName } from '@/lib/name';
+import { useLocale, useT } from '@/lib/i18n/LocaleProvider';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -15,6 +15,8 @@ export default function AdvisorPage() {
   const router = useRouter();
   const supabase = createClient();
   const t = useT();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
   const [messages, setMessages] = useState<Message[]>([]);
   const [name, setName] = useState('');
   const [input, setInput] = useState('');
@@ -37,7 +39,7 @@ export default function AdvisorPage() {
       .select('name')
       .eq('id', user.id)
       .single();
-    if (profile?.name) setName(firstNameOf(profile.name));
+    if (profile?.name) setName(localizedFirstName(profile.name, ar));
 
     const { data: history } = await supabase
       .from('advisor_messages')
@@ -47,7 +49,7 @@ export default function AdvisorPage() {
 
     if (history) setMessages(history as Message[]);
     setLoadingHistory(false);
-  }, [supabase, router]);
+  }, [supabase, router, ar]);
 
   useEffect(() => {
     loadHistory();

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
 import { useTheme } from '@/components/shared/ThemeProvider';
-import { firstNameOf } from '@/lib/name';
+import { localizedFirstName } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
 import { isDemoActive } from '@/lib/demoSupabase';
@@ -242,7 +242,7 @@ export default function HomePage() {
       <div className="flex justify-between items-start mb-2">
         <div>
           <h1 className="font-serif text-2xl font-semibold text-[var(--ink)]">
-            {t('home.greeting', { name: firstNameOf(profile.name) })}
+            {t('home.greeting', { name: localizedFirstName(profile.name, locale === 'ar') })}
           </h1>
           <p className="text-sm text-[var(--ink-2)]">{t('home.subtitle')}</p>
         </div>
@@ -258,7 +258,7 @@ export default function HomePage() {
           {t('common.edit')}
         </button>
         <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-1">{t('home.profile.eyebrow')}</div>
-        <div className="font-serif text-xl font-semibold">{firstNameOf(profile.name)}</div>
+        <div className="font-serif text-xl font-semibold">{localizedFirstName(profile.name, locale === 'ar')}</div>
         <div className="text-xs text-white/50 mb-4">{profile.employment} · {profile.city}</div>
 
         {fin ? (

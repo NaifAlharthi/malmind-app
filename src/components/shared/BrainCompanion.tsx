@@ -34,13 +34,15 @@ function BrainFigure({ level, excitementRef }: { level: number; excitementRef: R
     const t = clock.getElapsedTime();
     const ex = Math.max(0, excitementRef.current ?? 0);
     if (group.current) {
-      group.current.position.y = Math.sin(t * (2 + ex * 4)) * (0.06 + ex * 0.16) - 0.1;
-      group.current.rotation.y = t * (0.35 + ex * 1.2);
-      const squash = 1 + Math.sin(t * (2 + ex * 4)) * ex * 0.06;
+      // Slow, breathing motion — excitement adds only a gentle lift, never a
+      // frantic bounce.
+      group.current.position.y = Math.sin(t * (1.1 + ex * 1.1)) * (0.045 + ex * 0.05) - 0.1;
+      group.current.rotation.y = t * (0.18 + ex * 0.3);
+      const squash = 1 + Math.sin(t * (1.1 + ex * 1.1)) * ex * 0.02;
       group.current.scale.set(1, squash, 1);
     }
-    if (orbit.current) orbit.current.rotation.y = t * 1.6;
-    if (excitementRef.current && excitementRef.current > 0) excitementRef.current *= 0.97;
+    if (orbit.current) orbit.current.rotation.y = t * 0.7;
+    if (excitementRef.current && excitementRef.current > 0) excitementRef.current *= 0.96;
   });
 
   return (
@@ -161,7 +163,7 @@ export default function BrainCompanion() {
       const brainOnLeft = r.left > brainW + 24; // room on the left?
       const left = brainOnLeft ? Math.max(8, r.left - brainW - 16) : Math.min(window.innerWidth - brainW - 8, r.right + 16);
       const top = Math.max(8, Math.min(window.innerHeight - brainW - 8, visibleCenterY - brainW / 2));
-      excitementRef.current = 2.2; // the jump
+      excitementRef.current = 1; // the jump — lively, not frantic
       setPointing({
         point,
         brain: { left, top },
@@ -216,14 +218,14 @@ export default function BrainCompanion() {
     load();
   }, [load]);
 
-  // Hop on navigation, stir on scroll.
+  // A gentle stir on navigation and scroll — never a frenzy.
   useEffect(() => {
-    excitementRef.current = 1.6;
+    excitementRef.current = 0.7;
   }, [pathname]);
 
   useEffect(() => {
     const onScroll = () => {
-      excitementRef.current = Math.min(1.2, (excitementRef.current ?? 0) + 0.35);
+      excitementRef.current = Math.min(0.5, (excitementRef.current ?? 0) + 0.1);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -266,7 +268,7 @@ export default function BrainCompanion() {
           if (pointing) { endPointing(); return; }
           setOpen((o) => !o);
           setBubbleOpen(false);
-          excitementRef.current = 2;
+          excitementRef.current = 0.9;
         }}
         title={t('brain.tooltip', { level: level.level, name: levelName })}
         className="mm-brain fixed z-40 w-20 h-20 sm:w-24 sm:h-24 rounded-full cursor-pointer focus:outline-none transition-all duration-700"
@@ -297,7 +299,7 @@ export default function BrainCompanion() {
       {/* "speak" chip in ask-first mode */}
       {showChip && (
         <button
-          onClick={() => { setBubbleOpen(true); excitementRef.current = 1.5; }}
+          onClick={() => { setBubbleOpen(true); excitementRef.current = 0.8; }}
           className="fixed z-40 right-4 sm:right-6 w-8 h-8 rounded-full bg-[var(--surface-card)] border border-[var(--green-border)] shadow-lg text-sm flex items-center justify-center hover:border-[var(--green)]"
           style={{ top: 'calc(50% - 64px)' }}
           title={L('ماذا أرى هنا؟', 'What am I looking at?')}

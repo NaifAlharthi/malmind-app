@@ -87,12 +87,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     router.push('/login');
   }
 
-  // Desktop top-bar nav pill.
-  function TopNavLink({ href, labelKey, icon, className = '' }: { href: string; labelKey: string; icon: string; className?: string }) {
+  // Desktop top-bar nav pill. `compact` pills drop their text below md so the
+  // bar never overflows at tablet widths — the tooltip keeps the name.
+  function TopNavLink({ href, labelKey, icon, className = '', compact = false }: { href: string; labelKey: string; icon: string; className?: string; compact?: boolean }) {
     const active = pathname === href.split('?')[0];
     return (
       <Link
         href={href}
+        title={t(labelKey)}
         className={`items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors shrink-0 ${
           active
             ? 'bg-[var(--ink)] text-[var(--surface-0)] font-medium'
@@ -100,7 +102,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         } ${className}`}
       >
         <span>{icon}</span>
-        <span>{t(labelKey)}</span>
+        <span className={compact ? 'hidden md:inline' : ''}>{t(labelKey)}</span>
       </Link>
     );
   }
@@ -129,17 +131,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen bg-[var(--surface-0)] text-[var(--ink)] flex flex-col">
         {/* ── top bar ── */}
         <header className="sticky top-0 z-40 bg-[var(--surface-card)]/95 backdrop-blur border-b border-[var(--border-default)]">
-          <div className="max-w-4xl mx-auto min-h-14 px-4 sm:px-6 flex items-center gap-2">
+          <div className="max-w-6xl mx-auto min-h-14 px-4 sm:px-6 flex items-center gap-2">
             <Link href="/home" className="font-serif text-lg font-semibold tracking-tight shrink-0 flex items-center gap-1.5">
               <span>Mal<span className="text-[var(--green)]">Mind</span></span>
               <span className="text-[11px] leading-none" title={t('common.madeForSaudi')} aria-label={t('common.madeForSaudi')}>🇸🇦</span>
             </Link>
 
             {/* desktop nav: Home + the walking timeline + the Brain */}
-            <TopNavLink href="/home" labelKey="nav.home" icon="⌂" className="hidden sm:flex ms-2" />
-            <TimelineNav className="hidden sm:block flex-1 min-w-0 mx-1" />
-            <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" />
-            <TopNavLink href="/tour" labelKey="nav.tour" icon="🧭" className="hidden sm:flex" />
+            {/* the wordmark already goes home, so the pill can yield first when space runs out */}
+            <TopNavLink href="/home" labelKey="nav.home" icon="⌂" className="hidden md:flex ms-2" compact />
+            <TimelineNav className="hidden sm:block flex-1 min-w-[120px] mx-1" />
+            <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" compact />
+            <TopNavLink href="/tour" labelKey="nav.tour" icon="🧭" className="hidden sm:flex" compact />
 
             {/* mobile: push utilities to the right (nav lives in the bottom bar) */}
             <div className="flex-1 sm:hidden" />
@@ -175,8 +178,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 title={t('common.signOut')}
                 className="h-8 px-2 rounded-lg text-xs text-[var(--muted)] hover:bg-[var(--surface-1)] flex items-center"
               >
-                <span className="hidden sm:inline">{t('common.signOut')}</span>
-                <span className="sm:hidden text-sm">⏻</span>
+                <span className="hidden md:inline">{t('common.signOut')}</span>
+                <span className="md:hidden text-sm">⏻</span>
               </button>
             </div>
           </div>

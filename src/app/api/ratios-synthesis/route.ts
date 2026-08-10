@@ -9,7 +9,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { firstNameOf } from '@/lib/name';
+import { localizedFirstName } from '@/lib/name';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
-  const name = firstNameOf(profile?.name) || (ar ? 'صديقي' : 'there');
+  const name = localizedFirstName(profile?.name, ar) || (ar ? 'صديقي' : 'there');
 
   const systemPrompt = `You are MalMind's financial ratio analyst, speaking with ${name}. You have been handed their complete set of real, computed financial ratios below - treat it the way a world-class analyst would treat a client's real financial statement.
 
