@@ -81,6 +81,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [moreOpen]);
 
+  // 2D navigation: a horizontal wheel tilt anywhere travels through time
+  // (past · today · future), complementing the iceberg's vertical depth.
+  // Content that genuinely scrolls horizontally keeps its scroll.
+  const timeTiltCooldown = useRef(0);
+  useEffect(() => {
+    if (FULL_BLEED_PATHS.includes(pathname)) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) < 40 || Math.abs(e.deltaX) < Math.abs(e.deltaY) * 1.5) return;
+      let el: Element | null = e.target instanceof Element ? e.target : null;
+      while (el && el !== document.body) {
+        const style = getComputedStyle(el);
+        if ((style.overflowX === 'auto' || style.overflowX === 'scroll') && el.scrollWidth > el.clientWidth + 2) return;
+        el = el.parentElement;
+      }
+      const now = Date.now();
+      if (now - timeTiltCooldown.current < 700) return;
+      timeTiltCooldown.current = now;
+      const routes = ['/past', '/today', '/future'];
+      const idx = routes.indexOf(pathname);
+      const next = routes[Math.min(2, Math.max(0, (idx === -1 ? 1 : idx) + (e.deltaX > 0 ? 1 : -1)))];
+      if (next !== pathname) router.push(next);
+    };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    return () => window.removeEventListener('wheel', onWheel);
+  }, [pathname, router]);
+
   useEffect(() => {
     if (FULL_BLEED_PATHS.includes(pathname)) return;
     (async () => {
@@ -160,12 +186,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* desktop nav: Home + the walking timeline + the Brain */}
             {/* the wordmark already goes home, so the pill can yield first when space runs out */}
             <TopNavLink href="/home" labelKey="nav.home" icon="⌂" className="hidden md:flex ms-2" compact />
-            <TimelineNav className="hidden sm:block flex-1 min-w-[120px] mx-1" />
             <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" compact />
             <TopNavLink href="/tour" labelKey="nav.tour" icon="🧭" className="hidden sm:flex" compact />
 
-            {/* mobile: push utilities to the right (nav lives in the bottom bar) */}
-            <div className="flex-1 sm:hidden" />
+            {/* push utilities to the end (time travel floats at the bottom now) */}
+            <div className="flex-1" />
 
             {/* utilities */}
             <div className="flex items-center gap-1 shrink-0">
@@ -233,9 +258,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-8 max-w-4xl mx-auto w-full">
+        <main className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-28 max-w-4xl mx-auto w-full">
           {children}
         </main>
+
+        {/* ── the floating timeline: the horizontal (time) axis of the 2D map,
+               mirroring the iceberg's vertical (depth) axis ── */}
+        <div className="hidden sm:block fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg">
+          <TimelineNav />
+        </div>
 
         {/* ── mobile bottom tab bar ── */}
         <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[var(--surface-card)] border-t border-[var(--border-default)] flex items-stretch">

@@ -2,12 +2,16 @@
 
 // The iceberg — the product's depth dimension. A slim vertical rail perched
 // on the start edge of the viewport (desktop only): the tip of an iceberg
-// above a waterline, three chunks sinking below it. Each chunk is one depth
-// of the person's CURRENT position (bad version · baseline · ahead ·
-// ceiling), and clicking one dives into a full-screen ocean overlay with
-// one section per depth. Together with the top bar's Past·Today·Future
-// timeline this gives the product two axes: time runs horizontally, depth
-// runs vertically.
+// above a waterline, three chunks sinking below it, each wider than the one
+// above. Each chunk is one DEPTH of the tool drawer:
+//   1 essentials · 2 getting organized · 3 analysis · 4 full mastery
+// The gold marker shows the currently adopted depth — the hubs' drawers
+// stage their tools to it, so nobody gets the whole Bloomberg spread thrown
+// at them. Clicking a chunk dives into a full-screen ocean that shows what
+// each depth unlocks, with a button to adopt that depth.
+//
+// Together with the floating timeline (past · today · future) this gives
+// the product two axes: time runs horizontally, depth runs vertically.
 //
 // Navigation grammar (inside the dive):
 //   wheel / ↑↓ — move between depths
@@ -16,51 +20,31 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { diagnoseQuadrant, QUADRANT_META, type QuadKey } from '@/lib/quadrant';
-import { DEPTH_COPY, DEPTH_LEVELS, DEPTH_META, assessDepthLevel, type DepthLevel } from '@/lib/depth';
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useDepth } from '@/components/shared/ExperienceMode';
+import { DEPTH_LEVELS, DEPTH_META, type DepthLevel } from '@/lib/depth';
+import { toolsUnlockedAt, type ViewKey } from '@/lib/toolbox';
 
 const TIME_ROUTES = ['/past', '/today', '/future'];
+const HUB_META: { key: ViewKey; icon: string; ar: string; en: string }[] = [
+  { key: 'past', icon: '🕰', ar: 'الماضي', en: 'The Past' },
+  { key: 'today', icon: '☀', ar: 'اليوم', en: 'Today' },
+  { key: 'future', icon: '🔭', ar: 'المستقبل', en: 'The Future' },
+];
 
 export default function DepthRail() {
-  const supabase = createClient();
   const router = useRouter();
   const pathname = usePathname();
-  const { locale } = useLocale();
+  const { t, locale } = useLocale();
   const ar = locale === 'ar';
   const L = useCallback((a: string, e: string) => (ar ? a : e), [ar]);
 
-  const [quad, setQuad] = useState<QuadKey | null>(null);
-  const [myLevel, setMyLevel] = useState<DepthLevel>(2);
+  const { depth, setDepth } = useDepth();
   const [dive, setDive] = useState<DepthLevel | null>(null); // open overlay at this level
   const [hover, setHover] = useState<DepthLevel | null>(null);
   const seaRef = useRef<HTMLDivElement>(null);
   const timeCooldown = useRef(0);
-
-  // Same diagnosis inputs as the home card: last six snapshots.
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: snaps } = await supabase
-        .from('financial_snapshots')
-        .select('cash, stocks, real_estate, equity, other_assets, liabilities, income, expenses')
-        .eq('user_id', user.id)
-        .order('year', { ascending: true })
-        .order('month', { ascending: true });
-      if (!snaps || snaps.length === 0) return;
-      const last = snaps[snaps.length - 1];
-      const assets =
-        Number(last.cash) + Number(last.stocks) + Number(last.real_estate) + Number(last.equity) + Number(last.other_assets);
-      const recent = snaps.slice(-6);
-      const avgIncome = recent.reduce((a, r) => a + Number(r.income), 0) / recent.length;
-      const avgExpenses = recent.reduce((a, r) => a + Number(r.expenses), 0) / recent.length;
-      setQuad(diagnoseQuadrant(avgIncome, avgExpenses, assets));
-      setMyLevel(assessDepthLevel(avgIncome, avgExpenses, Number(last.cash), Number(last.stocks) + Number(last.equity)));
-    })();
-  }, [supabase]);
 
   // Scroll the dive to a level's section.
   const scrollToLevel = useCallback((lvl: DepthLevel, smooth = true) => {
@@ -122,16 +106,12 @@ export default function DepthRail() {
     };
   }, [dive, seaLevel, scrollToLevel, travelTime, ar]);
 
-  const q: QuadKey = quad ?? 'A';
-  const qMeta = QUADRANT_META[q];
-  const qc = ar ? qMeta.ar : qMeta.en;
-
   return (
     <>
       {/* ── the iceberg rail ── */}
       <div
         className="mm-depth-rail hidden lg:flex fixed start-3 top-1/2 -translate-y-1/2 z-30 flex-col items-center select-none"
-        aria-label={L('عمق موقفك', 'The depth of your position')}
+        aria-label={L('عمق الأدوات', 'Tool depth')}
       >
         <div className="text-[9px] text-[var(--muted)] mb-1 tracking-wide">{L('العمق', 'Depth')}</div>
         <div className="relative">
@@ -139,14 +119,14 @@ export default function DepthRail() {
             {/* waterline */}
             <line x1="0" y1="44" x2="56" y2="44" stroke="#4A85B9" strokeWidth="1" strokeDasharray="3 3" opacity="0.7" />
             {/* the tip — the smallest piece, all that shows above water */}
-            <polygon points="28,14 33,27 35,42 20,42 23,25" fill={hover === 1 || (dive !== null && seaLevel === 1) ? '#F3FAFF' : '#DDEEFA'} stroke="#9CC8E8" strokeWidth="1" />
+            <polygon points="28,14 33,27 35,42 20,42 23,25" fill={hover === 1 || depth === 1 ? '#F3FAFF' : '#DDEEFA'} stroke="#9CC8E8" strokeWidth="1" />
             {/* submerged mass — each chunk wider than the one above it */}
-            <polygon points="17,48 39,48 44,100 12,102" fill={hover === 2 || (dive !== null && seaLevel === 2) ? '#7FB6DE' : '#5E9CCB'} opacity="0.92" />
-            <polygon points="10,106 46,105 51,164 6,166" fill={hover === 3 || (dive !== null && seaLevel === 3) ? '#3F7AAE' : '#2F6494'} opacity="0.92" />
-            <polygon points="4,170 52,169 47,224 28,236 9,226" fill={hover === 4 || (dive !== null && seaLevel === 4) ? '#1E4E7A' : '#153D63'} opacity="0.95" />
+            <polygon points="17,48 39,48 44,100 12,102" fill={hover === 2 || depth >= 2 ? '#7FB6DE' : '#5E9CCB'} opacity={depth >= 2 ? 1 : 0.55} />
+            <polygon points="10,106 46,105 51,164 6,166" fill={hover === 3 || depth >= 3 ? '#3F7AAE' : '#2F6494'} opacity={depth >= 3 ? 1 : 0.55} />
+            <polygon points="4,170 52,169 47,224 28,236 9,226" fill={hover === 4 || depth >= 4 ? '#1E4E7A' : '#153D63'} opacity={depth >= 4 ? 1 : 0.55} />
           </svg>
 
-          {/* click zones + you-are-here marker */}
+          {/* click zones + adopted-depth marker */}
           {DEPTH_LEVELS.map((lvl) => {
             const zones = [
               { top: 0, height: 44 },
@@ -166,20 +146,20 @@ export default function DepthRail() {
                 title={`${meta.icon} ${ar ? meta.name.ar : meta.name.en}`}
                 aria-label={ar ? meta.name.ar : meta.name.en}
               >
-                {myLevel === lvl && (
-                  <span className="absolute top-1/2 -translate-y-1/2 -end-1.5 w-3 h-3 rounded-full bg-[var(--gold)] ring-2 ring-[var(--surface-0)] animate-pulse" />
+                {depth === lvl && (
+                  <span className="absolute top-1/2 -translate-y-1/2 -end-1.5 w-3 h-3 rounded-full bg-[var(--gold)] ring-2 ring-[var(--surface-0)]" />
                 )}
                 {/* hover flyout */}
                 <span className="pointer-events-none absolute top-1/2 -translate-y-1/2 start-full ms-2 whitespace-nowrap rounded-lg bg-[var(--surface-card)] border border-[var(--border-default)] px-2.5 py-1 text-[10px] text-[var(--ink-2)] opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
                   {meta.icon} {ar ? meta.name.ar : meta.name.en}
-                  {myLevel === lvl && <span className="text-[var(--gold)] font-semibold"> · {L('أنت هنا', 'you are here')}</span>}
+                  {depth === lvl && <span className="text-[var(--gold)] font-semibold"> · {L('عمقك الحالي', 'your current depth')}</span>}
                 </span>
               </button>
             );
           })}
         </div>
         <button
-          onClick={() => openDive(myLevel)}
+          onClick={() => openDive(depth)}
           className="mt-1.5 text-[9px] text-[var(--muted)] hover:text-[var(--ink-2)] transition-colors leading-tight text-center"
         >
           {L('اغطس ↓', 'Dive ↓')}
@@ -188,12 +168,12 @@ export default function DepthRail() {
 
       {/* ── the dive ── */}
       {dive !== null && (
-        <div className="fixed inset-0 z-[95]" role="dialog" aria-modal="true" aria-label={L('الغوص في عمق موقفك', 'Diving into your position')}>
+        <div className="fixed inset-0 z-[95]" role="dialog" aria-modal="true" aria-label={L('الغوص في عمق الأدوات', 'Diving through the tool depths')}>
           {/* surface button + header */}
           <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-5 py-3 text-white/90">
             <div className="text-xs">
-              <span className="opacity-70">{L('موقفك:', 'Your position:')}</span>{' '}
-              <span className="font-semibold">{qMeta.icon} {qc.title}</span>
+              <span className="opacity-70">{L('عمقك الحالي:', 'Your depth:')}</span>{' '}
+              <span className="font-semibold">{DEPTH_META[depth].icon} {ar ? DEPTH_META[depth].name.ar : DEPTH_META[depth].name.en}</span>
             </div>
             <button
               onClick={() => setDive(null)}
@@ -232,7 +212,8 @@ export default function DepthRail() {
           >
             {DEPTH_LEVELS.map((lvl) => {
               const meta = DEPTH_META[lvl];
-              const copy = DEPTH_COPY[q][lvl];
+              const unlocked = toolsUnlockedAt(lvl);
+              const isAdopted = depth === lvl;
               return (
                 <section
                   key={lvl}
@@ -259,41 +240,60 @@ export default function DepthRail() {
                   )}
 
                   <div className="max-w-xl w-full text-white">
-                    <div className="flex items-center gap-2 text-[10px] tracking-[0.14em] uppercase text-white/55 mb-2" >
+                    <div className="flex items-center gap-2 text-[10px] tracking-[0.14em] uppercase text-white/55 mb-2">
                       <span dir="ltr">{ar ? meta.depth.ar : meta.depth.en}</span>
                       <span>·</span>
                       <span>{L(`العمق ${lvl} من 4`, `Depth ${lvl} of 4`)}</span>
-                      {myLevel === lvl && (
-                        <span className="normal-case tracking-normal text-[10px] font-semibold text-[#F5D77A] bg-white/10 rounded-full px-2 py-0.5">
-                          {L('أنت هنا اليوم', 'you are here today')}
-                        </span>
-                      )}
                     </div>
                     <h2 className="font-serif text-3xl sm:text-4xl font-bold mb-3 flex items-center gap-2.5">
                       <span>{meta.icon}</span>
                       <span>{ar ? meta.name.ar : meta.name.en}</span>
                     </h2>
-                    <p className="text-sm sm:text-[15px] leading-relaxed text-white/85 mb-5">{ar ? copy.vignette.ar : copy.vignette.en}</p>
-                    <ul className="space-y-1.5 mb-6">
-                      {copy.markers.map((m, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs text-white/70">
-                          <span className="text-white/40 mt-px">◆</span>
-                          <span>{ar ? m.ar : m.en}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="flex flex-wrap gap-2">
-                      {copy.tools.map((tool) => (
-                        <Link
-                          key={tool.href}
-                          href={tool.href}
-                          onClick={() => setDive(null)}
-                          className="text-xs rounded-full border border-white/25 bg-white/10 hover:bg-white/20 px-3.5 py-2 transition-colors"
-                        >
-                          {ar ? tool.ar : tool.en} →
-                        </Link>
-                      ))}
+                    <p className="text-sm sm:text-[15px] leading-relaxed text-white/85 mb-5">{ar ? meta.desc.ar : meta.desc.en}</p>
+
+                    {/* what surfaces at this depth, by time view */}
+                    <div className="space-y-3 mb-6">
+                      {lvl > 1 && (
+                        <div className="text-[10px] text-white/50">
+                          {L('ينكشف في هذا العمق — إضافةً إلى كل ما فوقه:', 'Surfacing at this depth — on top of everything above it:')}
+                        </div>
+                      )}
+                      {HUB_META.map((hub) => {
+                        const list = unlocked[hub.key];
+                        if (list.length === 0) return null;
+                        return (
+                          <div key={hub.key} className="flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] text-white/55 w-20 shrink-0">{hub.icon} {ar ? hub.ar : hub.en}</span>
+                            {list.map((tool) => (
+                              <Link
+                                key={tool.href}
+                                href={tool.href}
+                                onClick={() => setDive(null)}
+                                className="text-[11px] rounded-full border border-white/25 bg-white/10 hover:bg-white/20 px-3 py-1.5 transition-colors"
+                              >
+                                {tool.icon} {t(tool.titleKey)}
+                              </Link>
+                            ))}
+                          </div>
+                        );
+                      })}
                     </div>
+
+                    {/* adopt this depth */}
+                    <button
+                      onClick={() => { setDepth(lvl); setDive(null); }}
+                      disabled={isAdopted}
+                      className={`text-xs font-semibold rounded-full px-5 py-2.5 transition-colors ${
+                        isAdopted
+                          ? 'bg-white/15 text-white/60 cursor-default border border-white/20'
+                          : 'bg-[#5DCAA5] text-[#06231A] hover:bg-[#79dab8]'
+                      }`}
+                    >
+                      {isAdopted
+                        ? L('✓ هذا عمقك الحالي', '✓ This is your current depth')
+                        : L('اعتمد هذا العمق', 'Adopt this depth')}
+                    </button>
+
                     {lvl < 4 && (
                       <button
                         onClick={() => scrollToLevel((lvl + 1) as DepthLevel)}
