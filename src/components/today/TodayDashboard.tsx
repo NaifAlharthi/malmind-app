@@ -35,6 +35,7 @@ import {
   type Period, type StackItem, type Kind,
 } from '@/lib/dailyStack';
 import { BENCHMARK_START_AGE, buildBenchmarkCurves, buildYouSeries } from '@/lib/positioningBenchmarks';
+import { QUADRANT_META, diagnoseQuadrant, type QuadKey } from '@/lib/quadrant';
 import { buildProjection } from '@/lib/lifetimeProjection';
 import ExplainButton, { type ExplainContent } from '@/components/shared/ExplainButton';
 
@@ -115,14 +116,14 @@ function avg(xs: number[]) {
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
 }
 
-// ── The four stages, in their usual order of progression ────────────────
-const QUADS = {
-  A: { title: 'Build mode', mood: 'Little income or assets yet', move: 'Generate income & first assets', incomeH: 0, outflowH: 24 },
-  B: { title: 'Falling behind', mood: 'Outflow exceeds income', move: 'Flip the balance', incomeH: 19, outflowH: 28 },
-  C: { title: 'Break-even', mood: 'Covers costs, nothing left', move: 'Create surplus & protect it', incomeH: 25, outflowH: 24 },
-  D: { title: 'Abundance', mood: 'Durable surplus to deploy', move: 'Multiply the surplus', incomeH: 28, outflowH: 18 },
-} as const;
-type QuadKey = keyof typeof QUADS;
+// The mini income/outflow bar heights for the quadrant map cells (copy for
+// the four stages lives in the shared quadrant lib).
+const QUAD_BARS: Record<QuadKey, { incomeH: number; outflowH: number }> = {
+  A: { incomeH: 0, outflowH: 24 },
+  B: { incomeH: 19, outflowH: 28 },
+  C: { incomeH: 25, outflowH: 24 },
+  D: { incomeH: 28, outflowH: 18 },
+};
 
 const AXIS_LABEL: Record<string, string> = {
   income: 'Income', runway: 'Runway', health: 'Health', concentration: 'Mix', debt: 'Debt',
@@ -141,15 +142,6 @@ const ASSET_SERIES = [
   { key: 'equity', labelKey: 'today.assets.equity', color: '#E0922A' },
   { key: 'other_assets', labelKey: 'today.assets.other', color: '#9AA0A6' },
 ] as const;
-
-function diagnose(avgIncome: number, avgExpenses: number, totalAssets: number): QuadKey | null {
-  if (avgIncome <= 0 && avgExpenses <= 0) return null;
-  if (avgIncome <= 0) return 'A';
-  const surplus = avgIncome - avgExpenses;
-  if (surplus < 0) return totalAssets < 3 * avgExpenses ? 'A' : 'B';
-  if (surplus / avgIncome < 0.1) return 'C';
-  return 'D';
-}
 
 export default function TodayDashboard() {
   const supabase = createClient();
@@ -483,7 +475,7 @@ export default function TodayDashboard() {
       hasCompareData: compare.some((p) => p.you != null),
       cash, liquidityPct, monthsOfCash, assetTiles, paceLadder,
       latest, avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow, yearCashFlow,
-      quad: diagnose(avgIncome, avgExpenses, totalAssets),
+      quad: diagnoseQuadrant(avgIncome, avgExpenses, totalAssets),
       nwPace, nwSeries, milestone, monthsToMilestone,
       invested, liveIsUsed: d.liveInvested != null, freedom,
       risks, salary, side, goal,
@@ -759,7 +751,7 @@ export default function TodayDashboard() {
       {/* ── Row 1: position + cash flow ── */}
       <div className="grid lg:grid-cols-2 gap-3">
         <Card title={t('today.quad.title')} href="/positioning" explain={EX.quad}>
-          <QuadrantMap active={quad} hereLabel={t('today.quad.here')} />
+          <QuadrantMap active={quad} hereLabel={t('today.quad.here')} ar={locale === 'ar'} />
           <div className="flex items-center gap-4 mt-1.5 text-[10px] text-[var(--muted)]">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'var(--green)' }} />
@@ -770,12 +762,15 @@ export default function TodayDashboard() {
               {t('today.quad.moneyOut')}
             </span>
           </div>
-          {quad && (
-            <p className="text-xs text-[var(--ink-2)] leading-relaxed mt-2">
-              <strong className="text-[var(--ink)]">{QUADS[quad].title}.</strong> {QUADS[quad].mood} — the move:{' '}
-              <strong className="text-[var(--green-dark)]">{QUADS[quad].move.toLowerCase()}</strong>.
-            </p>
-          )}
+          {quad && (() => {
+            const qc = locale === 'ar' ? QUADRANT_META[quad].ar : QUADRANT_META[quad].en;
+            return (
+              <p className="text-xs text-[var(--ink-2)] leading-relaxed mt-2">
+                <strong className="text-[var(--ink)]">{qc.title}.</strong> {qc.mood} — {locale === 'ar' ? 'الخطوة:' : 'the move:'}{' '}
+                <strong className="text-[var(--green-dark)]">{locale === 'ar' ? qc.move : qc.move.toLowerCase()}</strong>.
+              </p>
+            );
+          })()}
         </Card>
 
         <Card title={t('today.cash.title')} href="/financial-numbers" explain={EX.cash}>
@@ -1813,7 +1808,7 @@ function RiskTooltip({
 // Reading order: A (top-left) → B (top-right) → C (bottom-left) → D
 // (bottom-right) — the usual progression as finances mature toward surplus.
 // The B→C arrow stretches diagonally across the middle.
-function QuadrantMap({ active, hereLabel }: { active: QuadKey | null; hereLabel: string }) {
+function QuadrantMap({ active, hereLabel, ar }: { active: QuadKey | null; hereLabel: string; ar: boolean }) {
   const cells: { key: QuadKey; x: number; y: number }[] = [
     { key: 'A', x: 4, y: 4 },
     { key: 'B', x: 181, y: 4 },
@@ -1831,7 +1826,8 @@ function QuadrantMap({ active, hereLabel }: { active: QuadKey | null; hereLabel:
       </defs>
 
       {cells.map(({ key, x, y }) => {
-        const q = QUADS[key];
+        const q = QUAD_BARS[key];
+        const qc = ar ? QUADRANT_META[key].ar : QUADRANT_META[key].en;
         const isActive = active === key;
         // in/out bar pair, centered horizontally in the cell
         const bx = x + W / 2 - (barW * 2 + barGap) / 2;
@@ -1850,8 +1846,8 @@ function QuadrantMap({ active, hereLabel }: { active: QuadKey | null; hereLabel:
               {key}
             </text>
             {/* title + mood */}
-            <text x={x + 38} y={y + 19} fontSize="12" fontWeight="600" fill="var(--ink)">{q.title}</text>
-            <text x={x + 38} y={y + 31} fontSize="8.5" fill="var(--muted)">{q.mood}</text>
+            <text x={x + 38} y={y + 19} fontSize="12" fontWeight="600" fill="var(--ink)">{qc.title}</text>
+            <text x={x + 38} y={y + 31} fontSize="8.5" fill="var(--muted)">{qc.mood}</text>
             {/* mini income vs outflow bars, centered — a quadrant with no
                 income (e.g. build mode) gets a flat zero-line, not a bar */}
             {q.incomeH > 0 ? (
@@ -1860,8 +1856,8 @@ function QuadrantMap({ active, hereLabel }: { active: QuadKey | null; hereLabel:
               <line x1={bx} y1={barBase} x2={bx + barW} y2={barBase} stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="2 2" />
             )}
             <rect x={bx + barW + barGap} y={barBase - q.outflowH} width={barW} height={q.outflowH} rx={2.5} fill="var(--red-2)" opacity={0.85} />
-            <text x={bx + barW / 2} y={y + H - 12} textAnchor="middle" fontSize="7.5" fill="var(--muted)">in</text>
-            <text x={bx + barW + barGap + barW / 2} y={y + H - 12} textAnchor="middle" fontSize="7.5" fill="var(--muted)">out</text>
+            <text x={bx + barW / 2} y={y + H - 12} textAnchor="middle" fontSize="7.5" fill="var(--muted)">{ar ? 'داخل' : 'in'}</text>
+            <text x={bx + barW + barGap + barW / 2} y={y + H - 12} textAnchor="middle" fontSize="7.5" fill="var(--muted)">{ar ? 'خارج' : 'out'}</text>
             {/* you-are-here pill, tucked in the gap between the mood line and
                 the bars so it never covers either */}
             {isActive && (

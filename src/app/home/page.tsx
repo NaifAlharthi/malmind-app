@@ -10,6 +10,7 @@ import { localizedFirstName } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
 import { isDemoActive } from '@/lib/demoSupabase';
+import { diagnoseQuadrant, QUADRANT_META, type QuadKey } from '@/lib/quadrant';
 import ContactModal from '@/components/shared/ContactModal';
 import FoundationHub from '@/components/home/FoundationHub';
 
@@ -66,8 +67,7 @@ export default function HomePage() {
   const money = (n: number) => (ar ? `${fmt(n)} ${sar}` : `${sar} ${fmt(n)}`);
 
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [chapterCount, setChapterCount] = useState(0);
-  const [span, setSpan] = useState(0);
+  const [quad, setQuad] = useState<QuadKey | null>(null);
   const [fin, setFin] = useState<Financials | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
   const [integ, setInteg] = useState<Integrations | null>(null);
@@ -91,16 +91,6 @@ export default function HomePage() {
       .single();
     if (profileData) setProfile(profileData as Profile);
 
-    const { data: chapters } = await supabase
-      .from('story_chapters')
-      .select('start_year, end_year')
-      .eq('user_id', user.id)
-      .order('start_year', { ascending: true });
-    if (chapters && chapters.length > 0) {
-      setChapterCount(chapters.length);
-      setSpan(chapters[chapters.length - 1].end_year - chapters[0].start_year);
-    }
-
     const { data: snaps } = await supabase
       .from('financial_snapshots')
       .select('year, month, cash, stocks, real_estate, equity, other_assets, liabilities, income, expenses')
@@ -120,8 +110,17 @@ export default function HomePage() {
         expenses: Number(s.expenses),
         asOf: `${MONTHS[s.month - 1]} ${s.year}`,
       });
+      // Same diagnosis rule as the Today dashboard: averages over the last
+      // six months of snapshots, against the latest asset base.
+      const recent = snaps.slice(-6);
+      setQuad(diagnoseQuadrant(
+        recent.reduce((a, r) => a + Number(r.income), 0) / recent.length,
+        recent.reduce((a, r) => a + Number(r.expenses), 0) / recent.length,
+        assets,
+      ));
     } else {
       setFin(null);
+      setQuad(null);
     }
 
     // Integration status — best-effort; failures just leave the tile neutral.
@@ -278,18 +277,15 @@ export default function HomePage() {
               <Balance label={t('home.balance.assets')} value={money(fin.assets)} dot="#E0559E" />
               <Balance label={t('home.balance.liabilities')} value={money(fin.liabilities)} dot="#E0922A" />
             </div>
-            <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/10">
+            <div className="flex flex-wrap items-start gap-x-8 gap-y-3 mt-4 pt-4 border-t border-white/10">
               <MiniStat label={t('home.stat.monthlyIncome')} value={money(profile.monthly_income)} />
-              <MiniStat label={t('home.stat.storySpan')} value={t('home.stat.yearsValue', { n: span })} />
-              <MiniStat label={t('home.stat.chapters')} value={t('home.stat.chaptersValue', { n: chapterCount })} />
+              {quad && <QuadrantStat quad={quad} ar={ar} />}
             </div>
           </div>
         ) : (
           <div className="pt-4 border-t border-white/10">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+            <div className="mb-4">
               <MiniStat label={t('home.stat.monthlyIncome')} value={money(profile.monthly_income)} />
-              <MiniStat label={t('home.stat.storySpan')} value={t('home.stat.yearsValue', { n: span })} />
-              <MiniStat label={t('home.stat.chapters')} value={t('home.stat.chaptersValue', { n: chapterCount })} />
             </div>
             <Link href="/financial-numbers" className="inline-block text-xs font-medium bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg px-3 py-2 transition-colors">
               {t('home.logPrompt')}
@@ -490,6 +486,27 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     <div>
       <div className="text-[10px] text-white/45 mb-1">{label}</div>
       <div className="text-sm font-medium">{value}</div>
+    </div>
+  );
+}
+
+// The "where you stand now" strip on the profile card: the diagnosed
+// quadrant plus one sentence on what being there means. Links to the Today
+// dashboard, where the full quadrant map lives.
+function QuadrantStat({ quad, ar }: { quad: QuadKey; ar: boolean }) {
+  const meta = QUADRANT_META[quad];
+  const c = ar ? meta.ar : meta.en;
+  return (
+    <div className="flex-1 min-w-[240px]">
+      <div className="text-[10px] text-white/45 mb-1">{ar ? 'أين تقف الآن' : 'Where you stand now'}</div>
+      <div className="text-sm font-semibold flex items-center gap-1.5 flex-wrap">
+        <span>{meta.icon}</span>
+        <span>{c.title}</span>
+        <Link href="/today" className="text-[10px] font-normal text-[var(--gold)] hover:underline ms-1">
+          {ar ? 'الخريطة كاملة ←' : 'Full map →'}
+        </Link>
+      </div>
+      <p className="text-[11px] text-white/60 leading-relaxed mt-1 max-w-md">{c.meaning}</p>
     </div>
   );
 }

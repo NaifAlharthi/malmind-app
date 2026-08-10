@@ -136,10 +136,7 @@ const en: Dict = {
   'home.balance.assets': 'Total assets',
   'home.balance.liabilities': 'Liabilities',
   'home.stat.monthlyIncome': 'Monthly income',
-  'home.stat.storySpan': 'Story span',
-  'home.stat.chapters': 'Chapters',
   'home.stat.yearsValue': '{n} years',
-  'home.stat.chaptersValue': '{n} recorded',
   'home.logPrompt': 'Log your balances in My Financial Numbers to see your net worth, cash, investments and liabilities here →',
 
   'home.card.story.title': 'My Financial Story',
@@ -537,10 +534,7 @@ const ar: Dict = {
   'home.balance.assets': 'إجمالي الأصول',
   'home.balance.liabilities': 'الخصوم',
   'home.stat.monthlyIncome': 'الدخل الشهري',
-  'home.stat.storySpan': 'امتداد القصة',
-  'home.stat.chapters': 'الفصول',
   'home.stat.yearsValue': '{n} سنة',
-  'home.stat.chaptersValue': '{n} مسجّلة',
   'home.logPrompt': 'سجّل أرصدتك في «أرقامي المالية» لترى صافي ثروتك ونقدك واستثماراتك وخصومك هنا ←',
 
   'home.card.story.title': 'قصتي المالية',
