@@ -65,6 +65,15 @@ export default function CommandMode() {
 
       if (!e.shiftKey) return;
 
+      // ⇧B — summon the Brain to comment on the current view
+      if (e.key === 'B' || e.key === 'b') {
+        if (suppressed.current) return;
+        e.preventDefault();
+        setOpen(false);
+        act(() => window.dispatchEvent(new CustomEvent('mm-brain-summon')));
+        return;
+      }
+
       const isArrow = e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight';
       if (!isArrow) {
         // Shift is being used for something else (typing, shortcuts)
@@ -122,19 +131,24 @@ export default function CommandMode() {
   const down = depth < 4 ? DEPTH_META[(depth + 1) as DepthLevel] : null;
 
   const Key = ({ label }: { label: string }) => (
-    <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-white/25 bg-white/10 text-white text-base font-semibold shadow-inner">
+    <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-medium)] bg-[var(--surface-1)] text-[var(--ink)] text-base font-semibold shadow-inner">
       {label}
     </span>
   );
   const Hint = ({ text, dim }: { text: string; dim?: boolean }) => (
-    <span className={`text-[11px] whitespace-nowrap ${dim ? 'text-white/30' : 'text-white/85'}`}>{text}</span>
+    <span className={`text-[11px] whitespace-nowrap ${dim ? 'text-[var(--muted)] opacity-50' : 'text-[var(--ink-2)]'}`}>{text}</span>
   );
 
   return (
     <div className="fixed inset-0 z-[95] pointer-events-none flex items-center justify-center" role="status" aria-live="polite">
-      <div className="rounded-2xl border border-white/15 bg-[#0B1F30]/92 backdrop-blur px-7 py-6 shadow-2xl text-center" dir={ar ? 'rtl' : 'ltr'}>
-        <div className="flex items-center justify-center gap-2 mb-4 text-white/90">
-          <span className="inline-flex items-center justify-center h-7 px-2.5 rounded-md border border-white/25 bg-white/10 text-sm font-bold">⇧ Shift</span>
+      {/* just-slightly transparent, tinted by the page's own surface palette */}
+      <div
+        className="rounded-2xl border border-[var(--border-default)] backdrop-blur-md px-7 py-6 shadow-2xl text-center"
+        style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }}
+        dir={ar ? 'rtl' : 'ltr'}
+      >
+        <div className="flex items-center justify-center gap-2 mb-4 text-[var(--ink)]">
+          <span className="inline-flex items-center justify-center h-7 px-2.5 rounded-md border border-[var(--border-medium)] bg-[var(--surface-1)] text-sm font-bold">⇧ Shift</span>
           <span className="text-xs font-semibold tracking-wide">{L('وضع الأوامر', 'Command mode')}</span>
         </div>
 
@@ -150,11 +164,11 @@ export default function CommandMode() {
             <Key label="←" />
             <Hint text={leftRoute ? `${TIME_LABEL[leftRoute].icon} ${ar ? TIME_LABEL[leftRoute].ar : TIME_LABEL[leftRoute].en}` : '·'} dim={!leftRoute} />
           </div>
-          <div className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white">
-            <div className="text-[10px] text-white/55 mb-0.5">{L('أنت الآن', 'You are at')}</div>
+          <div className="px-4 py-2 rounded-xl bg-[var(--surface-1)] border border-[var(--border-default)] text-[var(--ink)]">
+            <div className="text-[10px] text-[var(--muted)] mb-0.5">{L('أنت الآن', 'You are at')}</div>
             <div className="text-xs font-semibold whitespace-nowrap">
               {TIME_LABEL[here].icon} {ar ? TIME_LABEL[here].ar : TIME_LABEL[here].en}
-              <span className="text-white/45"> · </span>
+              <span className="text-[var(--muted)]"> · </span>
               {DEPTH_META[depth].icon} {ar ? DEPTH_META[depth].name.ar : DEPTH_META[depth].name.en}
             </div>
           </div>
@@ -168,6 +182,12 @@ export default function CommandMode() {
         <div className="flex flex-col items-center gap-1 mt-2">
           <Key label="↓" />
           <Hint text={down ? `${down.icon} ${L(`اغطس إلى «${down.name.ar}»`, `Dive to “${down.name.en}”`)}` : L('أنت في القاع', 'At the deepest point')} dim={!down} />
+        </div>
+
+        {/* other commands */}
+        <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-[var(--border-faint)]">
+          <Key label="B" />
+          <Hint text={`🧠 ${L('استدعِ العقل — يعلّق على ما تراه ويجيبك', 'Summon the Brain — it comments on this view and answers you')}`} />
         </div>
       </div>
     </div>

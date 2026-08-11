@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Canvas, useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { createClient } from '@/lib/supabase/client';
@@ -92,6 +92,7 @@ interface Pointing {
 export default function BrainCompanion() {
   const supabase = createClient();
   const pathname = usePathname();
+  const router = useRouter();
   const { t, locale } = useLocale();
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
@@ -108,6 +109,37 @@ export default function BrainCompanion() {
   const settleGuard = useRef(0);
 
   useEffect(() => { setMode(getGuideMode()); }, []);
+
+  // ── Shift+B (command mode) summons the Brain: it comments on the current
+  // view and offers its ask box, ready to type into.
+  const [ask, setAsk] = useState('');
+  const askInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onSummon = () => {
+      endPointing();
+      setOpen(false);
+      excitementRef.current = 0.8;
+      if (guide) {
+        setBubbleOpen(true);
+        window.setTimeout(() => askInputRef.current?.focus(), 80);
+      } else {
+        setOpen(true); // no page guide here — open the Brain panel instead
+      }
+    };
+    window.addEventListener('mm-brain-summon', onSummon);
+    return () => window.removeEventListener('mm-brain-summon', onSummon);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guide]);
+
+  function sendAsk(e?: React.FormEvent) {
+    e?.preventDefault();
+    const q = ask.trim();
+    if (!q) return;
+    try { window.sessionStorage.setItem('mm-ask', q); } catch { /* ignore */ }
+    setAsk('');
+    setBubbleOpen(false);
+    router.push('/advisor');
+  }
 
   // The demo tour runs its own spotlight walkthrough — stay quiet during it.
   const tourActive = () => {
@@ -346,6 +378,23 @@ export default function BrainCompanion() {
               </div>
             </div>
           )}
+
+          {/* ask me about this view */}
+          <form onSubmit={sendAsk} className="flex items-center gap-1.5 mb-2.5">
+            <input
+              ref={askInputRef}
+              value={ask}
+              onChange={(e) => setAsk(e.target.value)}
+              placeholder={L('اسألني عن هذه الصفحة…', 'Ask me about this view…')}
+              className="flex-1 min-w-0 bg-[var(--surface-0)] border border-[var(--border-default)] rounded-full px-3 py-1.5 text-[11px] outline-none focus:border-[var(--green)]"
+            />
+            <button
+              type="submit"
+              className="shrink-0 text-[11px] font-semibold bg-[var(--green-dark)] text-white rounded-full px-3 py-1.5"
+            >
+              {L('اسأل', 'Ask')}
+            </button>
+          </form>
 
           {/* how chatty should I be? */}
           <div className="flex items-center gap-1 pt-2 border-t border-[var(--border-faint)]">
