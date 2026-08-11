@@ -28,7 +28,8 @@ import {
   type Tier, type Phase, type LadderTier,
 } from '@/lib/standardOfLiving';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
-import { useXMode } from '@/components/shared/ExperienceMode';
+import { useDepth } from '@/components/shared/ExperienceMode';
+import { DEPTH_META, type DepthLevel } from '@/lib/depth';
 import {
   PERIODS, periodLabel, periodPer, scaleToPeriod, buildDailyItems, sumBy,
   futureValue, DEFAULT_RETURN, DEBT_RATE, KIND_COLOR,
@@ -160,10 +161,9 @@ export default function TodayDashboard() {
   const [sol, setSol] = useState<{ phases: SolPhaseRow[]; actualsByYear: Record<number, Tier>; offset: number } | null>(null);
   const [stack, setStack] = useState<StackItem[] | null>(null);
   const [stackPeriod, setStackPeriod] = useState<Period>('day');
-  // Guided mode stages the densest analytics behind a one-click reveal.
-  const { mode: xmode } = useXMode();
-  const [showAdv, setShowAdv] = useState(false);
-  const advanced = xmode !== 'guided' || showAdv;
+  // The iceberg's depth stages the dashboard itself: shallow depths show
+  // the essential tiles only; diving reveals the denser analytics in place.
+  const { depth, setDepth } = useDepth();
   const [selRisk, setSelRisk] = useState<string | null>(null);
   const [cashView, setCashView] = useState<'six' | 'ytd'>('six');
   const [srcInfo, setSrcInfo] = useState(false);
@@ -904,7 +904,7 @@ export default function TodayDashboard() {
       </div>
 
       {/* ── The Daily Stack — a day of choices, and the snowball it becomes ── */}
-      {stack && stack.length > 0 && avgIncome > 0 && (() => {
+      {depth >= 2 && stack && stack.length > 0 && avgIncome > 0 && (() => {
         const dailySpend = sumBy(stack);
         const dailyIncome = avgIncome / 30.44;
         const surplus = dailyIncome - dailySpend;
@@ -976,7 +976,7 @@ export default function TodayDashboard() {
 
       {/* ── Standard of living — the life this income affords, next to
              "where you stand" ── */}
-      {(() => {
+      {depth >= 2 && (() => {
         const tier = tierFromIncome(avgIncome);
         const life = getLifestyle(tier, locale);
         const nextTier = tierIndex(tier) < TIERS.length - 1 ? TIERS[tierIndex(tier) + 1] : null;
@@ -1091,6 +1091,7 @@ export default function TodayDashboard() {
       })()}
 
       {/* ── Row 2: income sources (pie) + risk radar ── */}
+      {depth >= 2 && (
       <div className="grid sm:grid-cols-2 gap-3">
         <Card title={t('today.sources.title')} href="/lifetime-income" explain={EX.sources}>
           {activeIncome > 0 ? (
@@ -1243,9 +1244,10 @@ export default function TodayDashboard() {
           )}
         </Card>
       </div>
+      )}
 
       {/* ── SIMAH credit standing (only when a score has been recorded) ── */}
-      {credit && (
+      {depth >= 4 && credit && (
         <Card title={t('today.credit.title')} href="/credit" explain={EX.credit}>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="text-center shrink-0">
@@ -1352,20 +1354,20 @@ export default function TodayDashboard() {
         )}
       </Card>
 
-      {/* ── advanced analytics: staged behind a reveal in guided mode ── */}
-      {!advanced && (
+      {/* ── deeper tiles wait below the waterline — one click sinks a level ── */}
+      {depth < 4 && (
         <button
-          onClick={() => setShowAdv(true)}
+          onClick={() => setDepth((depth + 1) as DepthLevel)}
           className="w-full text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-dashed border-[var(--green-border)] rounded-2xl px-5 py-3.5 hover:border-[var(--green)]"
         >
           {locale === 'ar'
-            ? '🔭 أظهِر التحليلات المتقدمة — المقارنة بالأقران، وتكوين الأصول، ودخل العمر'
-            : '🔭 Show the advanced analytics — peer comparison, asset mix, lifetime income'}
+            ? `🧊 اغطس إلى «${DEPTH_META[(depth + 1) as DepthLevel].name.ar}» — تظهر بلاطات أعمق هنا ▾`
+            : `🧊 Dive to “${DEPTH_META[(depth + 1) as DepthLevel].name.en}” — deeper tiles appear here ▾`}
         </button>
       )}
 
       {/* ── Row 4: net worth vs peers, by age ── */}
-      {advanced && (
+      {depth >= 3 && (
       <Card title={t('today.compare.title')} href="/positioning" explain={EX.compare}>
         {age && compare.length > 1 ? (
           <>
@@ -1411,7 +1413,7 @@ export default function TodayDashboard() {
       )}
 
       {/* ── Row 4a: asset composition over time ── */}
-      {advanced && assetComposition.length > 0 && assetSeries.length > 0 && (
+      {depth >= 3 && assetComposition.length > 0 && assetSeries.length > 0 && (
         <Card title={t('today.assets.title')} href="/financial-numbers" explain={EX.assets}>
           <div className="flex bg-[var(--surface-1)] rounded-lg p-0.5 mb-2 w-fit">
             <button
@@ -1473,7 +1475,7 @@ export default function TodayDashboard() {
       )}
 
       {/* ── Row 4b: lifetime income vs savings ── */}
-      {advanced && lifeEarned > 0 && (
+      {depth >= 3 && lifeEarned > 0 && (
         <Card title={t('today.lifetime.title')} href="/lifetime-income" explain={EX.lifetime}>
           <div className="flex items-baseline gap-4 flex-wrap mb-2">
             <div>
@@ -1543,6 +1545,7 @@ export default function TodayDashboard() {
           )}
         </Card>
 
+        {depth >= 3 && (
         <Card title={t('today.pace.title')} href="/velocity" explain={EX.pace}>
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
@@ -1582,6 +1585,7 @@ export default function TodayDashboard() {
             <p className="text-[11px] text-[var(--muted)] mt-2">{t('today.pace.stalled')}</p>
           )}
         </Card>
+        )}
       </div>
 
       {/* ── Row 4: the road to financial freedom ── */}
