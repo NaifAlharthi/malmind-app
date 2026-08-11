@@ -128,6 +128,16 @@ export default function CommandMode() {
         return;
       }
 
+      // ⇧H — go home (physical key: layout-independent)
+      if (e.code === 'KeyH' || e.key === 'H' || e.key === 'h') {
+        if (suppressed.current) return;
+        e.preventDefault();
+        if (e.repeat) return;
+        setOpen(false);
+        act(() => { if (pathRef.current !== '/home') router.push('/home'); });
+        return;
+      }
+
       // ⇧M — cycle the experience modes alt-tab style; idle or releasing
       // Shift confirms the highlighted one (physical key: layout-independent)
       if (e.code === 'KeyM' || e.key === 'M' || e.key === 'm') {
@@ -343,6 +353,10 @@ export default function CommandMode() {
           <div className="flex items-center gap-2">
             <Key label="M" />
             <Hint text={`${XMODE_META[mode].icon} ${L('بدّل النمط — أرشدني · شبه محترف · محترف', 'Switch mode — Guide me · Semi-pro · Pro')}`} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Key label="H" />
+            <Hint text={`⌂ ${L('اذهب إلى الرئيسية', 'Go to the home page')}`} />
           </div>
         </div>
       </div>
