@@ -24,9 +24,58 @@ import Link from 'next/link';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useDepth } from '@/components/shared/ExperienceMode';
 import { DEPTH_LEVELS, DEPTH_META, type DepthLevel } from '@/lib/depth';
-import { toolsUnlockedAt, type ViewKey } from '@/lib/toolbox';
+import { toolsUnlockedAt, toolMatrix, type ViewKey } from '@/lib/toolbox';
+import { Fragment } from 'react';
 
 const TIME_ROUTES = ['/past', '/today', '/future'];
+
+// The product map: the 3×4 matrix of time × depth, one count per cell.
+// Rows at or above the viewed depth glow; deeper rows wait in the dark.
+function ProductMatrix({ level, ar, onRow }: { level: DepthLevel; ar: boolean; onRow: (l: DepthLevel) => void }) {
+  const m = toolMatrix();
+  return (
+    <div className="mb-6 inline-block rounded-xl border border-white/15 bg-white/5 px-3.5 py-3">
+      <div className="text-[9px] tracking-[0.14em] uppercase text-white/45 mb-2">
+        {ar ? 'خريطة المنتج — الزمن × العمق' : 'Product map — time × depth'}
+      </div>
+      <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-3 gap-y-1 items-center text-[10px]">
+        <span />
+        {HUB_META.map((h) => (
+          <span key={h.key} className="text-center text-white/60 whitespace-nowrap">{h.icon} {ar ? h.ar : h.en}</span>
+        ))}
+        {DEPTH_LEVELS.map((d) => (
+          <Fragment key={d}>
+            <button
+              onClick={() => onRow(d)}
+              className={`text-start pe-1 transition-opacity ${d === level ? 'opacity-100' : d < level ? 'opacity-70' : 'opacity-35 hover:opacity-70'}`}
+              title={ar ? DEPTH_META[d].name.ar : DEPTH_META[d].name.en}
+            >
+              {DEPTH_META[d].icon}
+            </button>
+            {HUB_META.map((h) => {
+              const n = m[h.key][d];
+              return (
+                <button
+                  key={h.key}
+                  onClick={() => onRow(d)}
+                  className={`h-6 rounded-md flex items-center justify-center font-semibold transition-all ${
+                    d === level
+                      ? 'bg-[#5DCAA5]/25 text-[#9FE8CC] ring-1 ring-[#5DCAA5]/50'
+                      : d < level
+                        ? 'bg-white/10 text-white/70'
+                        : 'bg-white/[0.04] text-white/30 hover:text-white/60'
+                  }`}
+                >
+                  {n > 0 ? n : '·'}
+                </button>
+              );
+            })}
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
 const HUB_META: { key: ViewKey; icon: string; ar: string; en: string }[] = [
   { key: 'past', icon: '🕰', ar: 'الماضي', en: 'The Past' },
   { key: 'today', icon: '☀', ar: 'اليوم', en: 'Today' },
@@ -250,6 +299,8 @@ export default function DepthRail() {
                       <span>{ar ? meta.name.ar : meta.name.en}</span>
                     </h2>
                     <p className="text-sm sm:text-[15px] leading-relaxed text-white/85 mb-5">{ar ? meta.desc.ar : meta.desc.en}</p>
+
+                    <ProductMatrix level={lvl} ar={ar} onRow={scrollToLevel} />
 
                     {/* what surfaces at this depth, by time view */}
                     <div className="space-y-3 mb-6">

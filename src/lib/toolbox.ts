@@ -20,6 +20,14 @@ export interface HubTool {
   depth?: DepthLevel;
 }
 
+// The product as a 3×4 matrix — time (past · today · future) crossed with
+// depth (essentials · organized · analysis · mastery). Each cell is a chunk
+// of the full product; sinking one depth level opens the next band of
+// complexity across all three time views at once:
+//   D1 the picture   — your story & ledger · what you own/owe · the dream
+//   D2 the discipline — daily choices, exposure & living standard · budgets, plans, comparisons
+//   D3 the reading    — the earned arc · ratios, peers, velocity · scenarios
+//   D4 the mastery    — borrowing power · allocation engines (waterfall, doubling)
 export const TOOLS: Record<ViewKey, HubTool[]> = {
   past: [
     { href: '/story', icon: '📖', titleKey: 'home.card.story.title', descKey: 'home.card.story.desc' },
@@ -29,6 +37,7 @@ export const TOOLS: Record<ViewKey, HubTool[]> = {
   today: [
     { href: '/holdings', icon: '💼', titleKey: 'hub.card.holdings.title', descKey: 'hub.card.holdings.desc' },
     { href: '/commitments', icon: '🧾', titleKey: 'hub.card.commitments.title', descKey: 'hub.card.commitments.desc' },
+    { href: '/daily-stack', icon: '🥞', titleKey: 'hub.card.dailyStack.title', descKey: 'hub.card.dailyStack.desc', depth: 2 },
     { href: '/risks', icon: '🛡', titleKey: 'hub.card.risks.title', descKey: 'hub.card.risks.desc', depth: 2 },
     { href: '/standard-of-living?mode=track', icon: '🪜', titleKey: 'hub.card.solTracked.title', descKey: 'hub.card.solTracked.desc', depth: 2 },
     { href: '/positioning', icon: '📊', titleKey: 'home.card.positioning.title', descKey: 'home.card.positioning.desc', depth: 3 },
@@ -59,4 +68,12 @@ export function toolsUnlockedAt(depth: DepthLevel): Record<ViewKey, HubTool[]> {
 
 export function countStaged(view: ViewKey, depth: DepthLevel): number {
   return TOOLS[view].filter((tl) => (tl.depth ?? 1) <= depth).length;
+}
+
+// The full 3×4 matrix as counts — how many tools live in each (time, depth)
+// cell. Feeds the dive's product map.
+export function toolMatrix(): Record<ViewKey, Record<DepthLevel, number>> {
+  const cell = (v: ViewKey, d: DepthLevel) => TOOLS[v].filter((tl) => (tl.depth ?? 1) === d).length;
+  const row = (v: ViewKey) => ({ 1: cell(v, 1), 2: cell(v, 2), 3: cell(v, 3), 4: cell(v, 4) });
+  return { past: row('past'), today: row('today'), future: row('future') };
 }
