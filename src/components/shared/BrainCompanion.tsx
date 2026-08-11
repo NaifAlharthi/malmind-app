@@ -115,15 +115,22 @@ export default function BrainCompanion() {
   const [ask, setAsk] = useState('');
   const askInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
+    // ⇧B toggles: first tap summons the figure's bubble, a second tap
+    // (Shift still held) dismisses it — the reverse move.
     const onSummon = () => {
       endPointing();
-      setOpen(false);
-      excitementRef.current = 0.8;
       if (guide) {
-        setBubbleOpen(true);
-        window.setTimeout(() => askInputRef.current?.focus(), 80);
+        setOpen(false);
+        setBubbleOpen((was) => {
+          if (!was) {
+            excitementRef.current = 0.8;
+            window.setTimeout(() => askInputRef.current?.focus(), 80);
+          }
+          return !was;
+        });
       } else {
-        setOpen(true); // no page guide here — open the Brain panel instead
+        setBubbleOpen(false);
+        setOpen((was) => !was); // no page guide here — toggle the panel instead
       }
     };
     window.addEventListener('mm-brain-summon', onSummon);
