@@ -36,6 +36,7 @@ import {
 } from '@/lib/dailyStack';
 import { BENCHMARK_START_AGE, buildBenchmarkCurves, buildYouSeries } from '@/lib/positioningBenchmarks';
 import { QUADRANT_META, diagnoseQuadrant, type QuadKey } from '@/lib/quadrant';
+import { demoAr } from '@/lib/demoI18n';
 import { buildProjection } from '@/lib/lifetimeProjection';
 import ExplainButton, { type ExplainContent } from '@/components/shared/ExplainButton';
 
@@ -125,9 +126,17 @@ const QUAD_BARS: Record<QuadKey, { incomeH: number; outflowH: number }> = {
   D: { incomeH: 28, outflowH: 18 },
 };
 
-const AXIS_LABEL: Record<string, string> = {
-  income: 'Income', runway: 'Runway', health: 'Health', concentration: 'Mix', debt: 'Debt',
+const AXIS_LABEL: Record<string, { ar: string; en: string }> = {
+  income: { ar: 'الدخل', en: 'Income' },
+  runway: { ar: 'الملاءة', en: 'Runway' },
+  health: { ar: 'الصحة', en: 'Health' },
+  concentration: { ar: 'التنوّع', en: 'Mix' },
+  debt: { ar: 'الدين', en: 'Debt' },
 };
+function axisLabel(id: string, ar: boolean): string {
+  const l = AXIS_LABEL[id];
+  return l ? (ar ? l.ar : l.en) : id;
+}
 
 const RISK_COLOR: Record<string, string> = {
   high: 'var(--red)', medium: 'var(--gold-2)', low: 'var(--green)', unknown: 'var(--muted)',
@@ -527,8 +536,8 @@ export default function TodayDashboard() {
   const incomeTotal = activeIncome + passiveIncome;
   const passivePct = incomeTotal > 0 ? (passiveIncome / incomeTotal) * 100 : 0;
   const sourceStreams = [
-    { name: 'Employer salary', amt: salary, kind: 'active' as const, emp: true, perMo: false },
-    ...(side > 0 ? [{ name: 'Side income', amt: side, kind: 'active' as const, emp: false, perMo: false }] : []),
+    { name: locale === 'ar' ? 'راتب الوظيفة' : 'Employer salary', amt: salary, kind: 'active' as const, emp: true, perMo: false },
+    ...(side > 0 ? [{ name: locale === 'ar' ? 'دخل جانبي' : 'Side income', amt: side, kind: 'active' as const, emp: false, perMo: false }] : []),
     ...(passiveIncome > 0
       ? [{ name: t('today.sources.investYield'), amt: passiveIncome, kind: 'passive' as const, emp: false, perMo: true }]
       : []),
@@ -558,7 +567,7 @@ export default function TodayDashboard() {
   const highRisks = risks.filter((r) => r.level === 'high');
   const medRisks = risks.filter((r) => r.level === 'medium');
   const radarData = risks.map((r) => ({
-    axis: AXIS_LABEL[r.id] ?? r.id,
+    axis: axisLabel(r.id, locale === 'ar'),
     score: r.score,
   }));
   const selectedRisk = risks.find((r) => r.id === selRisk) ?? null;
@@ -1039,7 +1048,7 @@ export default function TodayDashboard() {
                         <th className="p-1.5 w-14"></th>
                         {phasesForSeries.map((p) => (
                           <th key={p.id} className="text-start p-1.5 align-bottom">
-                            <div className="font-semibold text-[var(--ink)]">{p.phase_name}</div>
+                            <div className="font-semibold text-[var(--ink)]">{demoAr(p.phase_name, locale === 'ar')}</div>
                             <div className="text-[10px] text-[var(--muted)] font-normal">
                               {p.start_year}–{p.end_year} · <span style={{ color: TIER_COLOR[p.target_tier] }}>{ladderLabel(p.target_tier as LadderTier, locale)}</span>
                             </div>
@@ -1048,9 +1057,9 @@ export default function TodayDashboard() {
                       </tr>
                     </thead>
                     <tbody className="align-top">
-                      <SolRow label={t('today.sol.theme')} cells={phasesForSeries.map((p) => p.theme ?? [])} />
-                      <SolRow label={t('today.sol.todo')} cells={phasesForSeries.map((p) => p.todo ?? [])} />
-                      <SolRowText label={t('today.sol.growth')} cells={phasesForSeries.map((p) => p.net_worth_goal ?? '')} />
+                      <SolRow label={t('today.sol.theme')} cells={phasesForSeries.map((p) => (p.theme ?? []).map((s) => demoAr(s, locale === 'ar')))} />
+                      <SolRow label={t('today.sol.todo')} cells={phasesForSeries.map((p) => (p.todo ?? []).map((s) => demoAr(s, locale === 'ar')))} />
+                      <SolRowText label={t('today.sol.growth')} cells={phasesForSeries.map((p) => demoAr(p.net_worth_goal, locale === 'ar'))} />
                     </tbody>
                   </table>
                 </div>
@@ -1108,7 +1117,9 @@ export default function TodayDashboard() {
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="font-serif text-xl font-bold text-[var(--ink)] leading-none">{sourceStreams.length}</span>
                   <span className="text-[8px] tracking-wide text-[var(--muted)] uppercase mt-0.5">
-                    {sourceStreams.length === 1 ? 'source' : 'sources'}
+                    {locale === 'ar'
+                      ? sourceStreams.length === 1 ? 'مصدر' : 'مصادر'
+                      : sourceStreams.length === 1 ? 'source' : 'sources'}
                   </span>
                 </div>
               </div>
@@ -1119,7 +1130,7 @@ export default function TodayDashboard() {
                   <div className="text-xs font-semibold text-[var(--ink)] leading-snug">
                     {biggestStream.name}
                     {biggestStream.emp && employment ? (
-                      <span className="text-[var(--muted)] font-normal"> · {employment}</span>
+                      <span className="text-[var(--muted)] font-normal"> · {demoAr(employment, locale === 'ar')}</span>
                     ) : null}
                   </div>
                 </div>
@@ -1212,7 +1223,7 @@ export default function TodayDashboard() {
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: RISK_COLOR[r.level] }} />
-                {AXIS_LABEL[r.id] ?? r.id}
+                {axisLabel(r.id, locale === 'ar')}
               </button>
             ))}
           </div>
@@ -1313,7 +1324,7 @@ export default function TodayDashboard() {
 
             <div className="space-y-2.5">
               {debtItems.map((item) => (
-                <DebtBar key={item.name} name={item.name} original={item.original} balance={item.balance} leverage={item.leverage} />
+                <DebtBar key={item.name} name={demoAr(item.name, locale === 'ar')} original={item.original} balance={item.balance} leverage={item.leverage} />
               ))}
               <div className="pt-2.5 border-t border-[var(--border-default)]">
                 <DebtBar
@@ -1376,8 +1387,8 @@ export default function TodayDashboard() {
                       label={{ value: t('today.compare.today'), position: 'top', fontSize: 9, fill: 'var(--gold-2)' }}
                     />
                   )}
-                  <Line type="monotone" dataKey="national" name="National avg" stroke="var(--blue-2)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="higher" name="Higher peer" stroke="var(--ink)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="national" name={locale === 'ar' ? 'المتوسط الوطني' : 'National avg'} stroke="var(--blue-2)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="higher" name={locale === 'ar' ? 'قرين أعلى' : 'Higher peer'} stroke="var(--ink)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
                   <Line type="monotone" dataKey="you" name={t('today.compare.you')} stroke="var(--green)" strokeWidth={3} dot={false} connectNulls={false} />
                   <Line type="monotone" dataKey="youProjected" name={t('today.compare.projected')} stroke="var(--green)" strokeWidth={2} dot={false} strokeDasharray="5 3" connectNulls={false} />
                 </ComposedChart>
@@ -1502,7 +1513,7 @@ export default function TodayDashboard() {
           {goal ? (
             <>
               <div className="flex items-baseline justify-between gap-2 mb-2">
-                <div className="font-serif text-lg font-semibold text-[var(--ink)] truncate">🎯 {goal.name}</div>
+                <div className="font-serif text-lg font-semibold text-[var(--ink)] truncate">🎯 {demoAr(goal.name, locale === 'ar')}</div>
                 <div className="text-xs text-[var(--muted)] whitespace-nowrap">{money(Number(goal.target_amount))}</div>
               </div>
               <div className="h-2.5 bg-[var(--surface-1)] rounded-full overflow-hidden mb-2" dir="ltr">
@@ -1515,12 +1526,20 @@ export default function TodayDashboard() {
                 />
               </div>
               <div className="flex justify-between text-[11px] text-[var(--ink-2)]">
-                <span>{money(goalSaved)} saved · {Math.round((goalSaved / Number(goal.target_amount)) * 100)}%</span>
-                <span>{money(Number(goal.monthly_contribution))}/mo</span>
+                <span>
+                  {locale === 'ar'
+                    ? `${money(goalSaved)} مدّخرة · ${Math.round((goalSaved / Number(goal.target_amount)) * 100)}%`
+                    : `${money(goalSaved)} saved · ${Math.round((goalSaved / Number(goal.target_amount)) * 100)}%`}
+                </span>
+                <span>{locale === 'ar' ? `${money(Number(goal.monthly_contribution))} شهرياً` : `${money(Number(goal.monthly_contribution))}/mo`}</span>
               </div>
             </>
           ) : (
-            <p className="text-xs text-[var(--muted)]">No goal fund yet — name your next big thing and give it a monthly number.</p>
+            <p className="text-xs text-[var(--muted)]">
+              {locale === 'ar'
+                ? 'لا صندوق هدف بعد — سمِّ خطوتك الكبيرة القادمة وأعطها رقماً شهرياً.'
+                : 'No goal fund yet — name your next big thing and give it a monthly number.'}
+            </p>
           )}
         </Card>
 
@@ -1574,7 +1593,9 @@ export default function TodayDashboard() {
             </Link>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-white/50">
-                4% rule · {liveIsUsed ? 'live portfolio' : 'latest ledger'}
+                {locale === 'ar'
+                  ? `قاعدة 4% · ${liveIsUsed ? 'محفظة حيّة' : 'آخر سجلّ'}`
+                  : `4% rule · ${liveIsUsed ? 'live portfolio' : 'latest ledger'}`}
               </span>
               <span className="[&>button]:border-white/30 [&>button]:text-white/60 [&>button:hover]:text-white [&>button:hover]:border-white/60">
                 <ExplainButton content={EX.freedom} />
@@ -1605,11 +1626,11 @@ export default function TodayDashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <HeroStat label={t('today.freedom.number')} value={moneyC(freedom.freedomNumber)} accent="var(--gold)" />
             <HeroStat label={t('today.freedom.invested')} value={moneyC(freedom.investedNow)} />
-            <HeroStat label={t('today.freedom.passive')} value={`${moneyC(freedom.passiveMonthlyNow)}/mo`} />
+            <HeroStat label={t('today.freedom.passive')} value={locale === 'ar' ? `${moneyC(freedom.passiveMonthlyNow)} شهرياً` : `${moneyC(freedom.passiveMonthlyNow)}/mo`} />
             <HeroStat
               label={t('today.freedom.gap')}
               value={moneyC(freedom.gap)}
-              sub={freedom.etaYear ? `≈ ${freedom.etaYear} at your pace` : undefined}
+              sub={freedom.etaYear ? (locale === 'ar' ? `≈ ${freedom.etaYear} بوتيرتك` : `≈ ${freedom.etaYear} at your pace`) : undefined}
             />
           </div>
         </div>
@@ -1792,7 +1813,7 @@ function RiskTooltip({
 }) {
   if (!active || !payload?.length) return null;
   const axis = payload[0]?.payload?.axis;
-  const risk = risks.find((r) => (AXIS_LABEL[r.id] ?? r.id) === axis);
+  const risk = risks.find((r) => axisLabel(r.id, true) === axis || axisLabel(r.id, false) === axis);
   if (!risk) return null;
   return (
     <div className="mm-tooltip px-3 py-2 max-w-[230px]">

@@ -11,6 +11,7 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
 import { isDemoActive } from '@/lib/demoSupabase';
 import { diagnoseQuadrant, QUADRANT_META, type QuadKey } from '@/lib/quadrant';
+import { demoAr } from '@/lib/demoI18n';
 import ContactModal from '@/components/shared/ContactModal';
 import FoundationHub from '@/components/home/FoundationHub';
 
@@ -258,7 +259,7 @@ export default function HomePage() {
         </button>
         <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-1">{t('home.profile.eyebrow')}</div>
         <div className="font-serif text-xl font-semibold">{localizedFirstName(profile.name, locale === 'ar')}</div>
-        <div className="text-xs text-white/50 mb-4">{profile.employment} · {profile.city}</div>
+        <div className="text-xs text-white/50 mb-4">{demoAr(profile.employment, ar)} · {demoAr(profile.city, ar)}</div>
 
         {fin ? (
           <div className="pt-4 border-t border-white/10">

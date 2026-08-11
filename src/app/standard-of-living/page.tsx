@@ -9,6 +9,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { isDemoActive } from '@/lib/demoSupabase';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { demoAr } from '@/lib/demoI18n';
 import {
   ladderLabel, ladderShortLabel, getLifestyle, ageForYear, suggestForTier, TIER_COLOR,
   NATIONAL_AVG_INCOME, NATIONAL_AVG_SOURCE, LADDER_TIERS, TIER_MEANING,
@@ -497,7 +498,7 @@ function StandardOfLivingInner() {
                       <ReferenceArea key={p.id} x1={p.start_year} x2={p.end_year} y1={Y_MIN} y2={Y_MAX}
                         fill="var(--ink)" fillOpacity={i % 2 === 0 ? 0.04 : 0}
                         stroke="var(--border-medium)" strokeOpacity={0.4}
-                        label={{ value: p.phase_name, position: 'insideTop', fontSize: 10, fill: 'var(--ink-2)' }} />
+                        label={{ value: demoAr(p.phase_name, ar), position: 'insideTop', fontSize: 10, fill: 'var(--ink-2)' }} />
                     ))}
                     {xAxis}
                     {yAxis}
@@ -516,7 +517,7 @@ function StandardOfLivingInner() {
                   <button key={p.id} onMouseEnter={(e) => showTierMeaning(p.target_tier, e.currentTarget)} onMouseLeave={() => setTierHover(null)}
                     className="text-[11px] rounded-full px-3 py-1 border cursor-help"
                     style={{ color: TIER_COLOR[p.target_tier], borderColor: `${TIER_COLOR[p.target_tier]}55`, background: `${TIER_COLOR[p.target_tier]}12` }}>
-                    {p.phase_name}: {p.start_year}–{p.end_year} · {ladderLabel(p.target_tier as LadderTier, locale)} ⓘ
+                    {demoAr(p.phase_name, ar)}: {p.start_year}–{p.end_year} · {ladderLabel(p.target_tier as LadderTier, locale)} ⓘ
                   </button>
                 ))}
               </div>
