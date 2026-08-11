@@ -75,6 +75,24 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [contactOpen, setContactOpen] = useState(false);
 
+  // Periodic-reports placeholder: the delivery engine isn't built yet, but
+  // the chosen frequency/channels persist locally so they're ready for it.
+  const [reportPrefs, setReportPrefs] = useState<{ freq: string[]; via: string[] }>({ freq: [], via: [] });
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('mm-report-prefs');
+      if (raw) setReportPrefs(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
+  const toggleReportPref = (group: 'freq' | 'via', key: string) => {
+    setReportPrefs((prev) => {
+      const list = prev[group].includes(key) ? prev[group].filter((k) => k !== key) : [...prev[group], key];
+      const next = { ...prev, [group]: list };
+      try { window.localStorage.setItem('mm-report-prefs', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
@@ -141,14 +159,6 @@ export default function HomePage() {
     router.push('/login');
   }
 
-  const personaName = (p: string | null) => {
-    if (!p) return null;
-    const map: Record<string, string> = {
-      layla: L('ليلى', 'Layla'), faisal: L('فيصل', 'Faisal'),
-      reem: L('ريم', 'Reem'), khalid: L('خالد', 'Khalid'),
-    };
-    return map[p] ?? null;
-  };
   const lifeStageLabel = (s: string | null) => {
     if (!s) return null;
     const map: Record<string, string> = {
@@ -394,7 +404,6 @@ export default function HomePage() {
               />
               {memberSinceLabel && <InfoLine label={L('عضو منذ', 'Member since')} value={memberSinceLabel} />}
               {profile.currency && <InfoLine label={L('العملة', 'Currency')} value={profile.currency} />}
-              {personaName(profile.persona) && <InfoLine label={L('البداية', 'Started as')} value={personaName(profile.persona)!} />}
             </div>
             <button onClick={handleSignOut} className="text-[11px] text-[var(--muted)] hover:text-[var(--red-dark-text)] mt-3">
               {t('common.signOut')}
@@ -445,6 +454,60 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+          </SpaceTile>
+
+          {/* periodic reports — placeholder until the delivery engine ships */}
+          <SpaceTile icon="📬" title={L('التقارير الدورية', 'Periodic reports')}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-semibold text-[var(--gold-text-strong)] bg-[var(--gold-bg)] border border-[var(--gold)] rounded-full px-2 py-0.5">
+                {L('قريباً', 'Coming soon')}
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-3">
+              {L(
+                'سنرسل لك خلاصة وضعك المالي تلقائياً. اختر ما يناسبك الآن — وسيبدأ الإرسال فور إطلاق الميزة.',
+                "We'll send your financial summary automatically. Pick what suits you now — delivery starts the moment the feature ships."
+              )}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-[11px] text-[var(--muted)] mb-1.5">{L('التكرار', 'Frequency')}</div>
+                <div className="flex flex-col gap-1.5">
+                  {([['weekly', L('أسبوعي', 'Weekly')], ['monthly', L('شهري', 'Monthly')], ['quarterly', L('ربع سنوي', 'Quarterly')]] as [string, string][]).map(([k, label]) => (
+                    <label key={k} className="flex items-center gap-2 text-xs text-[var(--ink)] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reportPrefs.freq.includes(k)}
+                        onChange={() => toggleReportPref('freq', k)}
+                        className="w-3.5 h-3.5 accent-[var(--green-dark)]"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-[var(--muted)] mb-1.5">{L('الوسيلة', 'Channel')}</div>
+                <div className="flex flex-col gap-1.5">
+                  {([['email', L('البريد الإلكتروني', 'Email')], ['whatsapp', L('واتساب', 'WhatsApp')]] as [string, string][]).map(([k, label]) => (
+                    <label key={k} className="flex items-center gap-2 text-xs text-[var(--ink)] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reportPrefs.via.includes(k)}
+                        onChange={() => toggleReportPref('via', k)}
+                        className="w-3.5 h-3.5 accent-[var(--green-dark)]"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {(reportPrefs.freq.length > 0 || reportPrefs.via.length > 0) && (
+              <p className="text-[10px] text-[var(--green-dark)] mt-2.5">
+                {L('✓ حُفظت اختياراتك — ستُفعَّل مع الإطلاق.', '✓ Choices saved — they activate at launch.')}
+              </p>
+            )}
           </SpaceTile>
 
           {/* help & contact */}
