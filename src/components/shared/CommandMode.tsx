@@ -172,10 +172,10 @@ export default function CommandMode() {
       if (suppressed.current) return;
       e.preventDefault();
 
-      if (e.key === 'ArrowUp') {
-        trigger('up', () => { const d = depthRef.current; if (d > 1) setDepthRef.current((d - 1) as DepthLevel); });
-      } else if (e.key === 'ArrowDown') {
-        trigger('down', () => { const d = depthRef.current; if (d < 4) setDepthRef.current((d + 1) as DepthLevel); });
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        if (pathRef.current === '/home') return; // depth doesn't apply on home
+        if (e.key === 'ArrowUp') trigger('up', () => { const d = depthRef.current; if (d > 1) setDepthRef.current((d - 1) as DepthLevel); });
+        else trigger('down', () => { const d = depthRef.current; if (d < 4) setDepthRef.current((d + 1) as DepthLevel); });
       } else {
         // horizontal = the timeline, in on-screen direction
         const toRight = ar ? -1 : 1;
@@ -281,8 +281,9 @@ export default function CommandMode() {
   // what sits to each physical side on the timeline
   const rightRoute = TIME_ROUTES[TIME_ROUTES.indexOf(here) + (ar ? -1 : 1)];
   const leftRoute = TIME_ROUTES[TIME_ROUTES.indexOf(here) - (ar ? -1 : 1)];
-  const up = depth > 1 ? DEPTH_META[(depth - 1) as DepthLevel] : null;
-  const down = depth < 4 ? DEPTH_META[(depth + 1) as DepthLevel] : null;
+  const onHome = pathname === '/home';
+  const up = !onHome && depth > 1 ? DEPTH_META[(depth - 1) as DepthLevel] : null;
+  const down = !onHome && depth < 4 ? DEPTH_META[(depth + 1) as DepthLevel] : null;
 
   const Key = ({ label, active }: { label: string; active?: boolean }) => (
     <span
@@ -314,7 +315,7 @@ export default function CommandMode() {
         {/* ↑ surface */}
         <div className="flex flex-col items-center gap-1 mb-2">
           <Key label="↑" active={activeKey === 'up'} />
-          <Hint text={up ? `${up.icon} ${L(`اصعد إلى «${up.name.ar}»`, `Surface to “${up.name.en}”`)}` : L('أنت على السطح', 'At the surface')} dim={!up} />
+          <Hint text={up ? `${up.icon} ${L(`اصعد إلى «${up.name.ar}»`, `Surface to “${up.name.en}”`)}` : onHome ? L('العمق لا ينطبق على الرئيسية', 'Depth does not apply on home') : L('أنت على السطح', 'At the surface')} dim={!up} />
         </div>
 
         {/* ← current → */}
@@ -340,7 +341,7 @@ export default function CommandMode() {
         {/* ↓ dive */}
         <div className="flex flex-col items-center gap-1 mt-2">
           <Key label="↓" active={activeKey === 'down'} />
-          <Hint text={down ? `${down.icon} ${L(`اغطس إلى «${down.name.ar}»`, `Dive to “${down.name.en}”`)}` : L('أنت في القاع', 'At the deepest point')} dim={!down} />
+          <Hint text={down ? `${down.icon} ${L(`اغطس إلى «${down.name.ar}»`, `Dive to “${down.name.en}”`)}` : onHome ? L('العمق لا ينطبق على الرئيسية', 'Depth does not apply on home') : L('أنت في القاع', 'At the deepest point')} dim={!down} />
         </div>
 
         {/* other commands — a fixed left-aligned key column, like any

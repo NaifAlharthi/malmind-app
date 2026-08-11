@@ -12,14 +12,22 @@
 // to the previous). A small progress pill shows the pull building up.
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useDepth } from '@/components/shared/ExperienceMode';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { DEPTH_META, type DepthLevel } from '@/lib/depth';
+
+// Pages where the depth system simply doesn't apply — no transitions, no
+// edge-push, no flash. The home page is mission control, not a staged view.
+const DEPTHLESS = ['/home'];
 
 export default function DepthStage({ children }: { children: React.ReactNode }) {
   const { depth, setDepth } = useDepth();
   const { locale } = useLocale();
   const ar = locale === 'ar';
+  const pathname = usePathname();
+  const depthlessRef = useRef(false);
+  useEffect(() => { depthlessRef.current = DEPTHLESS.includes(pathname); }, [pathname]);
 
   const prev = useRef<DepthLevel>(depth);
   const booted = useRef(false);
@@ -51,6 +59,7 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
       return false;
     };
     const push = (delta: number, target: EventTarget | null) => {
+      if (depthlessRef.current) return; // no edge-push on depthless pages
       const now = Date.now();
       if (now < coolUntil.current) return;
       if (target && insideOwnScroller(target)) return;
@@ -109,6 +118,7 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
     const diving = depth > prev.current;
     prev.current = depth;
     if (!booted.current) return;
+    if (depthlessRef.current) return; // no water theater on depthless pages
     setFlash(depth);
     // drop the class for one frame so a same-direction change restarts it
     setShift(null);
