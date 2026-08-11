@@ -95,7 +95,10 @@ export default function CommandMode() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
 
-      if (e.key === 'Shift' && !e.repeat) {
+      if (e.key === 'Shift') {
+        // holding Shift auto-repeats this event — repeats must never fall
+        // through to the "Shift is being used for typing" branch below
+        if (e.repeat) return;
         suppressed.current = false;
         window.clearTimeout(holdTimer.current);
         holdTimer.current = window.setTimeout(() => {
