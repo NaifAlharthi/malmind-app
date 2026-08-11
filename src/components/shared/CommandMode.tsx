@@ -38,6 +38,11 @@ export default function CommandMode() {
   const holdTimer = useRef<number | undefined>(undefined);
   const suppressed = useRef(false); // Shift is being used for typing/selection
   const cooldown = useRef(0);
+  // ⇧B press tracking: a tap summons the side figure, a long press opens
+  // the full Brain page.
+  const bTimer = useRef<number | undefined>(undefined);
+  const bActive = useRef(false);
+  const bLongFired = useRef(false);
 
   const depthRef = useRef(depth); useEffect(() => { depthRef.current = depth; }, [depth]);
   const setDepthRef = useRef(setDepth); useEffect(() => { setDepthRef.current = setDepth; }, [setDepth]);
@@ -65,12 +70,20 @@ export default function CommandMode() {
 
       if (!e.shiftKey) return;
 
-      // ⇧B — summon the Brain to comment on the current view
+      // ⇧B — tap: the Brain figure comments here · long press: full Brain page
       if (e.key === 'B' || e.key === 'b') {
         if (suppressed.current) return;
         e.preventDefault();
-        setOpen(false);
-        act(() => window.dispatchEvent(new CustomEvent('mm-brain-summon')));
+        if (e.repeat) return; // key auto-repeat while held — the timer decides
+        bActive.current = true;
+        bLongFired.current = false;
+        window.clearTimeout(bTimer.current);
+        bTimer.current = window.setTimeout(() => {
+          bLongFired.current = true;
+          bActive.current = false;
+          setOpen(false);
+          router.push('/advisor');
+        }, 550);
         return;
       }
 
@@ -101,8 +114,20 @@ export default function CommandMode() {
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'B' || e.key === 'b') {
+        window.clearTimeout(bTimer.current);
+        if (bActive.current && !bLongFired.current) {
+          // a tap — the figure comments right here, no navigation
+          bActive.current = false;
+          setOpen(false);
+          act(() => window.dispatchEvent(new CustomEvent('mm-brain-summon')));
+        }
+        return;
+      }
       if (e.key === 'Shift') {
         window.clearTimeout(holdTimer.current);
+        window.clearTimeout(bTimer.current);
+        bActive.current = false;
         suppressed.current = false;
         setOpen(false);
       }
@@ -187,7 +212,7 @@ export default function CommandMode() {
         {/* other commands */}
         <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-[var(--border-faint)]">
           <Key label="B" />
-          <Hint text={`🧠 ${L('استدعِ العقل — يعلّق على ما تراه ويجيبك', 'Summon the Brain — it comments on this view and answers you')}`} />
+          <Hint text={`🧠 ${L('نقرة: يعلّق العقل هنا · مطوّلاً: صفحة العقل', 'Tap: the Brain comments here · hold: full Brain page')}`} />
         </div>
       </div>
     </div>
