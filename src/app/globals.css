@@ -284,6 +284,38 @@ body {
   85% { opacity: 0.4; }
   100% { transform: translateY(-46vh) scale(1.25); opacity: 0; }
 }
+
+/* depth-change transition, one self-contained animation per direction:
+   the current view sinks away, then the next rises in from below (diving)
+   — or the mirror of that (surfacing) */
+@keyframes mmDepthShiftDown {
+  0% { opacity: 1; transform: none; }
+  30% { opacity: 0; transform: translateY(-38px); }
+  34% { opacity: 0; transform: translateY(54px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes mmDepthShiftUp {
+  0% { opacity: 1; transform: none; }
+  30% { opacity: 0; transform: translateY(38px); }
+  34% { opacity: 0; transform: translateY(-54px); }
+  100% { opacity: 1; transform: none; }
+}
+.mm-depth-shift-down { animation: mmDepthShiftDown 720ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.mm-depth-shift-up { animation: mmDepthShiftUp 720ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* the depth flash: a brief water-tint wash with the level's name */
+@keyframes mmDepthFlash {
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes mmDepthFlashLabel {
+  0% { opacity: 0; transform: translateY(14px) scale(0.96); }
+  30% { opacity: 1; transform: none; }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
 .mm-figure.mm-walking .mm-bobber { animation: mm-bob 0.34s linear infinite; }
 .mm-figure.mm-walking .mm-legA { animation: mm-legA 0.34s linear infinite; }
 .mm-figure.mm-walking .mm-legB { animation: mm-legB 0.34s linear infinite; }

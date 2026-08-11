@@ -9,6 +9,7 @@ import EditProfileModal from './EditProfileModal';
 import DemoTour from './DemoTour';
 import TimelineNav from './TimelineNav';
 import DepthRail from './DepthRail';
+import DepthStage from './DepthStage';
 import { XModeProvider, XModeSwitcher } from './ExperienceMode';
 import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -278,7 +279,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* content clears the iceberg's lane on narrow widths (it floats in
             page-edge whitespace on lg+), so the rail never covers anything */}
         <main className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-8 sm:pt-24 sm:ps-16 lg:ps-6 max-w-4xl mx-auto w-full">
-          {children}
+          <DepthStage>{children}</DepthStage>
         </main>
 
         {/* ── the floating timeline: the horizontal (time) axis of the 2D map,

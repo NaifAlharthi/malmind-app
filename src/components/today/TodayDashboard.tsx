@@ -923,6 +923,7 @@ export default function TodayDashboard() {
         let mrun = 0;
         const mBlocks = mKinds.map((x) => { const b = { ...x, bottom: mrun, height: x.v * mpx }; mrun += x.v * mpx; return b; });
         return (
+          <div data-depth-first="2">
           <Card title={locale === 'ar' ? 'كومة اليوم' : 'The Daily Stack'} href="/daily-stack" explain={EX.stack} className="mb-4">
             <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-3">
               {PERIODS.map((p) => (
@@ -971,6 +972,7 @@ export default function TodayDashboard() {
                   : <>👹 The daily gap compounds into a <strong className="text-[var(--red-2)]">−{money(monster20)}</strong> monster in 20 years.</>)}
             </div>
           </Card>
+          </div>
         );
       })()}
 
@@ -1248,6 +1250,7 @@ export default function TodayDashboard() {
 
       {/* ── SIMAH credit standing (only when a score has been recorded) ── */}
       {depth >= 4 && credit && (
+        <div data-depth-first="4">
         <Card title={t('today.credit.title')} href="/credit" explain={EX.credit}>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="text-center shrink-0">
@@ -1291,6 +1294,7 @@ export default function TodayDashboard() {
             </div>
           </div>
         </Card>
+        </div>
       )}
 
       {/* ── Row 3: debt load — each liability, paid vs remaining ── */}
@@ -1368,6 +1372,7 @@ export default function TodayDashboard() {
 
       {/* ── Row 4: net worth vs peers, by age ── */}
       {depth >= 3 && (
+      <div data-depth-first="3">
       <Card title={t('today.compare.title')} href="/positioning" explain={EX.compare}>
         {age && compare.length > 1 ? (
           <>
@@ -1406,10 +1411,13 @@ export default function TodayDashboard() {
           </>
         ) : (
           <p className="text-xs text-[var(--muted)]">
-            Set your age in Edit Profile to see how you compare against peers and the national average.
+            {locale === 'ar'
+              ? 'حدّد عمرك في تعديل الملف الشخصي لترى مقارنتك بالأقران وبالمتوسط الوطني.'
+              : 'Set your age in Edit Profile to see how you compare against peers and the national average.'}
           </p>
         )}
       </Card>
+      </div>
       )}
 
       {/* ── Row 4a: asset composition over time ── */}
