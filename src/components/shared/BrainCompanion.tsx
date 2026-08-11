@@ -121,11 +121,11 @@ export default function BrainCompanion() {
       endPointing();
       if (guide) {
         setOpen(false);
+        // NOTE: the ask box is deliberately NOT auto-focused — focus landing
+        // in the input would swallow the second ⇧B as typed text and break
+        // the toggle. The box sits ready one click away instead.
         setBubbleOpen((was) => {
-          if (!was) {
-            excitementRef.current = 0.8;
-            window.setTimeout(() => askInputRef.current?.focus(), 80);
-          }
+          if (!was) excitementRef.current = 0.8;
           return !was;
         });
       } else {
@@ -392,6 +392,7 @@ export default function BrainCompanion() {
               ref={askInputRef}
               value={ask}
               onChange={(e) => setAsk(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') { e.currentTarget.blur(); setBubbleOpen(false); } }}
               placeholder={L('اسألني عن هذه الصفحة…', 'Ask me about this view…')}
               className="flex-1 min-w-0 bg-[var(--surface-0)] border border-[var(--border-default)] rounded-full px-3 py-1.5 text-[11px] outline-none focus:border-[var(--green)]"
             />
