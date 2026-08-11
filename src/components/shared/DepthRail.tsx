@@ -24,58 +24,9 @@ import Link from 'next/link';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useDepth } from '@/components/shared/ExperienceMode';
 import { DEPTH_LEVELS, DEPTH_META, type DepthLevel } from '@/lib/depth';
-import { toolsUnlockedAt, toolMatrix, type ViewKey } from '@/lib/toolbox';
-import { Fragment } from 'react';
+import { toolsUnlockedAt, type ViewKey } from '@/lib/toolbox';
 
 const TIME_ROUTES = ['/past', '/today', '/future'];
-
-// The product map: the 3×4 matrix of time × depth, one count per cell.
-// Rows at or above the viewed depth glow; deeper rows wait in the dark.
-function ProductMatrix({ level, ar, onRow }: { level: DepthLevel; ar: boolean; onRow: (l: DepthLevel) => void }) {
-  const m = toolMatrix();
-  return (
-    <div className="mb-6 inline-block rounded-xl border border-white/15 bg-white/5 px-3.5 py-3">
-      <div className="text-[9px] tracking-[0.14em] uppercase text-white/45 mb-2">
-        {ar ? 'خريطة المنتج — الزمن × العمق' : 'Product map — time × depth'}
-      </div>
-      <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-3 gap-y-1 items-center text-[10px]">
-        <span />
-        {HUB_META.map((h) => (
-          <span key={h.key} className="text-center text-white/60 whitespace-nowrap">{h.icon} {ar ? h.ar : h.en}</span>
-        ))}
-        {DEPTH_LEVELS.map((d) => (
-          <Fragment key={d}>
-            <button
-              onClick={() => onRow(d)}
-              className={`text-start pe-1 transition-opacity ${d === level ? 'opacity-100' : d < level ? 'opacity-70' : 'opacity-35 hover:opacity-70'}`}
-              title={ar ? DEPTH_META[d].name.ar : DEPTH_META[d].name.en}
-            >
-              {DEPTH_META[d].icon}
-            </button>
-            {HUB_META.map((h) => {
-              const n = m[h.key][d];
-              return (
-                <button
-                  key={h.key}
-                  onClick={() => onRow(d)}
-                  className={`h-6 rounded-md flex items-center justify-center font-semibold transition-all ${
-                    d === level
-                      ? 'bg-[#5DCAA5]/25 text-[#9FE8CC] ring-1 ring-[#5DCAA5]/50'
-                      : d < level
-                        ? 'bg-white/10 text-white/70'
-                        : 'bg-white/[0.04] text-white/30 hover:text-white/60'
-                  }`}
-                >
-                  {n > 0 ? n : '·'}
-                </button>
-              );
-            })}
-          </Fragment>
-        ))}
-      </div>
-    </div>
-  );
-}
 const HUB_META: { key: ViewKey; icon: string; ar: string; en: string }[] = [
   { key: 'past', icon: '🕰', ar: 'الماضي', en: 'The Past' },
   { key: 'today', icon: '☀', ar: 'اليوم', en: 'Today' },
@@ -288,69 +239,63 @@ export default function DepthRail() {
                     </div>
                   )}
 
-                  <div className="max-w-xl w-full text-white">
-                    <div className="flex items-center gap-2 text-[10px] tracking-[0.14em] uppercase text-white/55 mb-2">
-                      <span dir="ltr">{ar ? meta.depth.ar : meta.depth.en}</span>
-                      <span>·</span>
-                      <span>{L(`العمق ${lvl} من 4`, `Depth ${lvl} of 4`)}</span>
+                  <div className="max-w-2xl w-full text-white">
+                    {/* compact header: this depth, in one line */}
+                    <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{meta.icon}</span>
+                        <span className="font-serif text-xl font-bold">{ar ? meta.name.ar : meta.name.en}</span>
+                        <span className="text-[10px] text-white/50" dir="ltr">{ar ? meta.depth.ar : meta.depth.en} · {lvl}/4</span>
+                      </div>
+                      <button
+                        onClick={() => { setDepth(lvl); setDive(null); }}
+                        disabled={isAdopted}
+                        className={`text-[11px] font-semibold rounded-full px-4 py-2 transition-colors ${
+                          isAdopted
+                            ? 'bg-white/15 text-white/60 cursor-default border border-white/20'
+                            : 'bg-[#5DCAA5] text-[#06231A] hover:bg-[#79dab8]'
+                        }`}
+                      >
+                        {isAdopted
+                          ? L('✓ هذا عمقك الحالي', '✓ This is your current depth')
+                          : L('اعتمد هذا العمق', 'Adopt this depth')}
+                      </button>
                     </div>
-                    <h2 className="font-serif text-3xl sm:text-4xl font-bold mb-3 flex items-center gap-2.5">
-                      <span>{meta.icon}</span>
-                      <span>{ar ? meta.name.ar : meta.name.en}</span>
-                    </h2>
-                    <p className="text-sm sm:text-[15px] leading-relaxed text-white/85 mb-5">{ar ? meta.desc.ar : meta.desc.en}</p>
 
-                    <ProductMatrix level={lvl} ar={ar} onRow={scrollToLevel} />
-
-                    {/* what surfaces at this depth, by time view */}
-                    <div className="space-y-3 mb-6">
-                      {lvl > 1 && (
-                        <div className="text-[10px] text-white/50">
-                          {L('ينكشف في هذا العمق — إضافةً إلى كل ما فوقه:', 'Surfacing at this depth — on top of everything above it:')}
-                        </div>
-                      )}
+                    {/* the tools themselves — the same cards the drawers show,
+                        each living at the depth its understanding requires */}
+                    <div className="space-y-4">
                       {HUB_META.map((hub) => {
                         const list = unlocked[hub.key];
                         if (list.length === 0) return null;
                         return (
-                          <div key={hub.key} className="flex flex-wrap items-center gap-2">
-                            <span className="text-[10px] text-white/55 w-20 shrink-0">{hub.icon} {ar ? hub.ar : hub.en}</span>
-                            {list.map((tool) => (
-                              <Link
-                                key={tool.href}
-                                href={tool.href}
-                                onClick={() => setDive(null)}
-                                className="text-[11px] rounded-full border border-white/25 bg-white/10 hover:bg-white/20 px-3 py-1.5 transition-colors"
-                              >
-                                {tool.icon} {t(tool.titleKey)}
-                              </Link>
-                            ))}
+                          <div key={hub.key}>
+                            <div className="text-[10px] tracking-wide text-white/55 mb-1.5">{hub.icon} {ar ? hub.ar : hub.en}</div>
+                            <div className="grid sm:grid-cols-2 gap-2.5">
+                              {list.map((tool) => (
+                                <Link
+                                  key={tool.href}
+                                  href={tool.href}
+                                  onClick={() => setDive(null)}
+                                  className="rounded-2xl bg-white/[0.07] border border-white/15 hover:border-[#5DCAA5]/60 hover:bg-white/10 p-4 transition-colors"
+                                >
+                                  <div className="text-lg mb-1.5">{tool.icon}</div>
+                                  <div className="font-medium text-sm mb-0.5">{t(tool.titleKey)}</div>
+                                  <div className="text-[11px] text-white/60 leading-relaxed">{t(tool.descKey)}</div>
+                                </Link>
+                              ))}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* adopt this depth */}
-                    <button
-                      onClick={() => { setDepth(lvl); setDive(null); }}
-                      disabled={isAdopted}
-                      className={`text-xs font-semibold rounded-full px-5 py-2.5 transition-colors ${
-                        isAdopted
-                          ? 'bg-white/15 text-white/60 cursor-default border border-white/20'
-                          : 'bg-[#5DCAA5] text-[#06231A] hover:bg-[#79dab8]'
-                      }`}
-                    >
-                      {isAdopted
-                        ? L('✓ هذا عمقك الحالي', '✓ This is your current depth')
-                        : L('اعتمد هذا العمق', 'Adopt this depth')}
-                    </button>
-
                     {lvl < 4 && (
                       <button
                         onClick={() => scrollToLevel((lvl + 1) as DepthLevel)}
-                        className="mt-8 text-xs text-white/50 hover:text-white/80 transition-colors flex items-center gap-1.5"
+                        className="mt-6 text-xs text-white/50 hover:text-white/80 transition-colors flex items-center gap-1.5"
                       >
-                        {L('اغطس أعمق', 'Dive deeper')} <span className="animate-bounce inline-block">↓</span>
+                        {L('اغطس أعمق — أدوات أكثر تقدماً', 'Dive deeper — more advanced tools')} <span className="animate-bounce inline-block">↓</span>
                       </button>
                     )}
                   </div>
