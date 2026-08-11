@@ -35,6 +35,8 @@ export default function CommandMode() {
   const L = useCallback((a: string, e: string) => (ar ? a : e), [ar]);
 
   const [open, setOpen] = useState(false);
+  // which key is lighting up right now (the choice flashes before executing)
+  const [activeKey, setActiveKey] = useState<'up' | 'down' | 'left' | 'right' | 'b' | null>(null);
   const holdTimer = useRef<number | undefined>(undefined);
   const suppressed = useRef(false); // Shift is being used for typing/selection
   const cooldown = useRef(0);
@@ -54,6 +56,18 @@ export default function CommandMode() {
       if (now < cooldown.current) return;
       cooldown.current = now + 650;
       fn();
+    };
+
+    // Highlight the chosen key in the palette first, THEN execute — the
+    // palette acknowledges the choice before the view moves.
+    const trigger = (keyId: 'up' | 'down' | 'left' | 'right', fn: () => void) => {
+      const now = Date.now();
+      if (now < cooldown.current) return;
+      cooldown.current = now + 650;
+      setOpen(true); // even if the hold delay hasn't elapsed yet
+      setActiveKey(keyId);
+      window.setTimeout(fn, 180);
+      window.setTimeout(() => setActiveKey(null), 520);
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -77,6 +91,7 @@ export default function CommandMode() {
         if (e.repeat) return; // key auto-repeat while held — the timer decides
         bActive.current = true;
         bLongFired.current = false;
+        setActiveKey('b');
         window.clearTimeout(bTimer.current);
         bTimer.current = window.setTimeout(() => {
           bLongFired.current = true;
@@ -98,14 +113,14 @@ export default function CommandMode() {
       e.preventDefault();
 
       if (e.key === 'ArrowUp') {
-        act(() => { const d = depthRef.current; if (d > 1) setDepthRef.current((d - 1) as DepthLevel); });
+        trigger('up', () => { const d = depthRef.current; if (d > 1) setDepthRef.current((d - 1) as DepthLevel); });
       } else if (e.key === 'ArrowDown') {
-        act(() => { const d = depthRef.current; if (d < 4) setDepthRef.current((d + 1) as DepthLevel); });
+        trigger('down', () => { const d = depthRef.current; if (d < 4) setDepthRef.current((d + 1) as DepthLevel); });
       } else {
         // horizontal = the timeline, in on-screen direction
         const toRight = ar ? -1 : 1;
         const step = e.key === 'ArrowRight' ? toRight : -toRight;
-        act(() => {
+        trigger(e.key === 'ArrowRight' ? 'right' : 'left', () => {
           const idx = TIME_ROUTES.indexOf(pathRef.current);
           const next = TIME_ROUTES[Math.min(2, Math.max(0, (idx === -1 ? 1 : idx) + step))];
           if (next !== pathRef.current) router.push(next);
@@ -116,6 +131,7 @@ export default function CommandMode() {
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'B' || e.key === 'b') {
         window.clearTimeout(bTimer.current);
+        window.setTimeout(() => setActiveKey(null), 300);
         if (bActive.current && !bLongFired.current) {
           // a tap — the figure comments right here, no navigation
           bActive.current = false;
@@ -155,8 +171,14 @@ export default function CommandMode() {
   const up = depth > 1 ? DEPTH_META[(depth - 1) as DepthLevel] : null;
   const down = depth < 4 ? DEPTH_META[(depth + 1) as DepthLevel] : null;
 
-  const Key = ({ label }: { label: string }) => (
-    <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-medium)] bg-[var(--surface-1)] text-[var(--ink)] text-base font-semibold shadow-inner">
+  const Key = ({ label, active }: { label: string; active?: boolean }) => (
+    <span
+      className={`inline-flex items-center justify-center w-9 h-9 rounded-lg border text-base font-semibold transition-all duration-150 ${
+        active
+          ? 'border-[var(--green)] bg-[var(--green-bg)] text-[var(--green-dark)] ring-2 ring-[var(--green)]/40 scale-110 shadow-lg'
+          : 'border-[var(--border-medium)] bg-[var(--surface-1)] text-[var(--ink)] shadow-inner'
+      }`}
+    >
       {label}
     </span>
   );
@@ -179,14 +201,14 @@ export default function CommandMode() {
 
         {/* ↑ surface */}
         <div className="flex flex-col items-center gap-1 mb-2">
-          <Key label="↑" />
+          <Key label="↑" active={activeKey === 'up'} />
           <Hint text={up ? `${up.icon} ${L(`اصعد إلى «${up.name.ar}»`, `Surface to “${up.name.en}”`)}` : L('أنت على السطح', 'At the surface')} dim={!up} />
         </div>
 
         {/* ← current → */}
         <div className="flex items-center justify-center gap-4 my-3" dir="ltr">
           <div className="flex flex-col items-center gap-1">
-            <Key label="←" />
+            <Key label="←" active={activeKey === 'left'} />
             <Hint text={leftRoute ? `${TIME_LABEL[leftRoute].icon} ${ar ? TIME_LABEL[leftRoute].ar : TIME_LABEL[leftRoute].en}` : '·'} dim={!leftRoute} />
           </div>
           <div className="px-4 py-2 rounded-xl bg-[var(--surface-1)] border border-[var(--border-default)] text-[var(--ink)]">
@@ -198,20 +220,20 @@ export default function CommandMode() {
             </div>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <Key label="→" />
+            <Key label="→" active={activeKey === 'right'} />
             <Hint text={rightRoute ? `${TIME_LABEL[rightRoute].icon} ${ar ? TIME_LABEL[rightRoute].ar : TIME_LABEL[rightRoute].en}` : '·'} dim={!rightRoute} />
           </div>
         </div>
 
         {/* ↓ dive */}
         <div className="flex flex-col items-center gap-1 mt-2">
-          <Key label="↓" />
+          <Key label="↓" active={activeKey === 'down'} />
           <Hint text={down ? `${down.icon} ${L(`اغطس إلى «${down.name.ar}»`, `Dive to “${down.name.en}”`)}` : L('أنت في القاع', 'At the deepest point')} dim={!down} />
         </div>
 
         {/* other commands */}
         <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-[var(--border-faint)]">
-          <Key label="B" />
+          <Key label="B" active={activeKey === 'b'} />
           <Hint text={`🧠 ${L('نقرة: يعلّق العقل هنا · مطوّلاً: صفحة العقل', 'Tap: the Brain comments here · hold: full Brain page')}`} />
         </div>
       </div>
