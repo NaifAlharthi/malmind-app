@@ -170,9 +170,7 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
           >
             <div className="text-4xl mb-2">{DEPTH_META[flash].icon}</div>
             <div className="font-serif text-2xl font-bold">{ar ? DEPTH_META[flash].name.ar : DEPTH_META[flash].name.en}</div>
-            <div className="text-[11px] text-white/70 mt-1" dir="ltr">
-              {ar ? DEPTH_META[flash].depth.ar : DEPTH_META[flash].depth.en} · {flash}/4
-            </div>
+            <div className="text-[11px] text-white/70 mt-1" dir="ltr">{flash}/4</div>
           </div>
         </div>
       )}
