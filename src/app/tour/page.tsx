@@ -88,6 +88,71 @@ export default function TourPage() {
         )}
       </p>
 
+      {/* ── the 2D navigation system — a core feature, front and center ── */}
+      <div className="mb-8 bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden">
+        <div className="absolute -top-12 -end-12 w-44 h-44 rounded-full bg-[#5DCAA5]/15 blur-3xl pointer-events-none" />
+        <div className="relative flex flex-col md:flex-row items-start md:items-center gap-5">
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] font-semibold mb-1.5">
+              {L('ميزة جوهرية', 'A core feature')}
+            </div>
+            <h2 className="font-serif text-xl sm:text-2xl font-bold mb-2 leading-tight">
+              {L('تنقّل ببُعدين: الزمن أفقياً، والعمق عمودياً', 'Navigate in two dimensions: time runs sideways, depth runs down')}
+            </h2>
+            <p className="text-xs text-white/80 leading-relaxed mb-3 max-w-lg">
+              {L(
+                'المنتج كله خريطة واحدة: الخط الزمني (الماضي · اليوم · المستقبل) يعبر أفقياً، وجبل الجليد الجانبي يغوص عمودياً عبر أربع طبقات تعقيد — وكل صفحة تعيد ترتيب نفسها حول الطبقة التي تختارها.',
+                'The whole product is one map: the timeline (past · today · future) runs sideways, and the side iceberg dives through four depths of complexity — every page recomposing itself around the depth you choose.'
+              )}
+            </p>
+            <ul className="space-y-1.5 text-[11px] text-white/85">
+              <li className="flex items-start gap-2">
+                <span className="shrink-0 font-semibold text-[#9FE8CC]">⇧ + ↑↓←→</span>
+                <span>{L('أمسك Shift فتحضر لوحة الأوامر: الأسهم تغوص وتصعد وتسافر عبر الزمن', 'Hold Shift and the command palette appears: arrows dive, surface, and travel through time')}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="shrink-0 font-semibold text-[#9FE8CC]">⇧B · ⇧M</span>
+                <span>{L('نقرة B تستدعي العقل ليعلّق هنا (مطوّلاً: صفحته) · وM تبدّل النمط بأسلوب Alt+Tab', 'Tap B to summon the Brain here (hold: its page) · M cycles the modes, Alt-Tab style')}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="shrink-0 font-semibold text-[#9FE8CC]">🧊</span>
+                <span>{L('انقر طبقةً في جبل الجليد، أو واصل التمرير عند حافة الصفحة فيغوص بك المشهد', 'Click an iceberg layer, or keep scrolling at the page\'s edge and the view dives with you')}</span>
+              </li>
+            </ul>
+            <div className="mt-3 text-[11px] font-semibold text-[var(--gold)]">
+              {L('جرّبها الآن — أمسك Shift وشاهد', 'Try it right now — hold Shift and watch')}
+            </div>
+          </div>
+
+          {/* the keyboard cross, drawn live */}
+          <div className="shrink-0 mx-auto md:mx-0 rounded-2xl bg-white/[0.06] border border-white/15 p-4" dir="ltr" aria-hidden="true">
+            <div className="grid grid-cols-3 gap-1.5 place-items-center">
+              <span />
+              <span className="flex flex-col items-center gap-1">
+                <span className="text-[9px] text-white/60">{L('أضحل', 'surface')}</span>
+                <span className="w-9 h-9 rounded-lg border border-white/25 bg-white/10 flex items-center justify-center font-semibold">↑</span>
+              </span>
+              <span />
+              <span className="flex items-center gap-1.5">
+                <span className="text-[9px] text-white/60">{ar ? 'المستقبل' : 'past'}</span>
+                <span className="w-9 h-9 rounded-lg border border-white/25 bg-white/10 flex items-center justify-center font-semibold">←</span>
+              </span>
+              <span className="h-9 px-2.5 rounded-lg border border-[#5DCAA5]/60 bg-[#5DCAA5]/15 flex items-center justify-center text-xs font-bold text-[#9FE8CC]">⇧ Shift</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-9 h-9 rounded-lg border border-white/25 bg-white/10 flex items-center justify-center font-semibold">→</span>
+                <span className="text-[9px] text-white/60">{ar ? 'الماضي' : 'future'}</span>
+              </span>
+              <span />
+              <span className="flex flex-col items-center gap-1">
+                <span className="w-9 h-9 rounded-lg border border-white/25 bg-white/10 flex items-center justify-center font-semibold">↓</span>
+                <span className="text-[9px] text-white/60">{L('أعمق', 'dive')}</span>
+              </span>
+              <span />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── 1 · walk as a persona ── */}
       <div className="mb-8">
         <div className="flex items-baseline gap-2 mb-1">
