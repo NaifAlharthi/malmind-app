@@ -40,14 +40,14 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
     requestAnimationFrame(() => setShift(diving ? 'down' : 'up'));
   }, [depth]);
 
-  // Once the new view has risen into place, glide to the first tile this
-  // depth revealed (deeper only — surfacing keeps the reading position).
+  // Each depth reshuffles the page so its own focus leads — so every depth
+  // change surfaces back to the top, where the new focus begins.
+  useEffect(() => {
+    if (shift) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [shift]);
+
   const onStageAnimEnd = (e: React.AnimationEvent) => {
     if (!String(e.animationName).startsWith('mmDepthShift')) return;
-    if (shift === 'down') {
-      const el = document.querySelector(`[data-depth-first="${prev.current}"]`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
     setShift(null);
   };
 

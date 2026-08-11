@@ -703,8 +703,31 @@ export default function TodayDashboard() {
     },
   };
 
+  // ── The depth layouts: each level RESHUFFLES the dashboard so its focus
+  // leads the page, not just appends tiles.
+  //   D1 the picture   — read-only overview, no decisions asked
+  //   D2 the levers    — metrics that provoke "maybe I should change this"
+  //   D3 the analysis  — peers, composition, lifetime, pace
+  //   D4 the pro desk  — every detail, credit first
+  const LAYOUTS: Record<DepthLevel, string[]> = {
+    1: ['balances', 'quadCash', 'planPace', 'dive', 'freedom'],
+    2: ['dailyStack', 'sourcesRisks', 'debt', 'sol', 'balances', 'quadCash', 'planPace', 'dive', 'freedom'],
+    3: ['compare', 'assets', 'lifetime', 'planPace', 'dailyStack', 'sourcesRisks', 'sol', 'debt', 'balances', 'quadCash', 'dive', 'freedom'],
+    4: ['credit', 'debt', 'compare', 'assets', 'lifetime', 'sourcesRisks', 'dailyStack', 'sol', 'quadCash', 'balances', 'planPace', 'freedom'],
+  };
+  const layout = LAYOUTS[depth];
+  // A slot renders only when its part belongs to this depth, at its rank in
+  // the layout (CSS order does the reshuffling; DOM order stays stable so
+  // the depth transition animates one continuous surface).
+  const Slot = ({ id, children }: { id: string; children: React.ReactNode }) => {
+    const rank = layout.indexOf(id);
+    if (rank === -1) return null;
+    return <div style={{ order: rank }}>{children}</div>;
+  };
+
   return (
-    <div className="space-y-3 mb-6">
+    <div className="flex flex-col gap-3 mb-6">
+      <Slot id="balances">
       {/* ── Row 0: balances scorecards + liquidity ── */}
       {assetTiles.length > 0 && (
         <Card title={t('today.balances.title')} href="/holdings" explain={EX.balances}>
@@ -757,6 +780,9 @@ export default function TodayDashboard() {
         </Card>
       )}
 
+      </Slot>
+
+      <Slot id="quadCash">
       {/* ── Row 1: position + cash flow ── */}
       <div className="grid lg:grid-cols-2 gap-3">
         <Card title={t('today.quad.title')} href="/positioning" explain={EX.quad}>
@@ -903,8 +929,11 @@ export default function TodayDashboard() {
         </Card>
       </div>
 
+      </Slot>
+
+      <Slot id="dailyStack">
       {/* ── The Daily Stack — a day of choices, and the snowball it becomes ── */}
-      {depth >= 2 && stack && stack.length > 0 && avgIncome > 0 && (() => {
+      {stack && stack.length > 0 && avgIncome > 0 && (() => {
         const dailySpend = sumBy(stack);
         const dailyIncome = avgIncome / 30.44;
         const surplus = dailyIncome - dailySpend;
@@ -976,9 +1005,12 @@ export default function TodayDashboard() {
         );
       })()}
 
+      </Slot>
+
+      <Slot id="sol">
       {/* ── Standard of living — the life this income affords, next to
              "where you stand" ── */}
-      {depth >= 2 && (() => {
+      {(() => {
         const tier = tierFromIncome(avgIncome);
         const life = getLifestyle(tier, locale);
         const nextTier = tierIndex(tier) < TIERS.length - 1 ? TIERS[tierIndex(tier) + 1] : null;
@@ -1092,8 +1124,10 @@ export default function TodayDashboard() {
         );
       })()}
 
+      </Slot>
+
+      <Slot id="sourcesRisks">
       {/* ── Row 2: income sources (pie) + risk radar ── */}
-      {depth >= 2 && (
       <div className="grid sm:grid-cols-2 gap-3">
         <Card title={t('today.sources.title')} href="/lifetime-income" explain={EX.sources}>
           {activeIncome > 0 ? (
@@ -1246,10 +1280,11 @@ export default function TodayDashboard() {
           )}
         </Card>
       </div>
-      )}
+      </Slot>
 
+      <Slot id="credit">
       {/* ── SIMAH credit standing (only when a score has been recorded) ── */}
-      {depth >= 4 && credit && (
+      {credit && (
         <div data-depth-first="4">
         <Card title={t('today.credit.title')} href="/credit" explain={EX.credit}>
           <div className="flex items-center gap-4 flex-wrap">
@@ -1296,7 +1331,9 @@ export default function TodayDashboard() {
         </Card>
         </div>
       )}
+      </Slot>
 
+      <Slot id="debt">
       {/* ── Row 3: debt load — each liability, paid vs remaining ── */}
       <Card title={t('today.debt.title')} href="/commitments" explain={EX.debt}>
         <div className="flex items-start justify-between gap-4 flex-wrap mb-3">
@@ -1358,6 +1395,9 @@ export default function TodayDashboard() {
         )}
       </Card>
 
+      </Slot>
+
+      <Slot id="dive">
       {/* ── deeper tiles wait below the waterline — one click sinks a level ── */}
       {depth < 4 && (
         <button
@@ -1370,8 +1410,10 @@ export default function TodayDashboard() {
         </button>
       )}
 
+      </Slot>
+
+      <Slot id="compare">
       {/* ── Row 4: net worth vs peers, by age ── */}
-      {depth >= 3 && (
       <div data-depth-first="3">
       <Card title={t('today.compare.title')} href="/positioning" explain={EX.compare}>
         {age && compare.length > 1 ? (
@@ -1418,10 +1460,11 @@ export default function TodayDashboard() {
         )}
       </Card>
       </div>
-      )}
+      </Slot>
 
+      <Slot id="assets">
       {/* ── Row 4a: asset composition over time ── */}
-      {depth >= 3 && assetComposition.length > 0 && assetSeries.length > 0 && (
+      {assetComposition.length > 0 && assetSeries.length > 0 && (
         <Card title={t('today.assets.title')} href="/financial-numbers" explain={EX.assets}>
           <div className="flex bg-[var(--surface-1)] rounded-lg p-0.5 mb-2 w-fit">
             <button
@@ -1482,8 +1525,11 @@ export default function TodayDashboard() {
         </Card>
       )}
 
+      </Slot>
+
+      <Slot id="lifetime">
       {/* ── Row 4b: lifetime income vs savings ── */}
-      {depth >= 3 && lifeEarned > 0 && (
+      {lifeEarned > 0 && (
         <Card title={t('today.lifetime.title')} href="/lifetime-income" explain={EX.lifetime}>
           <div className="flex items-baseline gap-4 flex-wrap mb-2">
             <div>
@@ -1517,6 +1563,9 @@ export default function TodayDashboard() {
         </Card>
       )}
 
+      </Slot>
+
+      <Slot id="planPace">
       {/* ── Row 5: plan + pace ── */}
       <div className="grid lg:grid-cols-2 gap-3">
         <Card title={t('today.plan.title')} href="/goal-fund" explain={EX.plan}>
@@ -1596,7 +1645,10 @@ export default function TodayDashboard() {
         )}
       </div>
 
-      {/* ── Row 4: the road to financial freedom ── */}
+      </Slot>
+
+      <Slot id="freedom">
+      {/* ── the road to financial freedom ── */}
       {freedom && (
         <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-5 text-white">
           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
@@ -1647,6 +1699,7 @@ export default function TodayDashboard() {
           </div>
         </div>
       )}
+      </Slot>
     </div>
   );
 
