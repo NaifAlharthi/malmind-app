@@ -3,8 +3,9 @@
 // A timeline for the three time-views. Past · Today · Future sit on a line,
 // and a little figure walks along it to whichever view you open — passing
 // through the present on its way between past and future. The band expands
-// while the figure is walking, then settles back to save space. Kept LTR
-// internally so time always reads left→right regardless of UI language.
+// while the figure is walking, then settles back to save space. Time flows
+// with the language: left→right in English, right→left in Arabic (الماضي
+// starts on the right, exactly as the eye reads).
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -35,9 +36,13 @@ function Walker() {
 
 export default function TimelineNav({ className = '' }: { className?: string }) {
   const pathname = usePathname();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const ar = locale === 'ar';
 
-  const idx = NODES.findIndex((n) => n.href === pathname);
+  // Display order follows the reading direction: in Arabic the past sits on
+  // the right, so the rendered (physical left→right) order is reversed.
+  const display = ar ? [...NODES].reverse() : NODES;
+  const idx = display.findIndex((n) => n.href === pathname);
   const onTimePage = idx !== -1;
   const activeIndex = onTimePage ? idx : 1; // rest at the present elsewhere
 
@@ -80,15 +85,19 @@ export default function TimelineNav({ className = '' }: { className?: string }) 
     <div ref={rootRef} dir="ltr" className={`mm-band relative ${expanded ? 'h-16' : 'h-12'} ${className}`}>
       {/* the line */}
       <div className="absolute inset-x-3 top-1/2 -translate-y-1/2 h-[2px] rounded-full bg-[var(--border-medium)]" />
-      {/* travelled segment up to the figure */}
+      {/* travelled segment: anchored on the past's side, up to the figure */}
       <div
-        className="absolute left-3 top-1/2 -translate-y-1/2 h-[2px] rounded-full bg-[var(--green)] transition-[width] duration-700"
-        style={{ width: `calc(${leftPct}% - 0.75rem)` }}
+        className="absolute top-1/2 -translate-y-1/2 h-[2px] rounded-full bg-[var(--green)] transition-[width] duration-700"
+        style={
+          ar
+            ? { right: '0.75rem', width: `calc(${100 - leftPct}% - 0.75rem)` }
+            : { left: '0.75rem', width: `calc(${leftPct}% - 0.75rem)` }
+        }
       />
 
       {/* nodes */}
       <div className="absolute inset-0 flex">
-        {NODES.map((n, i) => {
+        {display.map((n, i) => {
           const active = onTimePage && i === idx;
           return (
             <Link key={n.key} href={n.href} title={t(n.labelKey)} className="relative flex-1 group">
