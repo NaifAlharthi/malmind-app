@@ -356,40 +356,61 @@ export default function HomePage() {
       <div className="mb-4">
         <SectionHeading eyebrow={L('مساحتك', 'Your space')} />
         <div className="grid sm:grid-cols-2 gap-3">
-          {/* profile */}
-          <SpaceTile icon="👤" title={L('ملفّك الشخصي', 'Your profile')}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-sm font-semibold text-[var(--green-dark)] shrink-0">
-                {profile.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-[var(--ink)] truncate">{profile.name}</div>
-                <div className="text-[11px] text-[var(--muted)] truncate">
-                  {[profile.employment, profile.city, lifeStageLabel(profile.life_stage)].filter(Boolean).join(' · ')}
+          {/* you: profile + account + settings, merged into one tile */}
+          <SpaceTile icon="🪪" title={L('حسابك', 'Your account')} className="sm:col-span-2">
+            <div className="grid md:grid-cols-3 gap-x-6 gap-y-4">
+              {/* who you are */}
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-sm font-semibold text-[var(--green-dark)] shrink-0">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-[var(--ink)] truncate">{localizedFirstName(profile.name, ar)}</div>
+                    <div className="text-[11px] text-[var(--muted)] truncate">
+                      {[demoAr(profile.employment, ar), demoAr(profile.city, ar), lifeStageLabel(profile.life_stage)].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
                 </div>
+                <button onClick={openEditProfile} className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5">
+                  {t('common.editProfile')}
+                </button>
+              </div>
+
+              {/* account facts */}
+              <div className="flex flex-col gap-1.5">
+                <InfoLine label={L('البريد', 'Email')} value={account?.email ?? '—'} mono />
+                <InfoLine
+                  label={L('النوع', 'Plan')}
+                  value={account?.isDemo ? L('تجريبي', 'Demo') : L('مجّاني', 'Free')}
+                  badge
+                  badgeColor={account?.isDemo ? 'var(--gold-2)' : 'var(--green)'}
+                />
+                {memberSinceLabel && <InfoLine label={L('عضو منذ', 'Member since')} value={memberSinceLabel} />}
+                {profile.currency && <InfoLine label={L('العملة', 'Currency')} value={profile.currency} />}
+              </div>
+
+              {/* preferences */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-[11px] text-[var(--muted)] w-12 shrink-0">{t('common.language')}</span>
+                  <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden">
+                    <button onClick={() => setLocale('en')} className={`px-2.5 py-1 text-[11px] font-medium ${!ar ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--ink-2)]'}`}>English</button>
+                    <button onClick={() => setLocale('ar')} className={`px-2.5 py-1 text-[11px] font-medium ${ar ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--ink-2)]'}`}>العربية</button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-[11px] text-[var(--muted)] w-12 shrink-0">{L('المظهر', 'Theme')}</span>
+                  <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden">
+                    <button onClick={() => { if (theme !== 'light') toggleTheme(); }} className={`px-2.5 py-1 text-[11px] font-medium flex items-center gap-1 ${theme === 'light' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--ink-2)]'}`}>☀ {L('فاتح', 'Light')}</button>
+                    <button onClick={() => { if (theme !== 'dark') toggleTheme(); }} className={`px-2.5 py-1 text-[11px] font-medium flex items-center gap-1 ${theme === 'dark' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--ink-2)]'}`}>☾ {L('داكن', 'Dark')}</button>
+                  </div>
+                </div>
+                <button onClick={handleSignOut} className="text-[11px] text-[var(--muted)] hover:text-[var(--red-dark-text)] text-start w-fit">
+                  {t('common.signOut')}
+                </button>
               </div>
             </div>
-            <button onClick={openEditProfile} className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5">
-              {t('common.editProfile')}
-            </button>
-          </SpaceTile>
-
-          {/* account */}
-          <SpaceTile icon="🪪" title={L('حسابك', 'Your account')}>
-            <div className="flex flex-col gap-1.5">
-              <InfoLine label={L('البريد', 'Email')} value={account?.email ?? '—'} mono />
-              <InfoLine
-                label={L('النوع', 'Plan')}
-                value={account?.isDemo ? L('تجريبي', 'Demo') : L('مجّاني', 'Free')}
-                badge
-                badgeColor={account?.isDemo ? 'var(--gold-2)' : 'var(--green)'}
-              />
-              {memberSinceLabel && <InfoLine label={L('عضو منذ', 'Member since')} value={memberSinceLabel} />}
-              {profile.currency && <InfoLine label={L('العملة', 'Currency')} value={profile.currency} />}
-            </div>
-            <button onClick={handleSignOut} className="text-[11px] text-[var(--muted)] hover:text-[var(--red-dark-text)] mt-3">
-              {t('common.signOut')}
-            </button>
           </SpaceTile>
 
           {/* integrations */}
@@ -418,38 +439,15 @@ export default function HomePage() {
             </p>
           </SpaceTile>
 
-          {/* settings */}
-          <SpaceTile icon="⚙️" title={L('الإعدادات', 'Settings')}>
-            <div className="flex flex-col gap-3">
-              <div>
-                <div className="text-[11px] text-[var(--muted)] mb-1.5">{t('common.language')}</div>
-                <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden">
-                  <button onClick={() => setLocale('en')} className={`px-3 py-1.5 text-xs font-medium ${!ar ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--ink-2)]'}`}>English</button>
-                  <button onClick={() => setLocale('ar')} className={`px-3 py-1.5 text-xs font-medium ${ar ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--ink-2)]'}`}>العربية</button>
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] text-[var(--muted)] mb-1.5">{L('المظهر', 'Theme')}</div>
-                <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden">
-                  <button onClick={() => { if (theme !== 'light') toggleTheme(); }} className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1 ${theme === 'light' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--ink-2)]'}`}>☀ {L('فاتح', 'Light')}</button>
-                  <button onClick={() => { if (theme !== 'dark') toggleTheme(); }} className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1 ${theme === 'dark' ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'text-[var(--ink-2)]'}`}>☾ {L('داكن', 'Dark')}</button>
-                </div>
-              </div>
-            </div>
-          </SpaceTile>
-
-          {/* periodic reports — placeholder until the delivery engine ships */}
-          <SpaceTile icon="📬" title={L('التقارير الدورية', 'Periodic reports')}>
+          {/* periodic reports — a bigger feature, so it takes the full row */}
+          <SpaceTile icon="📬" title={L('التقارير الدورية', 'Periodic reports')} className="sm:col-span-2">
             <ReportsTile />
           </SpaceTile>
 
-          {/* help & contact */}
+          {/* help & contact — small and to the point, pairing with integrations */}
           <SpaceTile icon="💬" title={L('المساعدة والتواصل', 'Help & contact')}>
             <p className="text-xs text-[var(--ink-2)] leading-relaxed mb-3">
-              {L(
-                'سؤال، ملاحظة، استفسار استثماري، أو فرصة شراكة؟ يسعدنا أن نسمع منك.',
-                'A question, feedback, an investment inquiry, or a partnership? We’d love to hear from you.'
-              )}
+              {L('سؤال، ملاحظة، استفسار استثماري، أو شراكة؟ يسعدنا أن نسمع منك.', 'A question, feedback, an investment inquiry, or a partnership? We’d love to hear from you.')}
             </p>
             <button
               onClick={() => setContactOpen(true)}
@@ -473,20 +471,22 @@ export default function HomePage() {
 interface ReportPrefs {
   freq: string[];
   via: string[];
+  dailyTime: string; // HH:mm — when the daily digest goes out
   weekDays: number[]; // 0 = Sunday … 6 = Saturday
   monthlyOn: 'first' | 'last' | 'day' | 'salary' | null;
   monthlyDay: number;
   salaryRel: 'on' | 'before' | 'after';
   salaryDay: number; // typically the 27th in Saudi Arabia
-  periodOn: 'first' | 'last' | null; // quarterly / annual timing
-  startOn: string | null;
-  endOn: string | null;
+  quarterlyOn: 'first' | 'last' | null;
+  annualOn: 'date' | 'last' | null; // a specific date, or the year's last day
+  annualMonth: number; // 1..12
+  annualDay: number; // 1..28
   detail: 'simple' | 'detailed' | 'extreme' | null;
 }
 
 const REPORT_DEFAULTS: ReportPrefs = {
-  freq: [], via: [], weekDays: [], monthlyOn: null, monthlyDay: 15,
-  salaryRel: 'on', salaryDay: 27, periodOn: null, startOn: null, endOn: null,
+  freq: [], via: [], dailyTime: '18:00', weekDays: [], monthlyOn: null, monthlyDay: 15,
+  salaryRel: 'on', salaryDay: 27, quarterlyOn: null, annualOn: null, annualMonth: 1, annualDay: 1,
   detail: null,
 };
 
@@ -590,8 +590,15 @@ function ReportsTile() {
     </select>
   );
 
+  const GMONTHS = ar
+    ? ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+    : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
   // The schedule, humanized for the summary view.
   const scheduleLines: string[] = [];
+  if (p.freq.includes('daily') && p.dailyTime) {
+    scheduleLines.push(L(`اليومي: الساعة ${p.dailyTime}`, `Daily: at ${p.dailyTime}`));
+  }
   if (p.freq.includes('weekly') && p.weekDays.length > 0) {
     scheduleLines.push(L('أيام: ', 'Days: ') + p.weekDays.map((d) => DAY_FULL[d]).join(ar ? '، ' : ', '));
   }
@@ -604,14 +611,20 @@ function ReportsTile() {
       : L(`بعد يوم الراتب (${p.salaryDay})`, `after salary day (${p.salaryDay})`);
     scheduleLines.push(L('الشهري: ', 'Monthly: ') + m);
   }
-  if ((p.freq.includes('quarterly') || p.freq.includes('annual')) && p.periodOn) {
+  if (p.freq.includes('quarterly') && p.quarterlyOn) {
     scheduleLines.push(
-      L('توقيت الفترة: ', 'Period timing: ') +
-      (p.periodOn === 'first' ? L('أول الفترة', 'start of the period') : L('آخر الفترة', 'end of the period'))
+      L('الربع سنوي: ', 'Quarterly: ') +
+      (p.quarterlyOn === 'first' ? L('أول يوم في الربع', 'first day of the quarter') : L('آخر يوم في الربع', 'last day of the quarter'))
     );
   }
-  if (p.startOn) scheduleLines.push(L(`يبدأ في ${p.startOn}`, `starts on ${p.startOn}`));
-  if (p.endOn) scheduleLines.push(L(`ينتهي في ${p.endOn}`, `ends on ${p.endOn}`));
+  if (p.freq.includes('annual') && p.annualOn) {
+    scheduleLines.push(
+      L('السنوي: ', 'Annual: ') +
+      (p.annualOn === 'last'
+        ? L('آخر يوم في السنة', 'the last day of the year')
+        : L(`${p.annualDay} ${GMONTHS[p.annualMonth - 1]}`, `${GMONTHS[p.annualMonth - 1]} ${p.annualDay}`))
+    );
+  }
 
   const chosenFreq = FREQ_OPTS.filter((o) => p.freq.includes(o.k));
   const chosenVia = VIA_OPTS.filter((o) => p.via.includes(o.k));
@@ -632,6 +645,20 @@ function ReportsTile() {
 
       {edit ? (
         <>
+          {/* horizontal editor: channels & cadence · timing rules · detail */}
+          <div className="grid md:grid-cols-3 gap-x-6 gap-y-1 items-start">
+          <div>
+          <div className="mb-3">
+            <GroupLabel>{L('الوسيلة', 'Channel')}</GroupLabel>
+            <div className="flex flex-wrap gap-1.5">
+              {VIA_OPTS.map((o) => (
+                <Pill key={o.k} on={p.via.includes(o.k)} onClick={() => toggleIn('via', o.k)}>
+                  <span className="leading-none">{o.icon}</span><span>{o.label}</span>
+                </Pill>
+              ))}
+            </div>
+          </div>
+
           <div className="mb-3">
             <GroupLabel>{L('التكرار', 'Frequency')}</GroupLabel>
             <div className="flex flex-wrap gap-1.5">
@@ -642,6 +669,25 @@ function ReportsTile() {
               ))}
             </div>
           </div>
+
+          </div>
+
+          <div>
+          {p.freq.length === 0 && (
+            <p className="text-[11px] text-[var(--muted)] leading-relaxed mt-1">
+              {L('اختر تكراراً وستظهر خيارات توقيته الدقيقة هنا.', 'Pick a frequency and its precise timing options appear here.')}
+            </p>
+          )}
+          {p.freq.includes('daily') && (
+            <div className="mb-3">
+              <GroupLabel>{L('في أي وقت من اليوم؟', 'What time of day?')}</GroupLabel>
+              <input
+                type="time" value={p.dailyTime} dir="ltr"
+                onChange={(e) => patch({ dailyTime: e.target.value || '18:00' })}
+                className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-2.5 py-1.5 text-[11px] text-[var(--ink)]"
+              />
+            </div>
+          )}
 
           {p.freq.includes('weekly') && (
             <div className="mb-3">
@@ -695,38 +741,42 @@ function ReportsTile() {
             </div>
           )}
 
-          {(p.freq.includes('quarterly') || p.freq.includes('annual')) && (
+          {p.freq.includes('quarterly') && (
             <div className="mb-3">
-              <GroupLabel>{L('توقيت الفترة (ربع سنوي / سنوي)', 'Period timing (quarterly / annual)')}</GroupLabel>
+              <GroupLabel>{L('متى في الربع؟', 'When in the quarter?')}</GroupLabel>
               <div className="flex flex-wrap gap-1.5">
-                <Pill on={p.periodOn === 'first'} onClick={() => patch({ periodOn: p.periodOn === 'first' ? null : 'first' })}>{L('أول الفترة', 'Start of period')}</Pill>
-                <Pill on={p.periodOn === 'last'} onClick={() => patch({ periodOn: p.periodOn === 'last' ? null : 'last' })}>{L('آخر الفترة', 'End of period')}</Pill>
+                <Pill on={p.quarterlyOn === 'first'} onClick={() => patch({ quarterlyOn: p.quarterlyOn === 'first' ? null : 'first' })}>{L('أول يوم في الربع', 'First day of the quarter')}</Pill>
+                <Pill on={p.quarterlyOn === 'last'} onClick={() => patch({ quarterlyOn: p.quarterlyOn === 'last' ? null : 'last' })}>{L('آخر يوم في الربع', 'Last day of the quarter')}</Pill>
               </div>
             </div>
           )}
 
-          <div className="mb-3">
-            <GroupLabel>{L('النطاق الزمني (اختياري)', 'Date range (optional)')}</GroupLabel>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-[var(--ink-2)]">
-              <label className="flex items-center gap-1.5">
-                {L('يبدأ في', 'Start on')}
-                <input
-                  type="date" value={p.startOn ?? ''} dir="ltr"
-                  onChange={(e) => patch({ startOn: e.target.value || null })}
-                  className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-2 py-1 text-[11px] text-[var(--ink)]"
-                />
-              </label>
-              <label className="flex items-center gap-1.5">
-                {L('ينتهي في', 'End on')}
-                <input
-                  type="date" value={p.endOn ?? ''} dir="ltr"
-                  onChange={(e) => patch({ endOn: e.target.value || null })}
-                  className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-2 py-1 text-[11px] text-[var(--ink)]"
-                />
-              </label>
+          {p.freq.includes('annual') && (
+            <div className="mb-3">
+              <GroupLabel>{L('متى في السنة؟', 'When in the year?')}</GroupLabel>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                <Pill on={p.annualOn === 'date'} onClick={() => patch({ annualOn: p.annualOn === 'date' ? null : 'date' })}>{L('تاريخ محدد', 'A specific date')}</Pill>
+                <Pill on={p.annualOn === 'last'} onClick={() => patch({ annualOn: p.annualOn === 'last' ? null : 'last' })}>{L('آخر يوم في السنة', 'Last day of the year')}</Pill>
+              </div>
+              {p.annualOn === 'date' && (
+                <div className="flex items-center gap-2 text-[11px] text-[var(--ink-2)]">
+                  {daySelect(p.annualDay, (n) => patch({ annualDay: n }))}
+                  <select
+                    value={p.annualMonth}
+                    onChange={(e) => patch({ annualMonth: Number(e.target.value) })}
+                    className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-2 py-1 text-[11px] text-[var(--ink)]"
+                  >
+                    {GMONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                  {L('من كل سنة', 'of every year')}
+                </div>
+              )}
             </div>
+          )}
+
           </div>
 
+          <div>
           <div className="mb-3">
             <GroupLabel>{L('مستوى التفصيل', 'Level of detail')}</GroupLabel>
             <div className="flex flex-col gap-1.5">
@@ -754,18 +804,10 @@ function ReportsTile() {
             </div>
           </div>
 
-          <div className="mb-3">
-            <GroupLabel>{L('الوسيلة', 'Channel')}</GroupLabel>
-            <div className="flex flex-wrap gap-1.5">
-              {VIA_OPTS.map((o) => (
-                <Pill key={o.k} on={p.via.includes(o.k)} onClick={() => toggleIn('via', o.k)}>
-                  <span className="leading-none">{o.icon}</span><span>{o.label}</span>
-                </Pill>
-              ))}
-            </div>
+          </div>
           </div>
 
-          <button onClick={() => setEdit(false)} className="text-xs font-medium text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5">
+          <button onClick={() => setEdit(false)} className="text-xs font-medium text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5 mt-2">
             {L('تم ✓', 'Done ✓')}
           </button>
         </>
@@ -773,16 +815,16 @@ function ReportsTile() {
         <>
           <div className="flex flex-col gap-2 mb-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('التكرار', 'Frequency')}</span>
-              {chosenFreq.length > 0
-                ? chosenFreq.map((o) => <Chip key={o.k} icon={o.icon} label={o.label} />)
-                : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم يُحدَّد بعد', 'Not set yet')}</span>}
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('الوسيلة', 'Channel')}</span>
               {chosenVia.length > 0
                 ? chosenVia.map((o) => <Chip key={o.k} icon={o.icon} label={o.label} />)
                 : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم تُحدَّد بعد', 'Not set yet')}</span>}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('التكرار', 'Frequency')}</span>
+              {chosenFreq.length > 0
+                ? chosenFreq.map((o) => <Chip key={o.k} icon={o.icon} label={o.label} />)
+                : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم يُحدَّد بعد', 'Not set yet')}</span>}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('التفصيل', 'Detail')}</span>
@@ -887,9 +929,9 @@ function ViewCard({ href, icon, title, desc }: { href: string; icon: string; tit
   );
 }
 
-function SpaceTile({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+function SpaceTile({ icon, title, children, className = '' }: { icon: string; title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
+    <div className={`bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 ${className}`}>
       <div className="flex items-center gap-2 mb-3">
         <span className="text-base">{icon}</span>
         <span className="text-sm font-semibold text-[var(--ink)]">{title}</span>
