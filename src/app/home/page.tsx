@@ -78,6 +78,7 @@ export default function HomePage() {
   // Periodic-reports placeholder: the delivery engine isn't built yet, but
   // the chosen frequency/channels persist locally so they're ready for it.
   const [reportPrefs, setReportPrefs] = useState<{ freq: string[]; via: string[] }>({ freq: [], via: [] });
+  const [reportEdit, setReportEdit] = useState(false);
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem('mm-report-prefs');
@@ -458,56 +459,100 @@ export default function HomePage() {
 
           {/* periodic reports — placeholder until the delivery engine ships */}
           <SpaceTile icon="📬" title={L('التقارير الدورية', 'Periodic reports')}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-semibold text-[var(--gold-text-strong)] bg-[var(--gold-bg)] border border-[var(--gold)] rounded-full px-2 py-0.5">
-                {L('قريباً', 'Coming soon')}
-              </span>
-            </div>
-            <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-3">
-              {L(
-                'سنرسل لك خلاصة وضعك المالي تلقائياً. اختر ما يناسبك الآن — وسيبدأ الإرسال فور إطلاق الميزة.',
-                "We'll send your financial summary automatically. Pick what suits you now — delivery starts the moment the feature ships."
-              )}
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-[11px] text-[var(--muted)] mb-1.5">{L('التكرار', 'Frequency')}</div>
-                <div className="flex flex-col gap-1.5">
-                  {([['weekly', L('أسبوعي', 'Weekly')], ['monthly', L('شهري', 'Monthly')], ['quarterly', L('ربع سنوي', 'Quarterly')]] as [string, string][]).map(([k, label]) => (
-                    <label key={k} className="flex items-center gap-2 text-xs text-[var(--ink)] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={reportPrefs.freq.includes(k)}
-                        onChange={() => toggleReportPref('freq', k)}
-                        className="w-3.5 h-3.5 accent-[var(--green-dark)]"
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] text-[var(--muted)] mb-1.5">{L('الوسيلة', 'Channel')}</div>
-                <div className="flex flex-col gap-1.5">
-                  {([['email', L('البريد الإلكتروني', 'Email')], ['whatsapp', L('واتساب', 'WhatsApp')]] as [string, string][]).map(([k, label]) => (
-                    <label key={k} className="flex items-center gap-2 text-xs text-[var(--ink)] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={reportPrefs.via.includes(k)}
-                        onChange={() => toggleReportPref('via', k)}
-                        className="w-3.5 h-3.5 accent-[var(--green-dark)]"
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {(reportPrefs.freq.length > 0 || reportPrefs.via.length > 0) && (
-              <p className="text-[10px] text-[var(--green-dark)] mt-2.5">
-                {L('✓ حُفظت اختياراتك — ستُفعَّل مع الإطلاق.', '✓ Choices saved — they activate at launch.')}
-              </p>
-            )}
+            {(() => {
+              const FREQ_OPTS: { k: string; icon: React.ReactNode; label: string }[] = [
+                { k: 'daily', icon: '☀️', label: L('يومي', 'Daily') },
+                { k: 'weekly', icon: '📅', label: L('أسبوعي', 'Weekly') },
+                { k: 'monthly', icon: '🗓️', label: L('شهري', 'Monthly') },
+                { k: 'quarterly', icon: '📈', label: L('ربع سنوي', 'Quarterly') },
+                { k: 'annual', icon: '🏁', label: L('سنوي', 'Annual') },
+              ];
+              const VIA_OPTS: { k: string; icon: React.ReactNode; label: string }[] = [
+                { k: 'email', icon: '✉️', label: L('البريد الإلكتروني', 'Email') },
+                { k: 'whatsapp', icon: <WhatsAppGlyph />, label: L('واتساب', 'WhatsApp') },
+              ];
+              const Pill = ({ group, opt }: { group: 'freq' | 'via'; opt: { k: string; icon: React.ReactNode; label: string } }) => {
+                const on = reportPrefs[group].includes(opt.k);
+                return (
+                  <button
+                    onClick={() => toggleReportPref(group, opt.k)}
+                    aria-pressed={on}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition-all ${
+                      on
+                        ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)] font-semibold shadow-sm'
+                        : 'border-[var(--border-default)] text-[var(--ink-2)] hover:border-[var(--border-strong)]'
+                    }`}
+                  >
+                    <span className="leading-none">{opt.icon}</span>
+                    <span>{opt.label}</span>
+                    {on && <span className="text-[9px]">✓</span>}
+                  </button>
+                );
+              };
+              const Chip = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] text-[var(--green-dark)] px-2 py-0.5 text-[10px] font-medium">
+                  <span className="leading-none">{icon}</span>{label}
+                </span>
+              );
+              const chosenFreq = FREQ_OPTS.filter((o) => reportPrefs.freq.includes(o.k));
+              const chosenVia = VIA_OPTS.filter((o) => reportPrefs.via.includes(o.k));
+              return (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-semibold text-[var(--gold-text-strong)] bg-[var(--gold-bg)] border border-[var(--gold)] rounded-full px-2 py-0.5">
+                      {L('قريباً', 'Coming soon')}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-3">
+                    {L(
+                      'سنرسل لك خلاصة وضعك المالي تلقائياً — وستبدأ رحلتها إليك فور إطلاق الميزة.',
+                      "We'll send your financial summary automatically — deliveries begin the moment the feature ships."
+                    )}
+                  </p>
+                  {reportEdit ? (
+                    <>
+                      <div className="mb-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-1.5">{L('التكرار', 'Frequency')}</div>
+                        <div className="flex flex-wrap gap-1.5">{FREQ_OPTS.map((o) => <Pill key={o.k} group="freq" opt={o} />)}</div>
+                      </div>
+                      <div className="mb-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-1.5">{L('الوسيلة', 'Channel')}</div>
+                        <div className="flex flex-wrap gap-1.5">{VIA_OPTS.map((o) => <Pill key={o.k} group="via" opt={o} />)}</div>
+                      </div>
+                      <button
+                        onClick={() => setReportEdit(false)}
+                        className="text-xs font-medium text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5"
+                      >
+                        {L('تم ✓', 'Done ✓')}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-2 mb-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('التكرار', 'Frequency')}</span>
+                          {chosenFreq.length > 0
+                            ? chosenFreq.map((o) => <Chip key={o.k} icon={o.icon} label={o.label} />)
+                            : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم يُحدَّد بعد', 'Not set yet')}</span>}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('الوسيلة', 'Channel')}</span>
+                          {chosenVia.length > 0
+                            ? chosenVia.map((o) => <Chip key={o.k} icon={o.icon} label={o.label} />)
+                            : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم تُحدَّد بعد', 'Not set yet')}</span>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setReportEdit(true)}
+                        className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5"
+                      >
+                        {L('تعديل التفضيلات', 'Edit preferences')}
+                      </button>
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </SpaceTile>
 
           {/* help & contact */}
@@ -530,6 +575,16 @@ export default function HomePage() {
 
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} source="home" />
     </div>
+  );
+}
+
+// The official WhatsApp glyph, drawn inline so the channel pill can carry
+// the real mark instead of a stand-in emoji.
+function WhatsAppGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-[#25D366]" fill="currentColor" aria-hidden="true">
+      <path d="M12.04 2a9.9 9.9 0 0 0-8.4 15.1L2 22l5.05-1.6A9.9 9.9 0 1 0 12.04 2Zm0 18a8.1 8.1 0 0 1-4.1-1.1l-.3-.18-3 .95.96-2.92-.2-.3a8.1 8.1 0 1 1 6.64 3.55Zm4.44-6.07c-.24-.12-1.43-.7-1.65-.79-.22-.08-.38-.12-.54.12-.16.24-.62.79-.76.95-.14.16-.28.18-.52.06a6.6 6.6 0 0 1-1.94-1.2 7.3 7.3 0 0 1-1.34-1.67c-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.47-.4-.4-.54-.41h-.46c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.7 2.6 4.12 3.64.58.25 1.03.4 1.38.51.58.18 1.1.16 1.52.1.46-.07 1.43-.58 1.63-1.15.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28Z" />
+    </svg>
   );
 }
 
