@@ -110,7 +110,8 @@ export default function CommandMode() {
       if (!e.shiftKey) return;
 
       // ⇧B — tap: the Brain figure comments here · long press: full Brain page
-      if (e.key === 'B' || e.key === 'b') {
+      // (match the physical key, so Arabic and other layouts work too)
+      if (e.code === 'KeyB' || e.key === 'B' || e.key === 'b') {
         if (suppressed.current) return;
         e.preventDefault();
         if (e.repeat) return; // key auto-repeat while held — the timer decides
@@ -128,8 +129,8 @@ export default function CommandMode() {
       }
 
       // ⇧M — cycle the experience modes alt-tab style; idle or releasing
-      // Shift confirms the highlighted one
-      if (e.key === 'M' || e.key === 'm') {
+      // Shift confirms the highlighted one (physical key: layout-independent)
+      if (e.code === 'KeyM' || e.key === 'M' || e.key === 'm') {
         if (suppressed.current) return;
         e.preventDefault();
         const now = Date.now();
@@ -178,7 +179,7 @@ export default function CommandMode() {
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'B' || e.key === 'b') {
+      if (e.code === 'KeyB' || e.key === 'B' || e.key === 'b') {
         window.clearTimeout(bTimer.current);
         window.setTimeout(() => setActiveKey(null), 300);
         if (bActive.current && !bLongFired.current) {
