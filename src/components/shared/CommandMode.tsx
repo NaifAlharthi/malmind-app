@@ -10,9 +10,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useDepth } from '@/components/shared/ExperienceMode';
+import { useDepth, useXMode } from '@/components/shared/ExperienceMode';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { DEPTH_META, type DepthLevel } from '@/lib/depth';
+import { XMODES, XMODE_META, type XMode } from '@/lib/experienceMode';
 
 const TIME_ROUTES = ['/past', '/today', '/future'];
 const TIME_LABEL: Record<string, { ar: string; en: string; icon: string }> = {
@@ -30,6 +31,7 @@ export default function CommandMode() {
   const router = useRouter();
   const pathname = usePathname();
   const { depth, setDepth } = useDepth();
+  const { mode, setMode } = useXMode();
   const { locale } = useLocale();
   const ar = locale === 'ar';
   const L = useCallback((a: string, e: string) => (ar ? a : e), [ar]);
@@ -45,9 +47,19 @@ export default function CommandMode() {
   const bTimer = useRef<number | undefined>(undefined);
   const bActive = useRef(false);
   const bLongFired = useRef(false);
+  // ⇧M mode cycling (alt-tab style): each press advances the candidate,
+  // idle or releasing Shift confirms it.
+  const [modeSel, setModeSel] = useState<XMode | null>(null);
+  const modeSelRef = useRef<XMode | null>(null);
+  useEffect(() => { modeSelRef.current = modeSel; }, [modeSel]);
+  const mConfirmTimer = useRef<number | undefined>(undefined);
+  const mThrottle = useRef(0);
+  const MODE_CONFIRM_MS = 1500;
 
   const depthRef = useRef(depth); useEffect(() => { depthRef.current = depth; }, [depth]);
   const setDepthRef = useRef(setDepth); useEffect(() => { setDepthRef.current = setDepth; }, [setDepth]);
+  const modeRef = useRef(mode); useEffect(() => { modeRef.current = mode; }, [mode]);
+  const setModeRef = useRef(setMode); useEffect(() => { setModeRef.current = setMode; }, [setMode]);
   const pathRef = useRef(pathname); useEffect(() => { pathRef.current = pathname; }, [pathname]);
 
   useEffect(() => {
@@ -56,6 +68,16 @@ export default function CommandMode() {
       if (now < cooldown.current) return;
       cooldown.current = now + 650;
       fn();
+    };
+
+    // ⇧M confirm: apply the candidate mode and close the switcher.
+    const confirmMode = () => {
+      window.clearTimeout(mConfirmTimer.current);
+      const sel = modeSelRef.current;
+      if (sel) {
+        setModeRef.current(sel);
+        setModeSel(null);
+      }
     };
 
     // Highlight the chosen key in the palette first, THEN execute — the
@@ -102,6 +124,30 @@ export default function CommandMode() {
         return;
       }
 
+      // ⇧M — cycle the experience modes alt-tab style; idle or releasing
+      // Shift confirms the highlighted one
+      if (e.key === 'M' || e.key === 'm') {
+        if (suppressed.current) return;
+        e.preventDefault();
+        const now = Date.now();
+        if (now - mThrottle.current < 220) return; // readable cycling pace
+        mThrottle.current = now;
+        setOpen(false); // the switcher takes the stage
+        const base = modeSelRef.current ?? modeRef.current;
+        const next = XMODES[(XMODES.indexOf(base) + 1) % XMODES.length];
+        setModeSel(next);
+        window.clearTimeout(mConfirmTimer.current);
+        mConfirmTimer.current = window.setTimeout(confirmMode, MODE_CONFIRM_MS);
+        return;
+      }
+
+      // Escape cancels a pending mode selection without applying it
+      if (e.key === 'Escape' && modeSelRef.current) {
+        window.clearTimeout(mConfirmTimer.current);
+        setModeSel(null);
+        return;
+      }
+
       const isArrow = e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight';
       if (!isArrow) {
         // Shift is being used for something else (typing, shortcuts)
@@ -145,6 +191,7 @@ export default function CommandMode() {
         window.clearTimeout(bTimer.current);
         bActive.current = false;
         suppressed.current = false;
+        confirmMode(); // releasing Shift confirms a pending mode, alt-tab style
         setOpen(false);
       }
     };
@@ -161,7 +208,59 @@ export default function CommandMode() {
     };
   }, [router, ar]);
 
-  if (!open) return null;
+  if (!open && !modeSel) return null;
+
+  // ── the ⇧M mode switcher: the top bar's segmented control, center stage ──
+  if (modeSel) {
+    return (
+      <div className="fixed inset-0 z-[95] pointer-events-none flex items-center justify-center" role="status" aria-live="polite">
+        <div
+          className="rounded-2xl border border-[var(--border-default)] backdrop-blur-md px-7 py-6 shadow-2xl text-center"
+          style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }}
+          dir={ar ? 'rtl' : 'ltr'}
+        >
+          <div className="flex items-center justify-center gap-2 mb-4 text-[var(--ink)]">
+            <span className="inline-flex items-center justify-center h-7 px-2.5 rounded-md border border-[var(--border-medium)] bg-[var(--surface-1)] text-sm font-bold">⇧ M</span>
+            <span className="text-xs font-semibold tracking-wide">{L('تبديل النمط', 'Switch mode')}</span>
+          </div>
+
+          {/* the same segmented control as the top bar, enlarged */}
+          <div className="flex items-center bg-[var(--surface-1)] border border-[var(--border-default)] rounded-full p-1 w-fit mx-auto" role="radiogroup">
+            {XMODES.map((m) => {
+              const meta = XMODE_META[m];
+              const candidate = m === modeSel;
+              return (
+                <span
+                  key={m}
+                  role="radio"
+                  aria-checked={candidate}
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm transition-all whitespace-nowrap ${
+                    candidate
+                      ? 'bg-[var(--ink)] text-[var(--surface-0)] font-semibold shadow-sm ring-2 ring-[var(--green)]/50 scale-105'
+                      : 'text-[var(--muted)]'
+                  }`}
+                >
+                  <span className="leading-none">{meta.icon}</span>
+                  <span>{ar ? meta.label.ar : meta.label.en}</span>
+                </span>
+              );
+            })}
+          </div>
+
+          <div className="text-[10px] text-[var(--muted)] mt-3 mb-1.5">
+            {L('اضغط M للتنقّل · أفلت Shift للتأكيد', 'Press M to cycle · release Shift to confirm')}
+          </div>
+          {/* the confirm countdown, restarting with every press */}
+          <div className="w-40 h-1 rounded-full bg-[var(--surface-1)] overflow-hidden mx-auto" key={modeSel + String(mThrottle.current)}>
+            <span
+              className="block h-full bg-[var(--green)]"
+              style={{ animation: `mmModeConfirm ${MODE_CONFIRM_MS}ms linear forwards` }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const idx = TIME_ROUTES.indexOf(pathname);
   const here = idx === -1 ? '/today' : pathname;
@@ -232,9 +331,15 @@ export default function CommandMode() {
         </div>
 
         {/* other commands */}
-        <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-[var(--border-faint)]">
-          <Key label="B" active={activeKey === 'b'} />
-          <Hint text={`🧠 ${L('نقرة: يعلّق العقل هنا · مطوّلاً: صفحة العقل', 'Tap: the Brain comments here · hold: full Brain page')}`} />
+        <div className="flex flex-col items-center gap-2 mt-4 pt-3 border-t border-[var(--border-faint)]">
+          <div className="flex items-center justify-center gap-2">
+            <Key label="B" active={activeKey === 'b'} />
+            <Hint text={`🧠 ${L('نقرة: يعلّق العقل هنا · مطوّلاً: صفحة العقل', 'Tap: the Brain comments here · hold: full Brain page')}`} />
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            <Key label="M" />
+            <Hint text={`${XMODE_META[mode].icon} ${L('بدّل النمط — أرشدني · شبه محترف · محترف', 'Switch mode — Guide me · Semi-pro · Pro')}`} />
+          </div>
         </div>
       </div>
     </div>
