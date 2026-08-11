@@ -110,7 +110,7 @@ export default function DepthRail() {
     <>
       {/* ── the iceberg rail ── */}
       <div
-        className="mm-depth-rail hidden lg:flex fixed start-3 top-1/2 -translate-y-1/2 z-30 flex-col items-center select-none"
+        className="mm-depth-rail hidden sm:flex fixed start-3 top-1/2 -translate-y-1/2 z-30 flex-col items-center select-none scale-[0.8] lg:scale-100"
         aria-label={L('عمق الأدوات', 'Tool depth')}
       >
         <div className="text-[9px] text-[var(--muted)] mb-1 tracking-wide">{L('العمق', 'Depth')}</div>

@@ -275,7 +275,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-8 sm:pt-24 max-w-4xl mx-auto w-full">
+        {/* content clears the iceberg's lane on narrow widths (it floats in
+            page-edge whitespace on lg+), so the rail never covers anything */}
+        <main className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-8 sm:pt-24 sm:ps-16 lg:ps-6 max-w-4xl mx-auto w-full">
           {children}
         </main>
 
