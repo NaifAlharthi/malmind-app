@@ -19,6 +19,7 @@ import { useDepth } from './ExperienceMode';
 import { DEPTH_META, type DepthLevel } from '@/lib/depth';
 import { TOOLS, type ViewKey } from '@/lib/toolbox';
 import TodayDashboard from '@/components/today/TodayDashboard';
+import PastDashboard from '@/components/past/PastDashboard';
 
 const MiniBrain = dynamic(
   () => import('./BrainCompanion').then((m) => m.MiniBrain),
@@ -227,6 +228,8 @@ export default function HubPage({ view }: { view: ViewKey }) {
 
       {view === 'today' ? (
         <TodayDashboard />
+      ) : view === 'past' ? (
+        <PastDashboard />
       ) : bundle === null ? (
         <div className="text-sm text-[var(--muted)] mb-6">{t('common.loading')}</div>
       ) : !hasData && view !== 'future' ? (

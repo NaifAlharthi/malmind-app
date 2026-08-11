@@ -14,6 +14,24 @@ const MAP: Record<string, string> = {
   'Business owner (trading & contracting)': 'صاحب أعمال (تجارة ومقاولات)',
   'Riyadh': 'الرياض',
 
+  // ── story chapters ─────────────────────────────────────────────────────
+  'High school & first code': 'الثانوية وأول سطر برمجة',
+  'Started KSU — Computer Science': 'بداية جامعة الملك سعود — علوم الحاسب',
+  'First income: tutoring': 'أول دخل: التدريس الخصوصي',
+  'University years': 'سنوات الجامعة',
+  'First job at the bank': 'أول وظيفة في البنك',
+  'Own place + the car': 'سكن مستقل وسيارة',
+  'The reality check': 'صحوة الواقع',
+  'Early career': 'بداية المسيرة',
+  'Marriage & the villa': 'الزواج والفيلا',
+  'Two kids arrive': 'قدوم الطفلين',
+  'Mid-career, at break-even': 'منتصف المسيرة عند التعادل',
+  'The first job': 'الوظيفة الأولى',
+  'Went out on my own': 'الانطلاق بمشروعي الخاص',
+  'The first million': 'المليون الأول',
+  'Diversify & build': 'التنويع والبناء',
+  'Legacy years': 'سنوات الإرث',
+
   // ── loans & cards ──────────────────────────────────────────────────────
   'Car loan (new sedan)': 'قرض سيارة (سيدان جديدة)',
   'Credit card balance (carried)': 'رصيد بطاقة ائتمانية (مدوَّر)',
