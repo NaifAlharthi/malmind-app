@@ -11,6 +11,7 @@
 // reached. No overlays, no separate screens.
 
 import { useCallback, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useDepth } from '@/components/shared/ExperienceMode';
 import { DEPTH_LEVELS, DEPTH_META, type DepthLevel } from '@/lib/depth';
@@ -22,6 +23,10 @@ export default function DepthRail() {
 
   const { depth, setDepth } = useDepth();
   const [hover, setHover] = useState<DepthLevel | null>(null);
+  const pathname = usePathname();
+
+  // The home page is mission control, not a depth-staged view — no iceberg.
+  if (pathname === '/home') return null;
 
   return (
     <div
