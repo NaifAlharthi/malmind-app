@@ -64,6 +64,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
+  // While the page scrolls, the floating timeline fades out of the way so
+  // the content behind it stays readable; it re-materializes on settle.
+  const [scrolling, setScrolling] = useState(false);
+  const scrollSettle = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolling(true);
+      window.clearTimeout(scrollSettle.current);
+      scrollSettle.current = window.setTimeout(() => setScrolling(false), 350);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.clearTimeout(scrollSettle.current);
+    };
+  }, []);
+
   // The ☰ menu closes on outside click or Escape.
   useEffect(() => {
     if (!moreOpen) return;
@@ -264,7 +281,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* ── the floating timeline: the horizontal (time) axis of the 2D map,
                hovering just below the top bar, facing the iceberg's vertical axis ── */}
-        <div className="hidden sm:block fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg">
+        <div
+          className={`hidden sm:block fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg transition-opacity duration-300 ${
+            scrolling ? 'opacity-[0.15] pointer-events-none' : 'opacity-100'
+          }`}
+        >
           <TimelineNav />
         </div>
 
