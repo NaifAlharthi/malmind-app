@@ -78,6 +78,7 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) push(e.deltaY, e.target);
     };
     const onKey = (e: KeyboardEvent) => {
+      if (e.shiftKey) return; // Shift+arrows belong to command mode
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
       if (e.key === 'ArrowDown' || e.key === 'PageDown') push(160, null);

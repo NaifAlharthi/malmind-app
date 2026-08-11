@@ -10,6 +10,7 @@ import DemoTour from './DemoTour';
 import TimelineNav from './TimelineNav';
 import DepthRail from './DepthRail';
 import DepthStage from './DepthStage';
+import CommandMode from './CommandMode';
 import { XModeProvider, XModeSwitcher } from './ExperienceMode';
 import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -309,6 +310,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       />
       <DemoTour />
       <DepthRail />
+      <CommandMode />
       <BrainCompanion />
       <EphemeralSessionGuard />
       </div>
