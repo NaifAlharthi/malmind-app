@@ -334,13 +334,13 @@ export default function CommandMode() {
           <Hint text={down ? `${down.icon} ${L(`اغطس إلى «${down.name.ar}»`, `Dive to “${down.name.en}”`)}` : L('أنت في القاع', 'At the deepest point')} dim={!down} />
         </div>
 
-        {/* other commands */}
-        <div className="flex flex-col items-center gap-2 mt-4 pt-3 border-t border-[var(--border-faint)]">
-          <div className="flex items-center justify-center gap-2">
+        {/* other commands — rows share one key column, aligned to the start */}
+        <div className="w-fit mx-auto flex flex-col items-start gap-2 mt-4 pt-3 border-t border-[var(--border-faint)]">
+          <div className="flex items-center gap-2">
             <Key label="B" active={activeKey === 'b'} />
             <Hint text={`🧠 ${L('نقرة: يعلّق العقل هنا · مطوّلاً: صفحة العقل', 'Tap: the Brain comments here · hold: full Brain page')}`} />
           </div>
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center gap-2">
             <Key label="M" />
             <Hint text={`${XMODE_META[mode].icon} ${L('بدّل النمط — أرشدني · شبه محترف · محترف', 'Switch mode — Guide me · Semi-pro · Pro')}`} />
           </div>
