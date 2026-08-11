@@ -297,9 +297,8 @@ export default function CommandMode() {
         style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }}
         dir={ar ? 'rtl' : 'ltr'}
       >
-        <div className="flex items-center justify-center gap-2 mb-4 text-[var(--ink)]">
-          <span className="inline-flex items-center justify-center h-7 px-2.5 rounded-md border border-[var(--border-medium)] bg-[var(--surface-1)] text-sm font-bold">⇧ Shift</span>
-          <span className="text-xs font-semibold tracking-wide">{L('وضع الأوامر', 'Command mode')}</span>
+        <div className="text-center mb-4">
+          <span className="font-serif text-base font-bold tracking-wide text-[var(--ink)]">{L('وضع الأوامر', 'Command mode')}</span>
         </div>
 
         {/* ↑ surface */}
