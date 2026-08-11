@@ -75,25 +75,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [contactOpen, setContactOpen] = useState(false);
 
-  // Periodic-reports placeholder: the delivery engine isn't built yet, but
-  // the chosen frequency/channels persist locally so they're ready for it.
-  const [reportPrefs, setReportPrefs] = useState<{ freq: string[]; via: string[] }>({ freq: [], via: [] });
-  const [reportEdit, setReportEdit] = useState(false);
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem('mm-report-prefs');
-      if (raw) setReportPrefs(JSON.parse(raw));
-    } catch { /* ignore */ }
-  }, []);
-  const toggleReportPref = (group: 'freq' | 'via', key: string) => {
-    setReportPrefs((prev) => {
-      const list = prev[group].includes(key) ? prev[group].filter((k) => k !== key) : [...prev[group], key];
-      const next = { ...prev, [group]: list };
-      try { window.localStorage.setItem('mm-report-prefs', JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
-  };
-
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
@@ -459,100 +440,7 @@ export default function HomePage() {
 
           {/* periodic reports — placeholder until the delivery engine ships */}
           <SpaceTile icon="📬" title={L('التقارير الدورية', 'Periodic reports')}>
-            {(() => {
-              const FREQ_OPTS: { k: string; icon: React.ReactNode; label: string }[] = [
-                { k: 'daily', icon: '☀️', label: L('يومي', 'Daily') },
-                { k: 'weekly', icon: '📅', label: L('أسبوعي', 'Weekly') },
-                { k: 'monthly', icon: '🗓️', label: L('شهري', 'Monthly') },
-                { k: 'quarterly', icon: '📈', label: L('ربع سنوي', 'Quarterly') },
-                { k: 'annual', icon: '🏁', label: L('سنوي', 'Annual') },
-              ];
-              const VIA_OPTS: { k: string; icon: React.ReactNode; label: string }[] = [
-                { k: 'email', icon: '✉️', label: L('البريد الإلكتروني', 'Email') },
-                { k: 'whatsapp', icon: <WhatsAppGlyph />, label: L('واتساب', 'WhatsApp') },
-              ];
-              const Pill = ({ group, opt }: { group: 'freq' | 'via'; opt: { k: string; icon: React.ReactNode; label: string } }) => {
-                const on = reportPrefs[group].includes(opt.k);
-                return (
-                  <button
-                    onClick={() => toggleReportPref(group, opt.k)}
-                    aria-pressed={on}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition-all ${
-                      on
-                        ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)] font-semibold shadow-sm'
-                        : 'border-[var(--border-default)] text-[var(--ink-2)] hover:border-[var(--border-strong)]'
-                    }`}
-                  >
-                    <span className="leading-none">{opt.icon}</span>
-                    <span>{opt.label}</span>
-                    {on && <span className="text-[9px]">✓</span>}
-                  </button>
-                );
-              };
-              const Chip = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] text-[var(--green-dark)] px-2 py-0.5 text-[10px] font-medium">
-                  <span className="leading-none">{icon}</span>{label}
-                </span>
-              );
-              const chosenFreq = FREQ_OPTS.filter((o) => reportPrefs.freq.includes(o.k));
-              const chosenVia = VIA_OPTS.filter((o) => reportPrefs.via.includes(o.k));
-              return (
-                <>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-semibold text-[var(--gold-text-strong)] bg-[var(--gold-bg)] border border-[var(--gold)] rounded-full px-2 py-0.5">
-                      {L('قريباً', 'Coming soon')}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-3">
-                    {L(
-                      'سنرسل لك خلاصة وضعك المالي تلقائياً — وستبدأ رحلتها إليك فور إطلاق الميزة.',
-                      "We'll send your financial summary automatically — deliveries begin the moment the feature ships."
-                    )}
-                  </p>
-                  {reportEdit ? (
-                    <>
-                      <div className="mb-3">
-                        <div className="text-[11px] text-[var(--muted)] mb-1.5">{L('التكرار', 'Frequency')}</div>
-                        <div className="flex flex-wrap gap-1.5">{FREQ_OPTS.map((o) => <Pill key={o.k} group="freq" opt={o} />)}</div>
-                      </div>
-                      <div className="mb-3">
-                        <div className="text-[11px] text-[var(--muted)] mb-1.5">{L('الوسيلة', 'Channel')}</div>
-                        <div className="flex flex-wrap gap-1.5">{VIA_OPTS.map((o) => <Pill key={o.k} group="via" opt={o} />)}</div>
-                      </div>
-                      <button
-                        onClick={() => setReportEdit(false)}
-                        className="text-xs font-medium text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5"
-                      >
-                        {L('تم ✓', 'Done ✓')}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex flex-col gap-2 mb-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('التكرار', 'Frequency')}</span>
-                          {chosenFreq.length > 0
-                            ? chosenFreq.map((o) => <Chip key={o.k} icon={o.icon} label={o.label} />)
-                            : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم يُحدَّد بعد', 'Not set yet')}</span>}
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('الوسيلة', 'Channel')}</span>
-                          {chosenVia.length > 0
-                            ? chosenVia.map((o) => <Chip key={o.k} icon={o.icon} label={o.label} />)
-                            : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم تُحدَّد بعد', 'Not set yet')}</span>}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setReportEdit(true)}
-                        className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5"
-                      >
-                        {L('تعديل التفضيلات', 'Edit preferences')}
-                      </button>
-                    </>
-                  )}
-                </>
-              );
-            })()}
+            <ReportsTile />
           </SpaceTile>
 
           {/* help & contact */}
@@ -575,6 +463,345 @@ export default function HomePage() {
 
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} source="home" />
     </div>
+  );
+}
+
+// ── Periodic reports: reminders-grade scheduling, saved for the delivery
+// engine. Frequencies can carry precise rules — which weekdays, first/last/
+// specific day of the month, anchored to salary day (on/before/after), a
+// period edge for quarterly/annual, and an optional start/end window.
+interface ReportPrefs {
+  freq: string[];
+  via: string[];
+  weekDays: number[]; // 0 = Sunday … 6 = Saturday
+  monthlyOn: 'first' | 'last' | 'day' | 'salary' | null;
+  monthlyDay: number;
+  salaryRel: 'on' | 'before' | 'after';
+  salaryDay: number; // typically the 27th in Saudi Arabia
+  periodOn: 'first' | 'last' | null; // quarterly / annual timing
+  startOn: string | null;
+  endOn: string | null;
+  detail: 'simple' | 'detailed' | 'extreme' | null;
+}
+
+const REPORT_DEFAULTS: ReportPrefs = {
+  freq: [], via: [], weekDays: [], monthlyOn: null, monthlyDay: 15,
+  salaryRel: 'on', salaryDay: 27, periodOn: null, startOn: null, endOn: null,
+  detail: null,
+};
+
+function ReportsTile() {
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const [p, setP] = useState<ReportPrefs>(REPORT_DEFAULTS);
+  const [edit, setEdit] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('mm-report-prefs');
+      if (raw) setP({ ...REPORT_DEFAULTS, ...JSON.parse(raw) });
+    } catch { /* ignore */ }
+  }, []);
+  // Functional updates only — handlers rendered a moment ago must never
+  // clobber a change that landed in between.
+  const save = (updater: (prev: ReportPrefs) => ReportPrefs) => {
+    setP((prev) => {
+      const next = updater(prev);
+      try { window.localStorage.setItem('mm-report-prefs', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const patch = (part: Partial<ReportPrefs>) => save((prev) => ({ ...prev, ...part }));
+  const toggleIn = (key: 'freq' | 'via', v: string) =>
+    save((prev) => ({ ...prev, [key]: prev[key].includes(v) ? prev[key].filter((x) => x !== v) : [...prev[key], v] }));
+  const toggleDay = (d: number) =>
+    save((prev) => ({ ...prev, weekDays: prev.weekDays.includes(d) ? prev.weekDays.filter((x) => x !== d) : [...prev.weekDays, d].sort() }));
+
+  const FREQ_OPTS = [
+    { k: 'daily', icon: '☀️', label: L('يومي', 'Daily') },
+    { k: 'weekly', icon: '📅', label: L('أسبوعي', 'Weekly') },
+    { k: 'monthly', icon: '🗓️', label: L('شهري', 'Monthly') },
+    { k: 'quarterly', icon: '📈', label: L('ربع سنوي', 'Quarterly') },
+    { k: 'annual', icon: '🏁', label: L('سنوي', 'Annual') },
+  ];
+  const VIA_OPTS: { k: string; icon: React.ReactNode; label: string }[] = [
+    { k: 'email', icon: '✉️', label: L('البريد الإلكتروني', 'Email') },
+    { k: 'whatsapp', icon: <WhatsAppGlyph />, label: L('واتساب', 'WhatsApp') },
+  ];
+  const DETAIL_OPTS: { k: ReportPrefs['detail'] & string; icon: string; label: string; desc: string }[] = [
+    {
+      k: 'simple', icon: '🪶', label: L('بسيط جداً', 'Super simple'),
+      desc: L(
+        'أرقامك الثلاثة فقط: صافي الثروة، الداخل مقابل الخارج هذا الشهر، وجملة واحدة من العقل — يُقرأ في ثلاثين ثانية.',
+        'Just your three numbers: net worth, money in vs out this month, and one sentence from the Brain — a thirty-second read.'
+      ),
+    },
+    {
+      k: 'detailed', icon: '📄', label: L('مفصّل', 'Detailed'),
+      desc: L(
+        'الملخص، وأين تقف، وأهم نسبك المالية، وتقدّم أهدافك، وتنبيهات المخاطر — صفحة واحدة مركّزة.',
+        'The summary plus where you stand, your key ratios, goal progress, and risk alerts — one focused page.'
+      ),
+    },
+    {
+      k: 'extreme', icon: '📚', label: L('مفصّل للغاية', 'Extremely detailed'),
+      desc: L(
+        'كل شيء: تحليل البنود كاملاً، مقارنتك بالأقران، تكوين أصولك، خطة حريتك المالية، وتوصيات العقل التفصيلية — تقرير يقرؤه محترف.',
+        "Everything: full line-item analysis, peer comparison, asset composition, your freedom plan, and the Brain's detailed recommendations — the report a pro reads."
+      ),
+    },
+  ];
+  const DAY_FULL = ar
+    ? ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+    : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const DAY_SHORT = ar ? ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  const Pill = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
+    <button
+      onClick={onClick}
+      aria-pressed={on}
+      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition-all ${
+        on
+          ? 'bg-[var(--green-bg)] border-[var(--green)] text-[var(--green-dark)] font-semibold shadow-sm'
+          : 'border-[var(--border-default)] text-[var(--ink-2)] hover:border-[var(--border-strong)]'
+      }`}
+    >
+      {children}
+      {on && <span className="text-[9px]">✓</span>}
+    </button>
+  );
+  const Chip = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
+    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] text-[var(--green-dark)] px-2 py-0.5 text-[10px] font-medium">
+      <span className="leading-none">{icon}</span>{label}
+    </span>
+  );
+  const GroupLabel = ({ children }: { children: React.ReactNode }) => (
+    <div className="text-[11px] text-[var(--muted)] mb-1.5">{children}</div>
+  );
+  const daySelect = (value: number, onChange: (n: number) => void) => (
+    <select
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-2 py-1 text-[11px] text-[var(--ink)]"
+      dir="ltr"
+    >
+      {Array.from({ length: 28 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+    </select>
+  );
+
+  // The schedule, humanized for the summary view.
+  const scheduleLines: string[] = [];
+  if (p.freq.includes('weekly') && p.weekDays.length > 0) {
+    scheduleLines.push(L('أيام: ', 'Days: ') + p.weekDays.map((d) => DAY_FULL[d]).join(ar ? '، ' : ', '));
+  }
+  if (p.freq.includes('monthly') && p.monthlyOn) {
+    const m = p.monthlyOn === 'first' ? L('أول يوم في الشهر', 'first day of the month')
+      : p.monthlyOn === 'last' ? L('آخر يوم في الشهر', 'last day of the month')
+      : p.monthlyOn === 'day' ? L(`اليوم ${p.monthlyDay} من الشهر`, `day ${p.monthlyDay} of the month`)
+      : p.salaryRel === 'on' ? L(`في يوم الراتب (${p.salaryDay})`, `on salary day (${p.salaryDay})`)
+      : p.salaryRel === 'before' ? L(`قبل يوم الراتب (${p.salaryDay})`, `before salary day (${p.salaryDay})`)
+      : L(`بعد يوم الراتب (${p.salaryDay})`, `after salary day (${p.salaryDay})`);
+    scheduleLines.push(L('الشهري: ', 'Monthly: ') + m);
+  }
+  if ((p.freq.includes('quarterly') || p.freq.includes('annual')) && p.periodOn) {
+    scheduleLines.push(
+      L('توقيت الفترة: ', 'Period timing: ') +
+      (p.periodOn === 'first' ? L('أول الفترة', 'start of the period') : L('آخر الفترة', 'end of the period'))
+    );
+  }
+  if (p.startOn) scheduleLines.push(L(`يبدأ في ${p.startOn}`, `starts on ${p.startOn}`));
+  if (p.endOn) scheduleLines.push(L(`ينتهي في ${p.endOn}`, `ends on ${p.endOn}`));
+
+  const chosenFreq = FREQ_OPTS.filter((o) => p.freq.includes(o.k));
+  const chosenVia = VIA_OPTS.filter((o) => p.via.includes(o.k));
+
+  return (
+    <>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[10px] font-semibold text-[var(--gold-text-strong)] bg-[var(--gold-bg)] border border-[var(--gold)] rounded-full px-2 py-0.5">
+          {L('قريباً', 'Coming soon')}
+        </span>
+      </div>
+      <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-3">
+        {L(
+          'سنرسل لك خلاصة وضعك المالي تلقائياً — وستبدأ رحلتها إليك فور إطلاق الميزة.',
+          "We'll send your financial summary automatically — deliveries begin the moment the feature ships."
+        )}
+      </p>
+
+      {edit ? (
+        <>
+          <div className="mb-3">
+            <GroupLabel>{L('التكرار', 'Frequency')}</GroupLabel>
+            <div className="flex flex-wrap gap-1.5">
+              {FREQ_OPTS.map((o) => (
+                <Pill key={o.k} on={p.freq.includes(o.k)} onClick={() => toggleIn('freq', o.k)}>
+                  <span className="leading-none">{o.icon}</span><span>{o.label}</span>
+                </Pill>
+              ))}
+            </div>
+          </div>
+
+          {p.freq.includes('weekly') && (
+            <div className="mb-3">
+              <GroupLabel>{L('أي أيام الأسبوع؟', 'Which weekdays?')}</GroupLabel>
+              <div className="flex gap-1" dir={ar ? 'rtl' : 'ltr'}>
+                {DAY_SHORT.map((d, i) => (
+                  <button
+                    key={i}
+                    onClick={() => toggleDay(i)}
+                    title={DAY_FULL[i]}
+                    aria-pressed={p.weekDays.includes(i)}
+                    className={`w-7 h-7 rounded-full text-[10px] font-semibold border transition-all ${
+                      p.weekDays.includes(i)
+                        ? 'bg-[var(--green-dark)] text-white border-[var(--green-dark)]'
+                        : 'border-[var(--border-default)] text-[var(--ink-2)] hover:border-[var(--border-strong)]'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {p.freq.includes('monthly') && (
+            <div className="mb-3">
+              <GroupLabel>{L('متى في الشهر؟', 'When in the month?')}</GroupLabel>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                <Pill on={p.monthlyOn === 'first'} onClick={() => patch({ monthlyOn: p.monthlyOn === 'first' ? null : 'first' })}>{L('أول الشهر', 'First day')}</Pill>
+                <Pill on={p.monthlyOn === 'last'} onClick={() => patch({ monthlyOn: p.monthlyOn === 'last' ? null : 'last' })}>{L('آخر الشهر', 'Last day')}</Pill>
+                <Pill on={p.monthlyOn === 'day'} onClick={() => patch({ monthlyOn: p.monthlyOn === 'day' ? null : 'day' })}>{L('يوم محدد', 'Specific day')}</Pill>
+                <Pill on={p.monthlyOn === 'salary'} onClick={() => patch({ monthlyOn: p.monthlyOn === 'salary' ? null : 'salary' })}>💵 {L('يوم الراتب', 'Salary day')}</Pill>
+              </div>
+              {p.monthlyOn === 'day' && (
+                <div className="flex items-center gap-2 text-[11px] text-[var(--ink-2)]">
+                  {L('اليوم', 'Day')} {daySelect(p.monthlyDay, (n) => patch({ monthlyDay: n }))} {L('من كل شهر', 'of every month')}
+                </div>
+              )}
+              {p.monthlyOn === 'salary' && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    <Pill on={p.salaryRel === 'on'} onClick={() => patch({ salaryRel: 'on' })}>{L('في يومه', 'On it')}</Pill>
+                    <Pill on={p.salaryRel === 'before'} onClick={() => patch({ salaryRel: 'before' })}>{L('قبله', 'Before it')}</Pill>
+                    <Pill on={p.salaryRel === 'after'} onClick={() => patch({ salaryRel: 'after' })}>{L('بعده', 'After it')}</Pill>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-[var(--ink-2)]">
+                    {L('يوم راتبك', 'Your salary day')} {daySelect(p.salaryDay, (n) => patch({ salaryDay: n }))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(p.freq.includes('quarterly') || p.freq.includes('annual')) && (
+            <div className="mb-3">
+              <GroupLabel>{L('توقيت الفترة (ربع سنوي / سنوي)', 'Period timing (quarterly / annual)')}</GroupLabel>
+              <div className="flex flex-wrap gap-1.5">
+                <Pill on={p.periodOn === 'first'} onClick={() => patch({ periodOn: p.periodOn === 'first' ? null : 'first' })}>{L('أول الفترة', 'Start of period')}</Pill>
+                <Pill on={p.periodOn === 'last'} onClick={() => patch({ periodOn: p.periodOn === 'last' ? null : 'last' })}>{L('آخر الفترة', 'End of period')}</Pill>
+              </div>
+            </div>
+          )}
+
+          <div className="mb-3">
+            <GroupLabel>{L('النطاق الزمني (اختياري)', 'Date range (optional)')}</GroupLabel>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-[var(--ink-2)]">
+              <label className="flex items-center gap-1.5">
+                {L('يبدأ في', 'Start on')}
+                <input
+                  type="date" value={p.startOn ?? ''} dir="ltr"
+                  onChange={(e) => patch({ startOn: e.target.value || null })}
+                  className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-2 py-1 text-[11px] text-[var(--ink)]"
+                />
+              </label>
+              <label className="flex items-center gap-1.5">
+                {L('ينتهي في', 'End on')}
+                <input
+                  type="date" value={p.endOn ?? ''} dir="ltr"
+                  onChange={(e) => patch({ endOn: e.target.value || null })}
+                  className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-2 py-1 text-[11px] text-[var(--ink)]"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <GroupLabel>{L('مستوى التفصيل', 'Level of detail')}</GroupLabel>
+            <div className="flex flex-col gap-1.5">
+              {DETAIL_OPTS.map((o) => {
+                const on = p.detail === o.k;
+                return (
+                  <button
+                    key={o.k}
+                    onClick={() => patch({ detail: on ? null : o.k })}
+                    aria-pressed={on}
+                    className={`text-start rounded-xl border p-2.5 transition-all ${
+                      on
+                        ? 'bg-[var(--green-bg)] border-[var(--green)] shadow-sm'
+                        : 'border-[var(--border-default)] hover:border-[var(--border-strong)]'
+                    }`}
+                  >
+                    <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${on ? 'text-[var(--green-dark)]' : 'text-[var(--ink)]'}`}>
+                      <span>{o.icon}</span><span>{o.label}</span>
+                      {on && <span className="text-[9px]">✓</span>}
+                    </div>
+                    <div className="text-[10px] text-[var(--muted)] leading-relaxed mt-0.5">{o.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <GroupLabel>{L('الوسيلة', 'Channel')}</GroupLabel>
+            <div className="flex flex-wrap gap-1.5">
+              {VIA_OPTS.map((o) => (
+                <Pill key={o.k} on={p.via.includes(o.k)} onClick={() => toggleIn('via', o.k)}>
+                  <span className="leading-none">{o.icon}</span><span>{o.label}</span>
+                </Pill>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={() => setEdit(false)} className="text-xs font-medium text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5">
+            {L('تم ✓', 'Done ✓')}
+          </button>
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-2 mb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('التكرار', 'Frequency')}</span>
+              {chosenFreq.length > 0
+                ? chosenFreq.map((o) => <Chip key={o.k} icon={o.icon} label={o.label} />)
+                : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم يُحدَّد بعد', 'Not set yet')}</span>}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('الوسيلة', 'Channel')}</span>
+              {chosenVia.length > 0
+                ? chosenVia.map((o) => <Chip key={o.k} icon={o.icon} label={o.label} />)
+                : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم تُحدَّد بعد', 'Not set yet')}</span>}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] text-[var(--muted)] w-14 shrink-0">{L('التفصيل', 'Detail')}</span>
+              {p.detail
+                ? (() => { const o = DETAIL_OPTS.find((x) => x.k === p.detail)!; return <Chip icon={o.icon} label={o.label} />; })()
+                : <span className="text-[11px] text-[var(--muted)] opacity-60">{L('لم يُحدَّد بعد', 'Not set yet')}</span>}
+            </div>
+          </div>
+          {scheduleLines.length > 0 && (
+            <div className="text-[10px] text-[var(--muted)] leading-relaxed mb-3">
+              {scheduleLines.join(' · ')}
+            </div>
+          )}
+          <button onClick={() => setEdit(true)} className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5">
+            {L('تعديل التفضيلات', 'Edit preferences')}
+          </button>
+        </>
+      )}
+    </>
   );
 }
 
