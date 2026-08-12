@@ -730,7 +730,7 @@ export default function TodayDashboard() {
       <Slot id="balances">
       {/* ── Row 0: balances scorecards + liquidity ── */}
       {assetTiles.length > 0 && (
-        <Card title={t('today.balances.title')} href="/holdings" explain={EX.balances}>
+        <Card title={t('today.balances.title')} href="/holdings" explain={EX.balances} className="drv-num">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3">
             {assetTiles.map((tt) => (
               <div key={tt.key}>
@@ -786,8 +786,8 @@ export default function TodayDashboard() {
       {/* ── Row 1: position + cash flow ── */}
       <div className="grid lg:grid-cols-2 gap-3">
         <Card title={t('today.quad.title')} href="/positioning" explain={EX.quad}>
-          <QuadrantMap active={quad} hereLabel={t('today.quad.here')} ar={locale === 'ar'} />
-          <div className="flex items-center gap-4 mt-1.5 text-[10px] text-[var(--muted)]">
+          <div className="drv-num"><QuadrantMap active={quad} hereLabel={t('today.quad.here')} ar={locale === 'ar'} /></div>
+          <div className="drv-num flex items-center gap-4 mt-1.5 text-[10px] text-[var(--muted)]">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'var(--green)' }} />
               {t('today.quad.moneyIn')}
@@ -800,7 +800,7 @@ export default function TodayDashboard() {
           {quad && (() => {
             const qc = locale === 'ar' ? QUADRANT_META[quad].ar : QUADRANT_META[quad].en;
             return (
-              <p className="text-xs text-[var(--ink-2)] leading-relaxed mt-2">
+              <p className="drv-story text-xs text-[var(--ink-2)] leading-relaxed mt-2">
                 <strong className="text-[var(--ink)]">{qc.title}.</strong> {qc.mood} — {locale === 'ar' ? 'الخطوة:' : 'the move:'}{' '}
                 <strong className="text-[var(--green-dark)]">{locale === 'ar' ? qc.move : qc.move.toLowerCase()}</strong>.
               </p>
@@ -808,7 +808,7 @@ export default function TodayDashboard() {
           })()}
         </Card>
 
-        <Card title={t('today.cash.title')} href="/financial-numbers" explain={EX.cash}>
+        <Card title={t('today.cash.title')} href="/financial-numbers" explain={EX.cash} className="drv-num">
           <div className="flex items-baseline gap-4 flex-wrap mb-2">
             <div>
               <div className="text-[10px] text-[var(--muted)]">{t('today.cash.avgIncome')}</div>
@@ -954,7 +954,7 @@ export default function TodayDashboard() {
         return (
           <div data-depth-first="2">
           <Card title={locale === 'ar' ? 'كومة اليوم' : 'The Daily Stack'} href="/daily-stack" explain={EX.stack} className="mb-4">
-            <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-3">
+            <div className="drv-num inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden mb-3">
               {PERIODS.map((p) => (
                 <button key={p} onClick={() => setStackPeriod(p)}
                   className={`px-2.5 py-1 text-[11px] font-medium ${stackPeriod === p ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)]'}`}>
@@ -991,7 +991,7 @@ export default function TodayDashboard() {
                 </div>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-[var(--border-default)] text-[11px] leading-relaxed text-[var(--ink-2)]">
+            <div className="drv-story mt-3 pt-3 border-t border-[var(--border-default)] text-[11px] leading-relaxed text-[var(--ink-2)]">
               {positive
                 ? (locale === 'ar'
                   ? <>🌱 كرّر يومك واستثمر الفائض ← <strong className="text-[var(--green-dark)]">+{money(snow20)}</strong> خلال 20 سنة.</>
@@ -1033,7 +1033,7 @@ export default function TodayDashboard() {
         const solTierYs = LADDER_TIERS.map((tt) => ({ tt, y: ladderY(tt, solOffset) }));
         const nearestLadder = (v: number): LadderTier => solTierYs.reduce((best, o) => Math.abs(o.y - v) < Math.abs(best.y - v) ? o : best).tt;
         return (
-          <Card title={t('today.sol.title')} href="/standard-of-living" explain={EX.sol}>
+          <Card title={t('today.sol.title')} href="/standard-of-living" explain={EX.sol} className="drv-num">
             <div className="flex items-baseline gap-2.5 flex-wrap mb-3">
               <span className="text-[11px] text-[var(--muted)]">{t('today.sol.youreAt')}</span>
               <span className="font-serif text-base font-semibold" style={{ color: TIER_COLOR[tier] }}>{tierLabel(tier, locale)}</span>
@@ -1129,7 +1129,7 @@ export default function TodayDashboard() {
       <Slot id="sourcesRisks">
       {/* ── Row 2: income sources (pie) + risk radar ── */}
       <div className="grid sm:grid-cols-2 gap-3">
-        <Card title={t('today.sources.title')} href="/lifetime-income" explain={EX.sources}>
+        <Card title={t('today.sources.title')} href="/lifetime-income" explain={EX.sources} className="drv-num">
           {activeIncome > 0 ? (
             <div className="flex items-center gap-3">
               {/* active vs passive donut */}
@@ -1224,7 +1224,7 @@ export default function TodayDashboard() {
           )}
         </Card>
 
-        <Card title={t('today.risks.title')} href="/risks" explain={EX.risks}>
+        <Card title={t('today.risks.title')} href="/risks" explain={EX.risks} className="drv-num">
           <div className="flex items-center gap-2 mb-1">
             {highRisks.length > 0 && (
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ color: 'var(--red-dark-text)', background: 'var(--red-bg)' }}>
@@ -1286,7 +1286,7 @@ export default function TodayDashboard() {
       {/* ── SIMAH credit standing (only when a score has been recorded) ── */}
       {credit && (
         <div data-depth-first="4">
-        <Card title={t('today.credit.title')} href="/credit" explain={EX.credit}>
+        <Card title={t('today.credit.title')} href="/credit" explain={EX.credit} className="drv-num">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="text-center shrink-0">
               <div className="font-serif text-4xl font-bold leading-none" style={{ color: bandFor(credit.score!).color }}>{credit.score}</div>
@@ -1339,7 +1339,7 @@ export default function TodayDashboard() {
         <div className="flex items-start justify-between gap-4 flex-wrap mb-3">
           <div className="font-serif text-2xl font-bold text-[var(--ink)]">{money(liabilities)}</div>
           {/* the two ratios, folded in as compact gauges */}
-          <div className="flex gap-5">
+          <div className="drv-num flex gap-5">
             <div className="w-32"><Gauge label={t('today.debt.vsIncome')} pct={debtVsIncome} /></div>
             <div className="w-32"><Gauge label={t('today.debt.vsAssets')} pct={debtVsAssets} /></div>
           </div>
@@ -1349,7 +1349,7 @@ export default function TodayDashboard() {
           <>
             {/* leverage vs consumption split */}
             {(leverageTotal > 0 || consumptionTotal > 0) && (
-              <div className="flex items-stretch gap-2 mb-3">
+              <div className="drv-num flex items-stretch gap-2 mb-3">
                 {leverageTotal > 0 && (
                   <div className="flex-1 rounded-lg px-3 py-2 bg-[var(--green-bg)] border border-[var(--green-border)]">
                     <div className="text-[10px] text-[var(--green-dark)]">🌱 {t('today.debt.leverageFull')}</div>
@@ -1365,7 +1365,7 @@ export default function TodayDashboard() {
               </div>
             )}
 
-            <div className="space-y-2.5">
+            <div className="drv-num space-y-2.5">
               {debtItems.map((item) => (
                 <DebtBar key={item.name} name={demoAr(item.name, locale === 'ar')} original={item.original} balance={item.balance} leverage={item.leverage} />
               ))}
@@ -1382,11 +1382,11 @@ export default function TodayDashboard() {
                 />
               </div>
             </div>
-            <div className="flex gap-4 mt-3 text-[10px] text-[var(--muted)] flex-wrap">
+            <div className="drv-num flex gap-4 mt-3 text-[10px] text-[var(--muted)] flex-wrap">
               <span><span className="inline-block w-2.5 h-2.5 rounded-sm me-1" style={{ background: 'var(--blue-2)' }} />{t('today.debt.paid')}</span>
               <span><span className="inline-block w-2.5 h-2.5 rounded-sm me-1" style={{ background: 'var(--chart-soft-green)' }} />{t('today.debt.remaining')}</span>
             </div>
-            <p className="text-[10px] text-[var(--muted)] mt-1.5 leading-relaxed">{t('today.debt.goodBadHint')}</p>
+            <p className="drv-story text-[10px] text-[var(--muted)] mt-1.5 leading-relaxed">{t('today.debt.goodBadHint')}</p>
           </>
         ) : (
           <p className="text-xs text-[var(--muted)]">
@@ -1415,7 +1415,7 @@ export default function TodayDashboard() {
       <Slot id="compare">
       {/* ── Row 4: net worth vs peers, by age ── */}
       <div data-depth-first="3">
-      <Card title={t('today.compare.title')} href="/positioning" explain={EX.compare}>
+      <Card title={t('today.compare.title')} href="/positioning" explain={EX.compare} className="drv-num">
         {age && compare.length > 1 ? (
           <>
             <div className="h-44" dir="ltr">
@@ -1465,7 +1465,7 @@ export default function TodayDashboard() {
       <Slot id="assets">
       {/* ── Row 4a: asset composition over time ── */}
       {assetComposition.length > 0 && assetSeries.length > 0 && (
-        <Card title={t('today.assets.title')} href="/financial-numbers" explain={EX.assets}>
+        <Card title={t('today.assets.title')} href="/financial-numbers" explain={EX.assets} className="drv-num">
           <div className="flex bg-[var(--surface-1)] rounded-lg p-0.5 mb-2 w-fit">
             <button
               onClick={() => setAssetView('abs')}
@@ -1530,7 +1530,7 @@ export default function TodayDashboard() {
       <Slot id="lifetime">
       {/* ── Row 4b: lifetime income vs savings ── */}
       {lifeEarned > 0 && (
-        <Card title={t('today.lifetime.title')} href="/lifetime-income" explain={EX.lifetime}>
+        <Card title={t('today.lifetime.title')} href="/lifetime-income" explain={EX.lifetime} className="drv-num">
           <div className="flex items-baseline gap-4 flex-wrap mb-2">
             <div>
               <div className="text-[10px] text-[var(--muted)]">{t('today.lifetime.earned')}</div>
@@ -1603,7 +1603,7 @@ export default function TodayDashboard() {
         </Card>
 
         {depth >= 3 && (
-        <Card title={t('today.pace.title')} href="/velocity" explain={EX.pace}>
+        <Card title={t('today.pace.title')} href="/velocity" explain={EX.pace} className="drv-num">
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
               <div className="font-serif text-2xl font-bold" style={{ color: nwPace >= 0 ? 'var(--green-dark)' : 'var(--red-2)' }}>
@@ -1668,7 +1668,7 @@ export default function TodayDashboard() {
           </div>
 
           {/* the road */}
-          <div className="relative h-6 mb-1" dir="ltr">
+          <div className="drv-num relative h-6 mb-1" dir="ltr">
             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2.5 rounded-full bg-white/10" />
             <div
               className="absolute left-0 top-1/2 -translate-y-1/2 h-2.5 rounded-full"
@@ -1685,9 +1685,9 @@ export default function TodayDashboard() {
             </div>
             <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 text-sm">🏁</div>
           </div>
-          <div className="text-right text-[11px] text-white/60 mb-3">{(freedom.progress * 100).toFixed(1)}%</div>
+          <div className="drv-num text-right text-[11px] text-white/60 mb-3">{(freedom.progress * 100).toFixed(1)}%</div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="drv-num grid grid-cols-2 sm:grid-cols-4 gap-3">
             <HeroStat label={t('today.freedom.number')} value={moneyC(freedom.freedomNumber)} accent="var(--gold)" />
             <HeroStat label={t('today.freedom.invested')} value={moneyC(freedom.investedNow)} />
             <HeroStat label={t('today.freedom.passive')} value={locale === 'ar' ? `${moneyC(freedom.passiveMonthlyNow)} شهرياً` : `${moneyC(freedom.passiveMonthlyNow)}/mo`} />

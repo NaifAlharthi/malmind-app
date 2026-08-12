@@ -371,7 +371,7 @@ export default function HomePage() {
 
         if (showPicker) {
           return (
-            <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl mt-4 mb-4 p-5 sm:p-6 text-white">
+            <div className="drv-story bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl mt-4 mb-4 p-5 sm:p-6 text-white">
               <div className="text-[10px] tracking-[0.14em] uppercase text-[var(--gold)] font-semibold mb-1.5">
                 {L('قبل الأرقام', 'Before the numbers')}
               </div>
@@ -426,7 +426,7 @@ export default function HomePage() {
 
         const tie = current ? current.tie() : null;
         return (
-          <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl mt-4 mb-4 p-5 sm:p-6 text-white relative overflow-hidden">
+          <div className="drv-story bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl mt-4 mb-4 p-5 sm:p-6 text-white relative overflow-hidden">
             <div className="absolute -top-12 -end-12 w-44 h-44 rounded-full bg-[var(--gold)]/10 blur-3xl pointer-events-none" />
             <div className="relative">
               <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -573,7 +573,7 @@ export default function HomePage() {
         return (
           <div className="bg-[var(--surface-card)] border border-[var(--gold)]/40 rounded-2xl mt-4 mb-6 grid md:grid-cols-2 overflow-hidden">
             {/* where you stand as of today */}
-            <div className="p-5">
+            <div className="drv-num p-5">
               <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] font-semibold mb-2.5">
                 {L('أين تقف اليوم', 'Where you stand today')}
               </div>
@@ -605,7 +605,7 @@ export default function HomePage() {
             </div>
 
             {/* next actionable item — divided by a line, rotating every visit */}
-            <div className="p-5 border-t md:border-t-0 md:border-s border-[var(--border-default)]">
+            <div className="drv-story p-5 border-t md:border-t-0 md:border-s border-[var(--border-default)]">
               <div className="flex items-center justify-between gap-2 mb-2.5">
                 <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] font-semibold">
                   {L('خطوتك التالية', 'Next actionable item')}
@@ -625,7 +625,7 @@ export default function HomePage() {
             </div>
 
             {/* a provocation for the financially curious — rotates per visit */}
-            <div className="md:col-span-2 border-t border-[var(--border-default)] px-5 py-3 flex items-start gap-2.5 bg-[var(--surface-0)]/40">
+            <div className="drv-story md:col-span-2 border-t border-[var(--border-default)] px-5 py-3 flex items-start gap-2.5 bg-[var(--surface-0)]/40">
               <span className="text-sm shrink-0 mt-px">💡</span>
               <p className="text-[11px] leading-relaxed text-[var(--ink-2)] min-w-0">
                 <span className="text-[10px] tracking-[0.1em] uppercase text-[var(--gold)] font-semibold me-2">{L('إثراء', 'Enrich')}</span>
@@ -639,7 +639,7 @@ export default function HomePage() {
       </div>
 
       {/* ── personal snapshot ── */}
-      <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
+      <div data-tour="profile-card" className="drv-num bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
           onClick={openEditProfile}
           className="absolute top-6 end-6 text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors"

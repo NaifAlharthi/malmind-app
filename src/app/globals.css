@@ -313,6 +313,9 @@ body {
 /* the mode switcher's confirm countdown bar */
 @keyframes mmModeConfirm { from { width: 0%; } to { width: 100%; } }
 
+/* The drive-reshaping rules ([data-drive] × .drv-story/.drv-num) live as an
+   inline <style> in DepthStage — the build pipeline dropped them from here. */
+
 @keyframes mmDepthFlashLabel {
   0% { opacity: 0; transform: translateY(14px) scale(0.96); }
   30% { opacity: 1; transform: none; }

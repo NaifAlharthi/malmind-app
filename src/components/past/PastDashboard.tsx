@@ -267,7 +267,7 @@ export default function PastDashboard() {
       <Pillar n={1} icon="📖" title={L('القصة', 'Story')} sub={L('ماضيك حكايةً — خط زمني وفصول حياة', 'Your past as a story — a timeline and chapters of life')} />
 
       <Card title={L('قوس ثروتك — وقصتك فوقه', 'Your wealth arc — with your story on it')} href="/story" explain={EX.arc}>
-        <div className="h-56" dir="ltr">
+        <div className="drv-num h-56" dir="ltr">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={D.rows} margin={{ top: 18, right: 6, left: 6, bottom: 0 }}>
               <defs>
@@ -315,7 +315,7 @@ export default function PastDashboard() {
       {/* ═══ 2 · Numbers ═══ */}
       <Pillar n={2} icon="🔢" title={L('الأرقام', 'Numbers')} sub={L('أرشيف حياتك المالية كاملةً حتى اليوم', 'The complete archive of your financial life up to today')} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="drv-num grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label={L('أشهر مسجّلة', 'Months logged')} value={String(D.n)} />
         <Stat label={L('كل ما كسبته', 'Everything earned')} value={moneyC(D.totalEarned)} />
         <Stat label={L('ما بقي منه', 'What stayed')} value={moneyC(latest.nw)} accent={latest.nw >= 0 ? 'var(--green-dark)' : 'var(--red-2)'} />
@@ -323,7 +323,7 @@ export default function PastDashboard() {
       </div>
 
       {depth >= 2 && (
-        <Card title={L('الداخل والخارج — السجل كاملاً', 'Money in vs out — the whole record')} href="/financial-numbers">
+        <Card title={L('الداخل والخارج — السجل كاملاً', 'Money in vs out — the whole record')} href="/financial-numbers" className="drv-num">
           <div className="h-44" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={D.rows} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
@@ -346,7 +346,7 @@ export default function PastDashboard() {
       )}
 
       {depth >= 2 && (D.trendReady ? (
-        <Card title={L('اتجاه معدل ادخارك', 'Saving-rate trend')} href="/ratios" explain={EX.trend}>
+        <Card title={L('اتجاه معدل ادخارك', 'Saving-rate trend')} href="/ratios" explain={EX.trend} className="drv-num">
           {(() => {
             const s = D.trendSlopeYr;
             const verdict = s > 2
@@ -379,7 +379,7 @@ export default function PastDashboard() {
       ))}
 
       {depth >= 4 && (
-        <Card title={L('السجل الكامل — شهراً بشهر', 'The full record — month by month')} href="/financial-numbers">
+        <Card title={L('السجل الكامل — شهراً بشهر', 'The full record — month by month')} href="/financial-numbers" className="drv-num">
           <div className="flex gap-2 flex-wrap mb-3 text-[10px]">
             {D.best && (
               <span className="rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] text-[var(--green-dark)] px-2.5 py-1">
@@ -432,7 +432,7 @@ export default function PastDashboard() {
       {depth >= 3 ? (
         <>
           {verdict && (
-            <Card title={L('حُكم الماضي — أين يضعك اليوم؟', "The past's verdict — where does it leave you today?")} href="/today">
+            <Card title={L('حُكم الماضي — أين يضعك اليوم؟', "The past's verdict — where does it leave you today?")} href="/today" className="drv-story">
               {(() => {
                 const meta = verdict.tone === 'up'
                   ? { icon: '🚀', color: 'var(--green-dark)', txt: L('ماضيك يدفعك للأمام — عاداتك رفعت احتمالات نجاحك المالي.', 'Your past pushes you forward — your habits have raised your odds of financial success.') }
@@ -493,7 +493,7 @@ export default function PastDashboard() {
                         `Around ${D.rows[c.at].label}: your monthly income rose by about ${money(raise)}. Over the following months, your spending rose ${money(Math.max(0, c.expAfter - c.expBefore))}.`
                       )}
                     </p>
-                    <div className="flex items-center gap-3 mb-1.5">
+                    <div className="drv-num flex items-center gap-3 mb-1.5">
                       <div className="flex-1 h-3 rounded-full bg-[var(--surface-1)] overflow-hidden" dir="ltr">
                         <div className="h-full rounded-full" style={{ width: `${Math.min(100, eatenPct)}%`, background: verdictColor }} />
                       </div>
@@ -519,7 +519,7 @@ export default function PastDashboard() {
 
           {D.seasonReady ? (
             <Card title={L('مواسم مصروفك — بالهجري', 'Spending seasons — Hijri')} href="/financial-numbers" explain={EX.season}>
-              <div className="h-36" dir="ltr">
+              <div className="drv-num h-36" dir="ltr">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={D.seasonality} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
                     <XAxis dataKey="hm" tickFormatter={(m: number) => (ar ? HIJRI_MONTHS_AR[m - 1] : HIJRI_MONTHS_EN[m - 1]).slice(0, ar ? 5 : 3)} tick={{ fontSize: 8, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval={0} />
@@ -554,7 +554,7 @@ export default function PastDashboard() {
           )}
 
           {D.lessons.length > 0 && (
-            <Card title={L('دروس فصولك', 'Lessons from your chapters')} href="/story">
+            <Card title={L('دروس فصولك', 'Lessons from your chapters')} href="/story" className="drv-story">
               <div className="space-y-2.5">
                 {D.lessons.map((les, i) => (
                   <div key={i} className="flex gap-2.5 items-start">
@@ -616,9 +616,9 @@ export default function PastDashboard() {
       </div>
     );
   }
-  function Card({ title, href, explain, children }: { title: string; href: string; explain?: ExplainContent; children: React.ReactNode }) {
+  function Card({ title, href, explain, className = '', children }: { title: string; href: string; explain?: ExplainContent; className?: string; children: React.ReactNode }) {
     return (
-      <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5">
+      <div className={`bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 ${className}`}>
         <div className="flex items-center justify-between gap-2 mb-3">
           <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--gold)]">{title}</span>
           <span className="flex items-center gap-1.5">

@@ -445,7 +445,7 @@ export default function CommandMode() {
           </div>
           <div className="flex items-center gap-2">
             <Key label="D" />
-            <Hint text={`${DRIVE_META[drive].icon} ${L('بدّل محرّكك — قصة · أرقام · قصة وأرقام', 'Switch your drive — story · numbers · both')}`} />
+            <Hint text={`${DRIVE_META[drive].icon} ${L('بدّل محرّكك — قصص · أرقام · قصص وأرقام', 'Switch your drive — stories · numbers · both')}`} />
           </div>
           <div className="flex items-center gap-2">
             <Key label="H" />

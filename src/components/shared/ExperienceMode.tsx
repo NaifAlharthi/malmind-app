@@ -142,7 +142,7 @@ export function DriveSwitcher({ className = '' }: { className?: string }) {
             }`}
           >
             <span className="leading-none">{meta.icon}</span>
-            <span className="hidden xl:inline">{ar ? meta.label.ar : meta.label.en}</span>
+            <span className="hidden lg:inline">{ar ? meta.label.ar : meta.label.en}</span>
           </button>
         );
       })}

@@ -15,8 +15,8 @@ export const DRIVES: Drive[] = ['story', 'numbers', 'both'];
 export const DRIVE_META: Record<Drive, { icon: string; label: { ar: string; en: string }; desc: { ar: string; en: string } }> = {
   story: {
     icon: '📖',
-    label: { ar: 'قصة', en: 'Story' },
-    desc: { ar: 'يحكي لك مالك حكايته قبل أي رقم', en: 'Your money tells its story before any number' },
+    label: { ar: 'قصص', en: 'Stories' },
+    desc: { ar: 'يحكي لك مالك حكاياته قبل أي رقم', en: 'Your money tells its stories before any number' },
   },
   numbers: {
     icon: '🔢',
@@ -25,7 +25,7 @@ export const DRIVE_META: Record<Drive, { icon: string; label: { ar: string; en: 
   },
   both: {
     icon: '🧭',
-    label: { ar: 'قصة وأرقام', en: 'Story & numbers' },
+    label: { ar: 'قصص وأرقام', en: 'Stories & numbers' },
     desc: { ar: 'سردٌ يحمل أرقامه معه', en: 'Narrative that carries its numbers' },
   },
 };

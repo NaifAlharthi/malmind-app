@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { useDepth } from '@/components/shared/ExperienceMode';
+import { useDepth, useDrive } from '@/components/shared/ExperienceMode';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { DEPTH_META, type DepthLevel } from '@/lib/depth';
 
@@ -23,6 +23,7 @@ const DEPTHLESS = ['/home'];
 
 export default function DepthStage({ children }: { children: React.ReactNode }) {
   const { depth, setDepth } = useDepth();
+  const { drive } = useDrive();
   const { locale } = useLocale();
   const ar = locale === 'ar';
   const pathname = usePathname();
@@ -138,7 +139,11 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
 
   return (
     <>
-      <div className={shift ? `mm-depth-shift-${shift}` : ''} onAnimationEnd={onStageAnimEnd}>
+      {/* data-drive lets .drv-story / .drv-num elements adapt to the drive:
+          story-driven hides the numeric displays, numbers-driven hides the
+          narrative, and "both" shows the full-fledged product */}
+      <style>{`[data-drive='story'] .drv-num{display:none !important}[data-drive='numbers'] .drv-story{display:none !important}`}</style>
+      <div className={shift ? `mm-depth-shift-${shift}` : ''} data-drive={drive} onAnimationEnd={onStageAnimEnd}>
         {children}
       </div>
 
