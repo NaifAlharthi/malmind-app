@@ -12,6 +12,7 @@ import { clearEphemeral } from '@/lib/authPrefs';
 import { isDemoActive } from '@/lib/demoSupabase';
 import { diagnoseQuadrant, QUADRANT_META, type QuadKey } from '@/lib/quadrant';
 import { demoAr } from '@/lib/demoI18n';
+import { futureValue, DEFAULT_RETURN } from '@/lib/dailyStack';
 import ContactModal from '@/components/shared/ContactModal';
 import FoundationHub from '@/components/home/FoundationHub';
 
@@ -70,6 +71,18 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [quad, setQuad] = useState<QuadKey | null>(null);
   const [fin, setFin] = useState<Financials | null>(null);
+  const [prevNw, setPrevNw] = useState<number | null>(null);
+  const [goalCount, setGoalCount] = useState(0);
+  // Rotates the curated next action once per visit, so the opening moment
+  // feels alive every time the product is opened.
+  const [visitIdx, setVisitIdx] = useState(0);
+  useEffect(() => {
+    try {
+      const n = (Number(window.localStorage.getItem('mm-action-visit')) || 0) + 1;
+      window.localStorage.setItem('mm-action-visit', String(n));
+      setVisitIdx(n);
+    } catch { /* ignore */ }
+  }, []);
   const [account, setAccount] = useState<Account | null>(null);
   const [integ, setInteg] = useState<Integrations | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,10 +132,22 @@ export default function HomePage() {
         recent.reduce((a, r) => a + Number(r.expenses), 0) / recent.length,
         assets,
       ));
+      if (snaps.length >= 2) {
+        const p = snaps[snaps.length - 2];
+        setPrevNw(
+          Number(p.cash) + Number(p.stocks) + Number(p.real_estate) + Number(p.equity) + Number(p.other_assets) - Number(p.liabilities)
+        );
+      } else setPrevNw(null);
     } else {
       setFin(null);
       setQuad(null);
+      setPrevNw(null);
     }
+
+    try {
+      const { data: gf } = await supabase.from('goal_funds').select('id').eq('user_id', user.id);
+      setGoalCount(Array.isArray(gf) ? gf.length : 0);
+    } catch { setGoalCount(0); }
 
     // Integration status — best-effort; failures just leave the tile neutral.
     try {
@@ -240,6 +265,127 @@ export default function HomePage() {
         </div>
         <button onClick={handleSignOut} className="text-xs text-[var(--muted)]">{t('common.signOut')}</button>
       </div>
+
+      {/* ── the opening moment: where you stand · next actionable item ── */}
+      {fin && (() => {
+        const surplus = fin.income - fin.expenses;
+        const nwDelta = prevNw !== null ? fin.netWorth - prevNw : null;
+        const qc = quad ? (ar ? QUADRANT_META[quad].ar : QUADRANT_META[quad].en) : null;
+
+        // Curated next actions — every applicable rule joins the pool, and
+        // the visit counter rotates which one greets you today.
+        const pool: { icon: string; title: string; body: string; cta: string; href: string }[] = [];
+        if (surplus < 0) {
+          pool.push({
+            icon: '🩸',
+            title: L('أوقف نزيف هذا الشهر', "Stop this month's bleed"),
+            body: L(
+              `مصروفك تجاوز دخلك بـ${money(Math.abs(surplus))} هذا الشهر. افتح كومة اليوم وقلّم اختياراً واحداً متكرراً — الصغير المتكرر أخطر من الكبير العابر.`,
+              `Spending beat income by ${money(Math.abs(surplus))} this month. Open the Daily Stack and trim one recurring choice — the small repeating one outweighs the big one-off.`
+            ),
+            cta: L('افتح كومة اليوم ←', 'Open the Daily Stack →'), href: '/daily-stack',
+          });
+        }
+        if (surplus > 0) {
+          pool.push({
+            icon: '❄️',
+            title: L('كرة الثلج تنتظر فائضك', 'Your surplus wants to snowball'),
+            body: L(
+              `فائض هذا الشهر ${money(surplus)}. لو تكرر واستُثمر، يصبح نحو ${money(futureValue(surplus, 20, DEFAULT_RETURN))} خلال ٢٠ سنة — حوّله قبل أن يراه المصروف.`,
+              `This month's surplus is ${money(surplus)}. Repeated and invested, it becomes about ${money(futureValue(surplus, 20, DEFAULT_RETURN))} in 20 years — move it before spending sees it.`
+            ),
+            cta: L('شاهد سرعة مالك ←', 'See your money’s velocity →'), href: '/velocity',
+          });
+        }
+        if (fin.cash > 6 * Math.max(1, fin.expenses)) {
+          pool.push({
+            icon: '🧊',
+            title: L('نقدك الخامل يذوب بهدوء', 'Your idle cash is quietly melting'),
+            body: L(
+              `${money(fin.cash)} نقداً — أكثر من ستة أشهر مصاريف. ما فوق الطوارئ يخسر قيمته للتضخم كل سنة؛ فكّر في تشغيل جزء منه.`,
+              `${money(fin.cash)} in cash — over six months of costs. Whatever exceeds the emergency cushion loses value to inflation yearly; consider putting part to work.`
+            ),
+            cta: L('قارن أين يعمل الريال ←', 'Compare where the riyal works →'), href: '/compare',
+          });
+        }
+        if (goalCount === 0) {
+          pool.push({
+            icon: '🎯',
+            title: L('حلمك الكبير بلا اسم بعد', 'Your big dream has no name yet'),
+            body: L(
+              'الهدف الذي له اسمٌ ورقمٌ شهري يتحقق؛ والنية الغامضة لا تتحقق. سمِّ خطوتك الكبيرة القادمة — عمرة، دفعة أولى، سنة تفرّغ — وأعطها وتيرة.',
+              'A goal with a name and a monthly number gets funded; a vague intention does not. Name your next big thing — a down payment, a sabbatical — and give it a pace.'
+            ),
+            cta: L('ابدأ صندوق هدف ←', 'Start a goal fund →'), href: '/goal-fund',
+          });
+        }
+        pool.push({
+          icon: '🔭',
+          title: L('تأمل: أين تقف بعد خمس سنوات؟', 'Contemplate: where do you stand in five years?'),
+          body: L(
+            'خذ دقيقة مع «ماذا لو»: جرّب علاوة، أو سكناً أرخص، أو استثماراً شهرياً — وشاهد أثر القرار على مستقبلك بالأرقام قبل أن تعيشه.',
+            'Take a minute with What-If: try a raise, cheaper housing, or monthly investing — and watch the decision reshape your future in numbers before you live it.'
+          ),
+          cta: L('افتح ماذا لو ←', 'Open What-If →'), href: '/what-if',
+        });
+        const action = pool[visitIdx % pool.length];
+
+        return (
+          <div className="bg-[var(--surface-card)] border border-[var(--gold)]/40 rounded-2xl mt-4 mb-6 grid md:grid-cols-2 overflow-hidden">
+            {/* where you stand as of today */}
+            <div className="p-5">
+              <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] font-semibold mb-2.5">
+                {L('أين تقف اليوم', 'Where you stand today')}
+              </div>
+              <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
+                <span className="font-serif text-3xl font-bold" style={{ color: fin.netWorth >= 0 ? 'var(--ink)' : 'var(--red-2)' }}>
+                  {money(fin.netWorth)}
+                </span>
+                {nwDelta !== null && nwDelta !== 0 && (
+                  <span className={`text-xs font-semibold ${nwDelta > 0 ? 'text-[var(--green-dark)]' : 'text-[var(--red-2)]'}`}>
+                    {nwDelta > 0 ? '▲' : '▼'} {money(Math.abs(nwDelta))} {L('عن الشهر الماضي', 'vs last month')}
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] text-[var(--muted)] mb-3">{L('صافي ثروتك الآن', 'Your net worth right now')}</div>
+              <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                {qc && quad && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-1)] border border-[var(--border-default)] px-2.5 py-1 text-[var(--ink-2)]">
+                    {QUADRANT_META[quad].icon} {qc.title}
+                  </span>
+                )}
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 border ${
+                  surplus >= 0
+                    ? 'bg-[var(--green-bg)] border-[var(--green-border)] text-[var(--green-dark)]'
+                    : 'bg-[var(--gold-bg)] border-[var(--gold)]/40 text-[var(--gold-text-alt)]'
+                }`}>
+                  {surplus >= 0 ? L(`فائض الشهر ${money(surplus)}`, `Month's surplus ${money(surplus)}`) : L(`عجز الشهر ${money(Math.abs(surplus))}`, `Month's deficit ${money(Math.abs(surplus))}`)}
+                </span>
+              </div>
+            </div>
+
+            {/* next actionable item — divided by a line, rotating every visit */}
+            <div className="p-5 border-t md:border-t-0 md:border-s border-[var(--border-default)]">
+              <div className="flex items-center justify-between gap-2 mb-2.5">
+                <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] font-semibold">
+                  {L('خطوتك التالية', 'Next actionable item')}
+                </div>
+                <span className="text-[9px] text-[var(--muted)]">{L('تتجدد مع كل زيارة', 'refreshes every visit')}</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-xl shrink-0">{action.icon}</span>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-[var(--ink)] mb-1">{action.title}</div>
+                  <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-2.5">{action.body}</p>
+                  <Link href={action.href} className="inline-block text-xs font-semibold text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5">
+                    {action.cta}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── personal snapshot ── */}
       <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
