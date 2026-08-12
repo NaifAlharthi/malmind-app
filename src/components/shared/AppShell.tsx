@@ -11,7 +11,7 @@ import TimelineNav from './TimelineNav';
 import DepthRail from './DepthRail';
 import DepthStage from './DepthStage';
 import CommandMode from './CommandMode';
-import { XModeProvider, XModeSwitcher } from './ExperienceMode';
+import { XModeProvider, XModeSwitcher, DriveSwitcher } from './ExperienceMode';
 import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
@@ -214,7 +214,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* utilities */}
             <div className="flex items-center gap-1 shrink-0">
               {/* experience mode: hold-my-hand · getting a hold · pro */}
-              <XModeSwitcher className="me-1" />
+              <XModeSwitcher />
+              {/* the drive: story · numbers · both */}
+              <DriveSwitcher className="me-1" />
               <button
                 onClick={() => setEditProfileOpen(true)}
                 title={t('common.editProfile')}

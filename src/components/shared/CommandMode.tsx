@@ -10,10 +10,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useDepth, useXMode } from '@/components/shared/ExperienceMode';
+import { useDepth, useXMode, useDrive } from '@/components/shared/ExperienceMode';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { DEPTH_META, type DepthLevel } from '@/lib/depth';
 import { XMODES, XMODE_META, type XMode } from '@/lib/experienceMode';
+import { DRIVES, DRIVE_META, type Drive } from '@/lib/drive';
 
 const TIME_ROUTES = ['/past', '/today', '/future'];
 const TIME_LABEL: Record<string, { ar: string; en: string; icon: string }> = {
@@ -32,6 +33,7 @@ export default function CommandMode() {
   const pathname = usePathname();
   const { depth, setDepth } = useDepth();
   const { mode, setMode } = useXMode();
+  const { drive, setDrive } = useDrive();
   const { locale } = useLocale();
   const ar = locale === 'ar';
   const L = useCallback((a: string, e: string) => (ar ? a : e), [ar]);
@@ -55,6 +57,14 @@ export default function CommandMode() {
   const mConfirmTimer = useRef<number | undefined>(undefined);
   const mThrottle = useRef(0);
   const MODE_CONFIRM_MS = 1500;
+  // ⇧D drive cycling — the same alt-tab grammar for story · numbers · both.
+  const [driveSel, setDriveSel] = useState<Drive | null>(null);
+  const driveSelRef = useRef<Drive | null>(null);
+  useEffect(() => { driveSelRef.current = driveSel; }, [driveSel]);
+  const dConfirmTimer = useRef<number | undefined>(undefined);
+  const dThrottle = useRef(0);
+  const driveRef = useRef(drive); useEffect(() => { driveRef.current = drive; }, [drive]);
+  const setDriveRef = useRef(setDrive); useEffect(() => { setDriveRef.current = setDrive; }, [setDrive]);
 
   const depthRef = useRef(depth); useEffect(() => { depthRef.current = depth; }, [depth]);
   const setDepthRef = useRef(setDepth); useEffect(() => { setDepthRef.current = setDepth; }, [setDepth]);
@@ -77,6 +87,15 @@ export default function CommandMode() {
       if (sel) {
         setModeRef.current(sel);
         setModeSel(null);
+      }
+    };
+    // ⇧D confirm: apply the candidate drive and close the switcher.
+    const confirmDrive = () => {
+      window.clearTimeout(dConfirmTimer.current);
+      const sel = driveSelRef.current;
+      if (sel) {
+        setDriveRef.current(sel);
+        setDriveSel(null);
       }
     };
 
@@ -155,10 +174,28 @@ export default function CommandMode() {
         return;
       }
 
-      // Escape cancels a pending mode selection without applying it
-      if (e.key === 'Escape' && modeSelRef.current) {
+      // ⇧D — cycle the drive (story · numbers · both), alt-tab style
+      if (e.code === 'KeyD' || e.key === 'D' || e.key === 'd') {
+        if (suppressed.current) return;
+        e.preventDefault();
+        const now = Date.now();
+        if (now - dThrottle.current < 220) return;
+        dThrottle.current = now;
+        setOpen(false);
+        const base = driveSelRef.current ?? driveRef.current;
+        const next = DRIVES[(DRIVES.indexOf(base) + 1) % DRIVES.length];
+        setDriveSel(next);
+        window.clearTimeout(dConfirmTimer.current);
+        dConfirmTimer.current = window.setTimeout(confirmDrive, MODE_CONFIRM_MS);
+        return;
+      }
+
+      // Escape cancels a pending mode/drive selection without applying it
+      if (e.key === 'Escape' && (modeSelRef.current || driveSelRef.current)) {
         window.clearTimeout(mConfirmTimer.current);
+        window.clearTimeout(dConfirmTimer.current);
         setModeSel(null);
+        setDriveSel(null);
         return;
       }
 
@@ -206,6 +243,7 @@ export default function CommandMode() {
         bActive.current = false;
         suppressed.current = false;
         confirmMode(); // releasing Shift confirms a pending mode, alt-tab style
+        confirmDrive(); // …and a pending drive the same way
         setOpen(false);
       }
     };
@@ -222,7 +260,57 @@ export default function CommandMode() {
     };
   }, [router, ar]);
 
-  if (!open && !modeSel) return null;
+  if (!open && !modeSel && !driveSel) return null;
+
+  // ── the ⇧D drive switcher: same stage, the drive's three shapes ──
+  if (driveSel) {
+    return (
+      <div className="fixed inset-0 z-[95] pointer-events-none flex items-center justify-center" role="status" aria-live="polite">
+        <div
+          className="rounded-2xl border border-[var(--border-default)] backdrop-blur-md px-7 py-6 shadow-2xl text-center"
+          style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }}
+          dir={ar ? 'rtl' : 'ltr'}
+        >
+          <div className="flex items-center justify-center gap-2 mb-4 text-[var(--ink)]">
+            <span className="inline-flex items-center justify-center h-7 px-2.5 rounded-md border border-[var(--border-medium)] bg-[var(--surface-1)] text-sm font-bold">⇧ D</span>
+            <span className="text-xs font-semibold tracking-wide">{L('ما الذي يحرّكك؟', 'What drives you?')}</span>
+          </div>
+
+          <div className="flex items-center bg-[var(--surface-1)] border border-[var(--border-default)] rounded-full p-1 w-fit mx-auto" role="radiogroup">
+            {DRIVES.map((d) => {
+              const meta = DRIVE_META[d];
+              const candidate = d === driveSel;
+              return (
+                <span
+                  key={d}
+                  role="radio"
+                  aria-checked={candidate}
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm transition-all whitespace-nowrap ${
+                    candidate
+                      ? 'bg-[var(--ink)] text-[var(--surface-0)] font-semibold shadow-sm ring-2 ring-[var(--green)]/50 scale-105'
+                      : 'text-[var(--muted)]'
+                  }`}
+                >
+                  <span className="leading-none">{meta.icon}</span>
+                  <span>{ar ? meta.label.ar : meta.label.en}</span>
+                </span>
+              );
+            })}
+          </div>
+
+          <div className="text-[10px] text-[var(--muted)] mt-3 mb-1.5">
+            {L('اضغط D للتنقّل · أفلت Shift للتأكيد', 'Press D to cycle · release Shift to confirm')}
+          </div>
+          <div className="w-40 h-1 rounded-full bg-[var(--surface-1)] overflow-hidden mx-auto" key={driveSel + String(dThrottle.current)}>
+            <span
+              className="block h-full bg-[var(--green)]"
+              style={{ animation: `mmModeConfirm ${MODE_CONFIRM_MS}ms linear forwards` }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── the ⇧M mode switcher: the top bar's segmented control, center stage ──
   if (modeSel) {
@@ -353,7 +441,11 @@ export default function CommandMode() {
           </div>
           <div className="flex items-center gap-2">
             <Key label="M" />
-            <Hint text={`${XMODE_META[mode].icon} ${L('بدّل النمط — أرشدني · شبه محترف · محترف', 'Switch mode — Guide me · Semi-pro · Pro')}`} />
+            <Hint text={`${XMODE_META[mode].icon} ${L('بدّل النمط — بالملعقة · شبه محترف · محترف', 'Switch mode — Spoon-fed · Semi-pro · Pro')}`} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Key label="D" />
+            <Hint text={`${DRIVE_META[drive].icon} ${L('بدّل محرّكك — قصة · أرقام · قصة وأرقام', 'Switch your drive — story · numbers · both')}`} />
           </div>
           <div className="flex items-center gap-2">
             <Key label="H" />

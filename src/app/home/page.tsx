@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
+import { useDrive } from '@/components/shared/ExperienceMode';
 import { useTheme } from '@/components/shared/ThemeProvider';
 import { localizedFirstName } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -63,6 +64,7 @@ export default function HomePage() {
   const { openEditProfile, profileVersion } = useProfileContext();
   const { theme, toggleTheme } = useTheme();
   const { t, locale, setLocale } = useLocale();
+  const { drive } = useDrive();
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
   const sar = t('common.sar');
@@ -284,6 +286,11 @@ export default function HomePage() {
         <button onClick={handleSignOut} className="text-xs text-[var(--muted)]">{t('common.signOut')}</button>
       </div>
 
+      {/* the drive decides what leads: story-driven (and both) open with the
+          hājis; numbers-driven open with the standing tile — CSS order flips
+          the two without touching the DOM */}
+      <div className="flex flex-col">
+      <div style={{ order: drive === 'numbers' ? 2 : 1 }}>
       {/* ── the hājis: the one thing on their mind — before any number ── */}
       {(() => {
         const TYPES: { k: string; icon: string; label: string; tie: () => { line: string; cta: string; href: string } }[] = [
@@ -450,6 +457,9 @@ export default function HomePage() {
         );
       })()}
 
+      </div>
+
+      <div style={{ order: drive === 'numbers' ? 1 : 2 }}>
       {/* ── the opening moment: where you stand · next actionable item ── */}
       {fin && (() => {
         const surplus = fin.income - fin.expenses;
@@ -625,6 +635,8 @@ export default function HomePage() {
           </div>
         );
       })()}
+      </div>
+      </div>
 
       {/* ── personal snapshot ── */}
       <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
