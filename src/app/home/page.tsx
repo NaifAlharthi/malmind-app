@@ -727,10 +727,20 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-4 mt-5">
-            <MissionStat n="19" label={L('أداة مترابطة', 'connected tools')} />
-            <MissionStat n="3" label={L('نظرات زمنية', 'time views')} />
-            <MissionStat n="🇸🇦" label={L('مصمَّم للسعودية', 'made for Saudi')} />
+          {/* the stats wear the same dress as the cards above — one system */}
+          <div className="grid grid-cols-3 gap-2.5 mt-2.5">
+            <div className="bg-[var(--surface-0)]/50 border border-[var(--border-faint)] rounded-xl p-3 flex flex-col items-center justify-center text-center">
+              <div className="font-serif text-xl font-bold text-[var(--green-dark)] leading-none mb-1">19</div>
+              <div className="text-[10px] text-[var(--muted)]">{L('أداة مترابطة', 'connected tools')}</div>
+            </div>
+            <div className="bg-[var(--surface-0)]/50 border border-[var(--border-faint)] rounded-xl p-3 flex flex-col items-center justify-center text-center">
+              <div className="font-serif text-xl font-bold text-[var(--green-dark)] leading-none mb-1">3</div>
+              <div className="text-[10px] text-[var(--muted)]">{L('نظرات زمنية', 'time views')}</div>
+            </div>
+            <div className="bg-[var(--surface-0)]/50 border border-[var(--border-faint)] rounded-xl p-3 flex flex-col items-center justify-center text-center">
+              <SaudiEmblem />
+              <div className="text-[10px] text-[var(--muted)] mt-1">{L('مصمَّم للسعودية', 'made for Saudi')}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1324,12 +1334,24 @@ function QuadrantStat({ quad, ar }: { quad: QuadKey; ar: boolean }) {
   );
 }
 
-function MissionStat({ n, label }: { n: string; label: string }) {
+// The Saudi mark — a palm over crossed swords, drawn inline because Windows
+// renders the 🇸🇦 flag emoji as plain "SA" letters.
+function SaudiEmblem() {
   return (
-    <div>
-      <div className="font-serif text-xl font-bold text-[var(--green-dark)]">{n}</div>
-      <div className="text-[10px] text-[var(--muted)]">{label}</div>
-    </div>
+    <svg viewBox="0 0 32 24" className="h-6 w-8 text-[var(--green-dark)]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+      {/* crossed swords */}
+      <path d="M7 21 L20 10" />
+      <path d="M25 21 L12 10" />
+      <path d="M6 22.5 L8.5 20" strokeWidth="2.4" />
+      <path d="M26 22.5 L23.5 20" strokeWidth="2.4" />
+      {/* the palm: trunk and fronds */}
+      <path d="M16 14 L16 8.5" />
+      <path d="M16 8.5 C13.5 8.5 11.5 7 11 5" />
+      <path d="M16 8.5 C18.5 8.5 20.5 7 21 5" />
+      <path d="M16 8.5 C14.5 7 14 4.5 14.5 2.5" />
+      <path d="M16 8.5 C17.5 7 18 4.5 17.5 2.5" />
+      <path d="M16 8.5 C16 6 16 4 16 2" />
+    </svg>
   );
 }
 
