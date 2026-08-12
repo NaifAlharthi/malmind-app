@@ -708,8 +708,27 @@ export default function HomePage() {
               "MalMind is a Saudi-first financial companion that turns scattered numbers into one connected picture you can see, question, and design — across your past, your present, and the future you're building toward. Not another balance screen: a place to understand your money and make better decisions with it."
             )}
           </p>
+
+          {/* what makes MalMind itself: the Brain, the iceberg, the modes, the drives */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-5">
+            {([
+              ['🧠', L('العقل', 'The Brain'), L('مستشار ذكاء اصطناعي يرافقك صفحةً بصفحة ويجيب من أرقامك أنت', 'An AI advisor that walks with you page by page and answers from your own numbers')],
+              ['🧊', L('الغوص بالعمق', 'Depth diving'), L('جبل جليد بأربع طبقات — من الأساسيات إلى الاحتراف الكامل', 'A four-layer iceberg — from the essentials down to full mastery')],
+              ['🥄', L('مستوى المساندة', 'Assistance level'), L('بالملعقة · شبه محترف · محترف — بقدر ما تحتاج من يدٍ تمسكك', 'Spoon-fed · Semi-pro · Pro — exactly as much hand-holding as you want')],
+              ['📖', L('المحرّكات', 'Drivers'), L('قصص · أرقام · قصص وأرقام — يتشكّل المنتج على طريقة تفكيرك', 'Stories · Numbers · Both — the product reshapes to how you think')],
+            ] as [string, string, string][]).map(([icon, name, desc]) => (
+              <div key={name} className="bg-[var(--surface-0)]/50 border border-[var(--border-faint)] rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-base leading-none">{icon}</span>
+                  <span className="text-xs font-semibold text-[var(--ink)]">{name}</span>
+                </div>
+                <p className="text-[10px] text-[var(--muted)] leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+
           <div className="flex flex-wrap gap-4 mt-5">
-            <MissionStat n="18" label={L('أداة مترابطة', 'connected tools')} />
+            <MissionStat n="19" label={L('أداة مترابطة', 'connected tools')} />
             <MissionStat n="3" label={L('نظرات زمنية', 'time views')} />
             <MissionStat n="🇸🇦" label={L('مصمَّم للسعودية', 'made for Saudi')} />
           </div>
