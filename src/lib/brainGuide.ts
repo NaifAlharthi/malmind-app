@@ -231,6 +231,16 @@ const GUIDE: Record<string, GuideEntry> = {
       ar: 'اخرج قادراً على قول: «هذه السنة عقد: من 800 ألف إلى 1.15 مليون، بادخار 34%. وكل أداة أخرى تقيس الانحراف عنه الآن».',
     },
   },
+  '/luxury': {
+    what: {
+      en: "This is Luxury — the fourth quadrant's instrument for desire: it weighs anything you crave against your wealth's share, your yield's reach, its true 10-year cost, and the price of each moment of joy.",
+      ar: 'هذه الرفاهية — أداة أهل الوفرة للشهوات: تزن ما تشتهيه بحصة ثروتك، ومدى ريعك، وكلفته الحقيقية بعد عشر سنوات، وثمن كل لحظة فرح فيه.',
+    },
+    opinion: {
+      en: "Walk out able to say: “My yield buys the Submariner in 9 months, so my money pays for it — but the yacht is a money pit worth 40% of my wealth, and it can wait.”",
+      ar: 'اخرج قادراً على قول: «ريعي يشتري الساعة خلال ٩ أشهر فمالي يدفع ثمنها — أما اليخت فبالوعة مال تساوي ٤٠٪ من ثروتي، وينتظر».',
+    },
+  },
   '/waterfall': {
     what: {
       en: 'This is the Money Waterfall — your plan as a flow: income cascading into essentials, savings, and investments. Watching where the water goes makes trade-offs physical.',

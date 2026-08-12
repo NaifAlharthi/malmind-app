@@ -56,6 +56,7 @@ export const TOOLS: Record<ViewKey, HubTool[]> = {
     { href: '/lifetime-income', icon: '🛤', titleKey: 'hub.card.incomeAhead.title', descKey: 'hub.card.incomeAhead.desc', depth: 3 },
     { href: '/doubling-path', icon: '📈', titleKey: 'home.card.doubling.title', descKey: 'home.card.doubling.desc', depth: 4 },
     { href: '/waterfall', icon: '💧', titleKey: 'home.card.waterfall.title', descKey: 'home.card.waterfall.desc', depth: 4 },
+    { href: '/luxury', icon: '👑', titleKey: 'hub.card.luxury.title', descKey: 'hub.card.luxury.desc', depth: 4 },
   ],
 };
 

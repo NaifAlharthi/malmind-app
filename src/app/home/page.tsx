@@ -330,6 +330,52 @@ export default function HomePage() {
         });
         const action = pool[visitIdx % pool.length];
 
+        // A rotating provocation — one idea per visit that grows general
+        // financial literacy, not tied to the user's own numbers.
+        const NUGGETS: { ar: string; en: string }[] = [
+          {
+            ar: 'قاعدة ٧٢: اقسم ٧٢ على العائد السنوي تعرف كم سنة يحتاج مالك ليتضاعف — عند ٧٪ يتضاعف كل ~١٠ سنوات.',
+            en: 'The Rule of 72: divide 72 by the annual return to know how many years money needs to double — at 7% it doubles every ~10 years.',
+          },
+          {
+            ar: 'التضخم ضريبةٌ صامتة: ٣٪ سنوياً تكفي لتبخير نصف قوة نقدك الراكد خلال ٢٣ سنة.',
+            en: 'Inflation is a silent tax: 3% a year is enough to evaporate half your idle cash’s power in 23 years.',
+          },
+          {
+            ar: 'تكلفة الفرصة: ثمن أي شيء ليس سعره، بل ما كان سيصيره ذلك المال لو بقي يعمل.',
+            en: 'Opportunity cost: the price of anything is not its tag — it is what that money would have become had it kept working.',
+          },
+          {
+            ar: 'الفائدة المركّبة تعمل في الاتجاهين: من يفهمها يكسبها، ومن يتجاهلها يدفعها لغيره.',
+            en: 'Compound interest works both ways: those who understand it earn it; those who ignore it pay it to someone else.',
+          },
+          {
+            ar: 'متوسط التكلفة: مبلغ ثابت يُستثمر كل شهر يشتري تلقائياً أكثر حين تهبط السوق — الانضباط يغلب التوقيت.',
+            en: 'Cost averaging: a fixed monthly investment automatically buys more when markets fall — discipline beats timing.',
+          },
+          {
+            ar: 'الدخل ليس ثروة: الثروة ما يبقى ويعمل بعد المصروف؛ كم من صاحب دخلٍ مرتفع فقيرٌ في ميزانيته العمومية.',
+            en: 'Income is not wealth: wealth is what stays and works after spending — many high earners are balance-sheet poor.',
+          },
+          {
+            ar: 'قاعدة ٤٪: كل ألف ريال من مصروفك الشهري تحتاج نحو ٣٠٠ ألف مستثمرة لتغطيها إلى الأبد.',
+            en: 'The 4% rule: every SAR 1,000 of monthly spending needs about SAR 300K invested to cover it forever.',
+          },
+          {
+            ar: 'أول مئة ألف هي الأصعب — بعدها يبدأ التراكم يحمل معك طرف الحِمل.',
+            en: 'The first hundred thousand is the hardest — after it, compounding starts carrying its share of the load.',
+          },
+          {
+            ar: 'خطر التسلسل: متوسط عائد جيد قد يُفلسك إن جاءت السنوات السيئة أولاً وأنت تسحب منه.',
+            en: 'Sequence risk: a good average return can still ruin you if the bad years come first while you are withdrawing.',
+          },
+          {
+            ar: 'سيولةٌ بلا عائد أمانٌ يذوب، وعائدٌ بلا سيولة قيدٌ يخنق — الحكمة في النسبة لا في التطرف.',
+            en: 'Liquidity without return is safety that melts; return without liquidity is a chain that chokes — wisdom is in the ratio, not the extreme.',
+          },
+        ];
+        const nugget = NUGGETS[visitIdx % NUGGETS.length];
+
         return (
           <div className="bg-[var(--surface-card)] border border-[var(--gold)]/40 rounded-2xl mt-4 mb-6 grid md:grid-cols-2 overflow-hidden">
             {/* where you stand as of today */}
@@ -382,6 +428,15 @@ export default function HomePage() {
                   </Link>
                 </div>
               </div>
+            </div>
+
+            {/* a provocation for the financially curious — rotates per visit */}
+            <div className="md:col-span-2 border-t border-[var(--border-default)] px-5 py-3 flex items-start gap-2.5 bg-[var(--surface-0)]/40">
+              <span className="text-sm shrink-0 mt-px">💡</span>
+              <p className="text-[11px] leading-relaxed text-[var(--ink-2)] min-w-0">
+                <span className="text-[10px] tracking-[0.1em] uppercase text-[var(--gold)] font-semibold me-2">{L('إثراء', 'Enrich')}</span>
+                {ar ? nugget.ar : nugget.en}
+              </p>
             </div>
           </div>
         );
