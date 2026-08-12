@@ -73,6 +73,24 @@ export default function HomePage() {
   const [fin, setFin] = useState<Financials | null>(null);
   const [prevNw, setPrevNw] = useState<number | null>(null);
   const [goalCount, setGoalCount] = useState(0);
+  // The person's biggest concern these days — a thing, a story, a one-liner
+  // they'd tell their best friend. It leads the whole dashboard; numbers
+  // come after. Stored locally, editable any time.
+  const [concern, setConcern] = useState<{ type: string | null; text: string }>({ type: null, text: '' });
+  const [concernEdit, setConcernEdit] = useState(false);
+  const [concernDraft, setConcernDraft] = useState<{ type: string | null; text: string }>({ type: null, text: '' });
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('mm-concern');
+      if (raw) { const c = JSON.parse(raw); setConcern(c); setConcernDraft(c); }
+    } catch { /* ignore */ }
+  }, []);
+  const saveConcern = (c: { type: string | null; text: string }) => {
+    setConcern(c);
+    setConcernEdit(false);
+    try { window.localStorage.setItem('mm-concern', JSON.stringify(c)); } catch { /* ignore */ }
+  };
+
   // Rotates the curated next action once per visit, so the opening moment
   // feels alive every time the product is opened.
   const [visitIdx, setVisitIdx] = useState(0);
@@ -265,6 +283,172 @@ export default function HomePage() {
         </div>
         <button onClick={handleSignOut} className="text-xs text-[var(--muted)]">{t('common.signOut')}</button>
       </div>
+
+      {/* ── the hājis: the one thing on their mind — before any number ── */}
+      {(() => {
+        const TYPES: { k: string; icon: string; label: string; tie: () => { line: string; cta: string; href: string } }[] = [
+          {
+            k: 'house', icon: '🏠', label: L('بيت أتملكه', 'A home of my own'),
+            tie: () => ({
+              line: fin && fin.income - fin.expenses > 0
+                ? L(`فائضك الشهري ${money(fin.income - fin.expenses)} — كل شهر انضباط يقرّب الدفعة الأولى خطوة.`, `Your monthly surplus is ${money(fin.income - fin.expenses)} — every disciplined month walks the down payment one step closer.`)
+                : L('الدفعة الأولى تبدأ من فائضٍ يُصنع — والبيت يستحق أن يُصنع له.', 'The down payment starts from a surplus made on purpose — and a home is worth making one for.'),
+              cta: L('اجعل الدفعة صندوق هدف ←', 'Make the down payment a goal fund →'), href: '/goal-fund',
+            }),
+          },
+          {
+            k: 'loan', icon: '💳', label: L('قرضٌ يثقلني', 'A loan weighing on me'),
+            tie: () => ({
+              line: fin && fin.liabilities > 0
+                ? L(`التزاماتك اليوم ${money(fin.liabilities)} — ولها ترتيبُ سدادٍ أذكى من العشوائية.`, `Your liabilities stand at ${money(fin.liabilities)} — and there's a smarter payoff order than random.`)
+                : L('أثقل ما في القرض جهله — سجّله كاملاً وسيصغر في عينك.', 'The heaviest part of a loan is not knowing it — log it fully and it shrinks in your eyes.'),
+              cta: L('رتّب السداد في الشلال ←', 'Order the payoff in the Waterfall →'), href: '/waterfall',
+            }),
+          },
+          {
+            k: 'school', icon: '🏫', label: L('مدارس العيال', "The kids' schools"),
+            tie: () => ({
+              line: L('رسوم المدارس موعدٌ يتكرر كل سنة — والذي يُدَّخر له باسمٍ ووتيرة لا يفاجئ أحداً.', "School fees are an appointment that returns every year — saved for by name and pace, they surprise no one."),
+              cta: L('افتح لها صندوقاً باسمها ←', 'Open a fund in their name →'), href: '/goal-fund',
+            }),
+          },
+          {
+            k: 'car', icon: '🚗', label: L('سيارة أرقى', 'A finer car'),
+            tie: () => ({
+              line: L('السيارة قرارُ مقارنةٍ لا قرار حماس: تمويل أم كاش؟ جديدة أم بضمان؟ الأرقام تحسمها في دقائق.', 'A car is a comparison decision, not an excitement decision: finance or cash? new or certified? The numbers settle it in minutes.'),
+              cta: L('قارن وقرّر ←', 'Compare & decide →'), href: '/compare',
+            }),
+          },
+          {
+            k: 'travel', icon: '✈️', label: L('سفرة العائلة', 'The family trip'),
+            tie: () => ({
+              line: L('السفرة التي لها صندوقٌ يمتلئ شهرياً تُحجز براحة بال — لا ببطاقة ائتمان.', 'A trip with its own monthly-fed fund gets booked with peace of mind — not with a credit card.'),
+              cta: L('ابدأ صندوق السفرة ←', 'Start the trip fund →'), href: '/goal-fund',
+            }),
+          },
+          {
+            k: 'income', icon: '💼', label: L('الدخل ما يكفي', "Income isn't enough"),
+            tie: () => ({
+              line: fin && fin.income - fin.expenses < 0
+                ? L(`الشهر الحالي ينقصه ${money(Math.abs(fin.income - fin.expenses))} — نصفها غالباً في اختيارات متكررة صغيرة يمكن تقليمها الليلة.`, `This month runs ${money(Math.abs(fin.income - fin.expenses))} short — half of that usually hides in small recurring choices you can trim tonight.`)
+                : L('حين يُرى الدخل والمصروف في شاشة واحدة، يظهر أين يختبئ الفرق.', 'When income and spending sit on one screen, the gap shows where it hides.'),
+              cta: L('افتح كومة اليوم ←', 'Open the Daily Stack →'), href: '/daily-stack',
+            }),
+          },
+          {
+            k: 'safety', icon: '🛟', label: L('أمانٌ يريّحني', 'Safety that lets me sleep'),
+            tie: () => ({
+              line: fin && fin.expenses > 0
+                ? L(`نقدك يغطي ${(fin.cash / fin.expenses).toFixed(1)} شهراً من حياتك — والطمأنينة تكتمل عند ستة.`, `Your cash covers ${(fin.cash / fin.expenses).toFixed(1)} months of your life — full calm arrives at six.`)
+                : L('الطمأنينة رقم: ستة أشهر مصاريف في مكان آمن.', 'Peace of mind is a number: six months of costs kept somewhere safe.'),
+              cta: L('ابنِ صندوق الطوارئ ←', 'Build the emergency fund →'), href: '/goal-fund',
+            }),
+          },
+          {
+            k: 'umrah', icon: '🕋', label: L('عمرة أو حج العائلة', "The family's Umrah or Hajj"),
+            tie: () => ({
+              line: L('أجمل الرحلات تُدَّخر لها بنية — صندوقٌ باسمها يجعل الموسم القادم قراراً لا أمنية.', 'The most beautiful journeys are saved for with intention — a named fund turns next season into a decision, not a wish.'),
+              cta: L('افتح صندوقها ←', 'Open its fund →'), href: '/goal-fund',
+            }),
+          },
+          {
+            k: 'business', icon: '🚀', label: L('مشروعي الخاص', 'My own venture'),
+            tie: () => ({
+              line: L('المشروع يبدأ مرتين: مرة في رأسك، ومرة في «ماذا لو» — جرّب أثر ترك الراتب بالأرقام قبل أن تعيشه.', 'A venture starts twice: once in your head, once in What-If — try leaving the salary in numbers before living it.'),
+              cta: L('جرّبه في ماذا لو ←', 'Try it in What-If →'), href: '/what-if',
+            }),
+          },
+        ];
+        const current = TYPES.find((x) => x.k === concern.type) ?? null;
+        const showPicker = concernEdit || (!current && !concern.text);
+
+        if (showPicker) {
+          return (
+            <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl mt-4 mb-4 p-5 sm:p-6 text-white">
+              <div className="text-[10px] tracking-[0.14em] uppercase text-[var(--gold)] font-semibold mb-1.5">
+                {L('قبل الأرقام', 'Before the numbers')}
+              </div>
+              <h2 className="font-serif text-xl sm:text-2xl font-bold mb-1.5">
+                {L('ما أكبر هاجس يشغل بالك هذه الأيام؟', "What's the biggest thing on your mind these days?")}
+              </h2>
+              <p className="text-[11px] text-white/70 leading-relaxed mb-4 max-w-xl">
+                {L(
+                  'الناس لا تفكر بأرقام — تفكر بشيء: بيت، قرض، مدارس، سفرة. اختر هاجسك أو اكتبه بكلماتك، وسيدور المنتج كله حوله.',
+                  "People don't think in numbers — they think of a thing: a home, a loan, schools, a trip. Pick your concern or write it in your own words, and the whole product turns around it."
+                )}
+              </p>
+              <div className="flex flex-wrap gap-1.5 mb-3.5">
+                {TYPES.map((x) => (
+                  <button
+                    key={x.k}
+                    onClick={() => setConcernDraft({ ...concernDraft, type: concernDraft.type === x.k ? null : x.k })}
+                    aria-pressed={concernDraft.type === x.k}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition-all ${
+                      concernDraft.type === x.k
+                        ? 'bg-[var(--gold)] border-[var(--gold)] text-[#2A1F05] font-semibold'
+                        : 'border-white/25 text-white/80 hover:border-white/50'
+                    }`}
+                  >
+                    <span>{x.icon}</span><span>{x.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  value={concernDraft.text}
+                  onChange={(e) => setConcernDraft({ ...concernDraft, text: e.target.value })}
+                  placeholder={L('…أو اكتبه كما تحكيه لأعز أصحابك', '…or write it the way you’d tell your best friend')}
+                  className="flex-1 min-w-[220px] bg-white/10 border border-white/25 rounded-full px-4 py-2 text-xs text-white placeholder:text-white/40 outline-none focus:border-[var(--gold)]"
+                />
+                <button
+                  onClick={() => saveConcern(concernDraft)}
+                  disabled={!concernDraft.type && !concernDraft.text.trim()}
+                  className="text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-full px-4 py-2 disabled:opacity-40"
+                >
+                  {L('هذا هاجسي ✓', "That's my concern ✓")}
+                </button>
+                {(concern.type || concern.text) && (
+                  <button onClick={() => setConcernEdit(false)} className="text-[11px] text-white/60 hover:text-white">
+                    {L('إلغاء', 'Cancel')}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        const tie = current ? current.tie() : null;
+        return (
+          <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl mt-4 mb-4 p-5 sm:p-6 text-white relative overflow-hidden">
+            <div className="absolute -top-12 -end-12 w-44 h-44 rounded-full bg-[var(--gold)]/10 blur-3xl pointer-events-none" />
+            <div className="relative">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="text-[10px] tracking-[0.14em] uppercase text-[var(--gold)] font-semibold">
+                  {L('أكبر هاجس يشغل بالك هذه الأيام', 'The biggest thing on your mind these days')}
+                </div>
+                <button
+                  onClick={() => { setConcernDraft(concern); setConcernEdit(true); }}
+                  className="text-[10px] text-white/50 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-2.5 py-1 transition-colors"
+                >
+                  {L('غيّره', 'Change it')}
+                </button>
+              </div>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-snug mb-2.5">
+                {current && <span className="me-2">{current.icon}</span>}
+                {concern.text.trim() ? `«${concern.text.trim()}»` : current?.label}
+              </h2>
+              {tie && (
+                <>
+                  <p className="text-xs text-white/80 leading-relaxed mb-3 max-w-xl">{tie.line}</p>
+                  <Link href={tie.href} className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2">
+                    {tie.cta}
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── the opening moment: where you stand · next actionable item ── */}
       {fin && (() => {
