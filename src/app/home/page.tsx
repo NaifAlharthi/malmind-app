@@ -413,6 +413,11 @@ export default function HomePage() {
             </div>
           </SpaceTile>
 
+          {/* periodic reports — a bigger feature, so it takes the full row */}
+          <SpaceTile icon="📬" title={L('التقارير الدورية', 'Periodic reports')} className="sm:col-span-2">
+            <ReportsTile />
+          </SpaceTile>
+
           {/* integrations */}
           <SpaceTile icon="🔗" title={L('التكاملات', 'Integrations')}>
             <div className="flex items-center justify-between gap-2 bg-[var(--surface-1)] rounded-lg px-3 py-2.5 mb-2">
@@ -437,11 +442,6 @@ export default function HomePage() {
             <p className="text-[10px] text-[var(--muted)] mt-2 leading-relaxed">
               {L('المزيد من الاتصالات (البنوك، الوسطاء) قادم.', 'More connections (banks, brokers) coming.')}
             </p>
-          </SpaceTile>
-
-          {/* periodic reports — a bigger feature, so it takes the full row */}
-          <SpaceTile icon="📬" title={L('التقارير الدورية', 'Periodic reports')} className="sm:col-span-2">
-            <ReportsTile />
           </SpaceTile>
 
           {/* help & contact — small and to the point, pairing with integrations */}
