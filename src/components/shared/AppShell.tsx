@@ -285,16 +285,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* ── the floating timeline: the horizontal (time) axis of the 2D map,
                hovering just below the top bar, facing the iceberg's vertical axis ── */}
-        {/* home is mission control — the time axis only floats on the views it moves */}
-        {pathname !== '/home' && (
-          <div
-            className={`hidden sm:block fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg transition-opacity duration-300 ${
-              scrolling ? 'opacity-[0.15] pointer-events-none' : 'opacity-100'
-            }`}
-          >
-            <TimelineNav />
-          </div>
-        )}
+        {/* the time axis floats everywhere — on home it's the invitation to
+            travel; the walker rests at the present until you pick an era */}
+        <div
+          className={`hidden sm:block fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg transition-opacity duration-300 ${
+            scrolling ? 'opacity-[0.15] pointer-events-none' : 'opacity-100'
+          }`}
+        >
+          <TimelineNav />
+        </div>
 
         {/* ── mobile bottom tab bar ── */}
         <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[var(--surface-card)] border-t border-[var(--border-default)] flex items-stretch">
