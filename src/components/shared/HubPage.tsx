@@ -20,6 +20,7 @@ import { DEPTH_META, type DepthLevel } from '@/lib/depth';
 import { TOOLS, type ViewKey } from '@/lib/toolbox';
 import TodayDashboard from '@/components/today/TodayDashboard';
 import PastDashboard from '@/components/past/PastDashboard';
+import FutureDashboard from '@/components/future/FutureDashboard';
 
 const MiniBrain = dynamic(
   () => import('./BrainCompanion').then((m) => m.MiniBrain),
@@ -232,33 +233,10 @@ export default function HubPage({ view }: { view: ViewKey }) {
         <PastDashboard />
       ) : bundle === null ? (
         <div className="text-sm text-[var(--muted)] mb-6">{t('common.loading')}</div>
-      ) : !hasData && view !== 'future' ? (
-        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-6 text-sm text-[var(--muted)]">
-          {t('hub.sum.needData')}{' '}
-          <Link href="/financial-numbers" className="text-[var(--green-dark)] font-medium underline">
-            →
-          </Link>
-        </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
-          {tiles.map((tile) => (
-            <div
-              key={tile.label}
-              className={`bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-4 ${
-                tile.big ? 'col-span-2' : ''
-              }`}
-            >
-              <div className="text-[10px] text-[var(--muted)] mb-1">{tile.label}</div>
-              <div
-                className={`font-serif font-bold ${tile.big ? 'text-2xl' : 'text-lg'}`}
-                style={{ color: tile.accent ?? 'var(--ink)' }}
-              >
-                {tile.value}
-              </div>
-              {tile.sub && <div className="text-[11px] text-[var(--muted)] mt-0.5">{tile.sub}</div>}
-            </div>
-          ))}
-        </div>
+        // T3 restages by depth inside its own dashboard; the live summary
+        // tiles belong to its D1 room.
+        <FutureDashboard tiles={tiles} />
       )}
 
       {/* ── 2. The interactivity bar: the Brain + a prompt ── */}

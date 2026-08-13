@@ -40,6 +40,7 @@ import { QUADRANT_META, diagnoseQuadrant, type QuadKey } from '@/lib/quadrant';
 import { demoAr } from '@/lib/demoI18n';
 import { buildProjection } from '@/lib/lifetimeProjection';
 import ExplainButton, { type ExplainContent } from '@/components/shared/ExplainButton';
+import HajisBlock from '@/components/shared/HajisBlock';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -709,10 +710,16 @@ export default function TodayDashboard() {
   //   D2 the levers    — metrics that provoke "maybe I should change this"
   //   D3 the analysis  — peers, composition, lifetime, pace
   //   D4 the pro desk  — every detail, credit first
+  // T2 by the founder's grid — each depth its own room:
+  //   D1 the hājis     — the biggest thing on their mind, alone
+  //   D2 the basics    — where you stand today, the essential numbers
+  //   D3 the deeper    — richer numbers + the action surfaces (log, track,
+  //                      manage debt, compare)
+  //   D4 all in        — every operation, number and ability, credit first
   const LAYOUTS: Record<DepthLevel, string[]> = {
-    1: ['balances', 'quadCash', 'planPace', 'dive', 'freedom'],
-    2: ['dailyStack', 'sourcesRisks', 'debt', 'sol', 'balances', 'quadCash', 'planPace', 'dive', 'freedom'],
-    3: ['compare', 'assets', 'lifetime', 'planPace', 'dailyStack', 'sourcesRisks', 'sol', 'debt', 'balances', 'quadCash', 'dive', 'freedom'],
+    1: ['hajis', 'dive'],
+    2: ['balances', 'quadCash', 'planPace', 'freedom', 'dive'],
+    3: ['dailyStack', 'sourcesRisks', 'debt', 'sol', 'compare', 'balances', 'quadCash', 'planPace', 'dive', 'freedom'],
     4: ['credit', 'debt', 'compare', 'assets', 'lifetime', 'sourcesRisks', 'dailyStack', 'sol', 'quadCash', 'balances', 'planPace', 'freedom'],
   };
   const layout = LAYOUTS[depth];
@@ -727,6 +734,14 @@ export default function TodayDashboard() {
 
   return (
     <div className="flex flex-col gap-3 mb-6">
+      <Slot id="hajis">
+      {/* ── T2 · D1: the biggest thing on their mind — the shared hājis ── */}
+      <HajisBlock
+        fin={{ income: derived.avgIncome, expenses: derived.avgExpenses, liabilities: derived.liabilities, cash: derived.cash }}
+        mode="hero"
+      />
+      </Slot>
+
       <Slot id="balances">
       {/* ── Row 0: balances scorecards + liquidity ── */}
       {assetTiles.length > 0 && (
