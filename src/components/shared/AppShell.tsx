@@ -16,6 +16,8 @@ import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
 import { useIsPhone } from '@/lib/useIsPhone';
+import { PHONE_NAV, announcePageNav } from '@/lib/phoneNav';
+import TouchNav from './TouchNav';
 
 // Enforces "keep me signed in = off"; browser-only, so load it lazily.
 const EphemeralSessionGuard = dynamic(() => import('./EphemeralSessionGuard'), { ssr: false });
@@ -53,14 +55,8 @@ const NAV_ITEMS = [
   { href: '/advisor', labelKey: 'nav.brain', icon: '🧠' },
 ];
 
-// Phase-1 phone companion: the daily loop only — Home with the hājis, quick
-// capture in the Daily Stack, and the Brain. The time hubs stay desktop-side
-// until they earn their mobile pass.
-const PHONE_NAV_ITEMS = [
-  { href: '/home', labelKey: 'nav.home', icon: '⌂' },
-  { href: '/daily-stack', labelKey: 'hub.card.dailyStack.title', icon: '🧾' },
-  { href: '/advisor', labelKey: 'nav.brain', icon: '🧠' },
-];
+// Phase-1 phone companion pages live in PHONE_NAV (lib/phoneNav) — shared
+// with the swipe navigator and the page-transition theater.
 
 const FULL_BLEED_PATHS = ['/', '/onboarding', '/login', '/signup'];
 
@@ -183,12 +179,28 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Mobile bottom tab.
+  // Mobile bottom tab. On phones a tab tap plays the same page-crossing
+  // transition as a swipe — the sweep runs toward the side the target
+  // page occupies on the strip (mirrored in RTL).
   function BottomTab({ href, labelKey, icon }: { href: string; labelKey: string; icon: string }) {
     const active = pathname === href.split('?')[0];
+    const announceCrossing = () => {
+      if (!isPhone || active) return;
+      const from = PHONE_NAV.findIndex((p) => p.href === pathname);
+      const to = PHONE_NAV.findIndex((p) => p.href === href);
+      if (from === -1 || to === -1) return;
+      const ar = locale === 'ar';
+      const toHigher = to > from;
+      announcePageNav({
+        dir: toHigher ? (ar ? 'right' : 'left') : (ar ? 'left' : 'right'),
+        icon,
+        label: t(labelKey),
+      });
+    };
     return (
       <Link
         href={href}
+        onClick={announceCrossing}
         className={`flex-1 flex flex-col items-center justify-center gap-0.5 ${
           active ? 'text-[var(--green-dark)]' : 'text-[var(--muted)]'
         }`}
@@ -313,10 +325,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* ── mobile bottom tab bar: phones get the phase-1 companion set ── */}
         <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[var(--surface-card)] border-t border-[var(--border-default)] flex items-stretch">
-          {(isPhone ? PHONE_NAV_ITEMS : NAV_ITEMS).map((item) => (
+          {(isPhone ? PHONE_NAV : NAV_ITEMS).map((item) => (
             <BottomTab key={item.href} {...item} />
           ))}
         </nav>
+
+        {/* horizontal swipes walk the phone's page strip */}
+        <TouchNav />
 
       <EditProfileModal
         open={editProfileOpen}

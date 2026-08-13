@@ -16,6 +16,7 @@ import { usePathname } from 'next/navigation';
 import { useDepth, useDrive } from '@/components/shared/ExperienceMode';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { DEPTH_META, type DepthLevel } from '@/lib/depth';
+import type { PageNavDetail } from '@/lib/phoneNav';
 
 // Pages where the depth system simply doesn't apply — no transitions, no
 // edge-push, no flash. The home page is mission control, not a staged view.
@@ -34,6 +35,24 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
   const booted = useRef(false);
   const [shift, setShift] = useState<'down' | 'up' | null>(null);
   const [flash, setFlash] = useState<DepthLevel | null>(null);
+
+  // ── the phone's page-change theater: on small screens swipes and tab taps
+  //    replace the timeline and the iceberg, but every crossing still plays
+  //    a focus-segmenting sweep + a flash naming the destination ──
+  const [pageShift, setPageShift] = useState<'left' | 'right' | null>(null);
+  const [pageFlash, setPageFlash] = useState<PageNavDetail | null>(null);
+  useEffect(() => {
+    const onPageNav = (e: Event) => {
+      const detail = (e as CustomEvent<PageNavDetail>).detail;
+      if (!detail) return;
+      setPageFlash(detail);
+      // drop the class for one frame so back-to-back crossings restart it
+      setPageShift(null);
+      requestAnimationFrame(() => setPageShift(detail.dir));
+    };
+    window.addEventListener('mm-page-nav', onPageNav);
+    return () => window.removeEventListener('mm-page-nav', onPageNav);
+  }, []);
 
   // ── push-to-dive: overscroll past the page edge to change depth ──
   const depthRef = useRef(depth);
@@ -133,8 +152,9 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
   }, [shift]);
 
   const onStageAnimEnd = (e: React.AnimationEvent) => {
-    if (!String(e.animationName).startsWith('mmDepthShift')) return;
-    setShift(null);
+    const name = String(e.animationName);
+    if (name.startsWith('mmDepthShift')) setShift(null);
+    else if (name.startsWith('mmPageShift')) setPageShift(null);
   };
 
   return (
@@ -143,7 +163,11 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
           story-driven hides the numeric displays, numbers-driven hides the
           narrative, and "both" shows the full-fledged product */}
       <style>{`[data-drive='story'] .drv-num{display:none !important}[data-drive='numbers'] .drv-story{display:none !important}`}</style>
-      <div className={shift ? `mm-depth-shift-${shift}` : ''} data-drive={drive} onAnimationEnd={onStageAnimEnd}>
+      <div
+        className={shift ? `mm-depth-shift-${shift}` : pageShift ? `mm-page-shift-${pageShift}` : ''}
+        data-drive={drive}
+        onAnimationEnd={onStageAnimEnd}
+      >
         {children}
       </div>
 
@@ -167,6 +191,26 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
           </div>
         );
       })()}
+
+      {/* the page flash — the destination's name, briefly, over a light
+          scrim; quicker and quieter than the depth flash because page
+          crossings are frequent on the phone */}
+      {pageFlash !== null && (
+        <div
+          className="fixed inset-0 z-[85] pointer-events-none flex items-center justify-center"
+          style={{
+            background: 'linear-gradient(180deg, rgba(10,20,16,0.28) 0%, rgba(10,20,16,0.42) 100%)',
+            animation: 'mmDepthFlash 640ms ease-in-out forwards',
+          }}
+          onAnimationEnd={() => setPageFlash(null)}
+          aria-hidden="true"
+        >
+          <div className="text-center text-white" style={{ animation: 'mmDepthFlashLabel 640ms ease-in-out forwards' }}>
+            <div className="text-3xl mb-1.5">{pageFlash.icon}</div>
+            <div className="font-serif text-xl font-bold">{pageFlash.label}</div>
+          </div>
+        </div>
+      )}
 
       {/* the depth flash — removes itself when its animation ends */}
       {flash !== null && (

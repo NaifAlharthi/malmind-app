@@ -303,6 +303,24 @@ body {
 .mm-depth-shift-down { animation: mmDepthShiftDown 720ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .mm-depth-shift-up { animation: mmDepthShiftUp 720ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+/* page-change transition on the phone — the horizontal sibling of the depth
+   shift: the current view sweeps out toward the direction of travel, and the
+   next page sweeps in from the opposite side */
+@keyframes mmPageShiftLeft {
+  0% { opacity: 1; transform: none; }
+  30% { opacity: 0; transform: translateX(-44px); }
+  34% { opacity: 0; transform: translateX(56px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes mmPageShiftRight {
+  0% { opacity: 1; transform: none; }
+  30% { opacity: 0; transform: translateX(44px); }
+  34% { opacity: 0; transform: translateX(-56px); }
+  100% { opacity: 1; transform: none; }
+}
+.mm-page-shift-left { animation: mmPageShiftLeft 620ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.mm-page-shift-right { animation: mmPageShiftRight 620ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
 /* the depth flash: a brief water-tint wash with the level's name */
 @keyframes mmDepthFlash {
   0% { opacity: 0; }
