@@ -30,14 +30,17 @@ function GateInner() {
   const justSignedUp = params.get('justSignedUp') === '1';
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[var(--surface-0)] text-[var(--ink)] overflow-y-auto">
+    <div className="fixed inset-0 z-[200] bg-[var(--surface-0)] text-[var(--ink)] overflow-y-auto overflow-x-hidden">
       <div className="min-h-full flex flex-col items-center justify-center px-6 py-12 text-center relative">
-        {/* soft brand glow */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[480px] h-[300px] rounded-full blur-[120px] opacity-30 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, var(--green) 0%, transparent 70%)' }}
-          aria-hidden
-        />
+        {/* soft brand glow — clipped to the viewport: if it overflows the
+            gate's scroll container, iOS Safari's RTL hit-testing drifts and
+            taps land beside the buttons they aim at */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+          <div
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-[480px] h-[300px] rounded-full blur-[120px] opacity-30"
+            style={{ background: 'radial-gradient(circle, var(--green) 0%, transparent 70%)' }}
+          />
+        </div>
 
         <button
           onClick={() => setLocale(ar ? 'en' : 'ar')}
@@ -80,11 +83,16 @@ function GateInner() {
             {L('التجربة الكاملة للجوال قادمة في مرحلة لاحقة.', 'The full phone experience is coming in a later phase.')}
           </p>
 
-          {/* a plain anchor on purpose: a full page load that no client-router
-              or hydration state can swallow — this button must always work */}
+          {/* This button must always work. Instrumentation showed taps on the
+              gate can deliver pointerdown and then never complete the click
+              gesture (mobile Safari), so navigation fires imperatively on the
+              earliest event that provably arrives — the href stays as the
+              no-JS fallback. */}
           <a
             href="/home"
-            className="block w-full bg-[var(--green-dark)] text-white rounded-xl py-3 text-sm font-semibold mb-4"
+            onPointerDown={() => window.location.assign('/home')}
+            onClick={(e) => { e.preventDefault(); window.location.assign('/home'); }}
+            className="block w-full bg-[var(--green-dark)] text-white rounded-xl py-3 text-sm font-semibold mb-4 select-none touch-manipulation"
           >
             {L('خذني للرئيسية ←', 'Take me home →')}
           </a>
