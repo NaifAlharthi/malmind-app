@@ -59,9 +59,12 @@ export default function SignupPage() {
 
     setLoading(false);
     if (error) {
-      // Friendlier message for the most common trip-up.
+      // Friendlier, localized messages for the common trip-ups — Supabase
+      // speaks raw English otherwise.
       if (/already registered/i.test(error.message)) {
         setError(t('auth.signup.exists'));
+      } else if (/is invalid/i.test(error.message)) {
+        setError(t('auth.signup.badEmail'));
       } else {
         setError(error.message);
       }
@@ -149,18 +152,20 @@ export default function SignupPage() {
               <input
                 type="text"
                 required
+                autoComplete="given-name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
+                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-base sm:text-sm outline-none focus:border-[var(--green)]"
               />
             </div>
             <div>
               <label className="text-xs text-[var(--muted)] block mb-1">{t('auth.lastName')}</label>
               <input
                 type="text"
+                autoComplete="family-name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
+                className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-base sm:text-sm outline-none focus:border-[var(--green)]"
               />
             </div>
           </div>
@@ -169,9 +174,12 @@ export default function SignupPage() {
             <input
               type="email"
               required
+              dir="ltr"
+              autoComplete="email"
+              inputMode="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
+              className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-base sm:text-sm outline-none focus:border-[var(--green)] text-start"
             />
           </div>
           <div>
@@ -180,9 +188,11 @@ export default function SignupPage() {
               type="password"
               required
               minLength={6}
+              dir="ltr"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--green)]"
+              className="w-full border border-[var(--border-default)] rounded-lg px-3 py-2 text-base sm:text-sm outline-none focus:border-[var(--green)] text-start"
             />
           </div>
 
