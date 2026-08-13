@@ -75,19 +75,28 @@ export default function HomePage() {
   const [fin, setFin] = useState<Financials | null>(null);
   const [prevNw, setPrevNw] = useState<number | null>(null);
   const [goalCount, setGoalCount] = useState(0);
-  // The person's biggest concern these days — a thing, a story, a one-liner
-  // they'd tell their best friend. It leads the whole dashboard; numbers
-  // come after. Stored locally, editable any time.
-  const [concern, setConcern] = useState<{ type: string | null; text: string }>({ type: null, text: '' });
+  // The person's biggest concerns these days — up to three things, stories,
+  // one-liners they'd tell their best friend. They lead the whole dashboard;
+  // numbers come after. Stored locally, editable any time.
+  const [concern, setConcern] = useState<{ types: string[]; text: string }>({ types: [], text: '' });
   const [concernEdit, setConcernEdit] = useState(false);
-  const [concernDraft, setConcernDraft] = useState<{ type: string | null; text: string }>({ type: null, text: '' });
+  const [concernDraft, setConcernDraft] = useState<{ types: string[]; text: string }>({ types: [], text: '' });
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem('mm-concern');
-      if (raw) { const c = JSON.parse(raw); setConcern(c); setConcernDraft(c); }
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // migrate the single-concern shape ({type}) to the multi shape ({types})
+        const c = {
+          types: Array.isArray(parsed.types) ? parsed.types : parsed.type ? [parsed.type] : [],
+          text: parsed.text ?? '',
+        };
+        setConcern(c);
+        setConcernDraft(c);
+      }
     } catch { /* ignore */ }
   }, []);
-  const saveConcern = (c: { type: string | null; text: string }) => {
+  const saveConcern = (c: { types: string[]; text: string }) => {
     setConcern(c);
     setConcernEdit(false);
     try { window.localStorage.setItem('mm-concern', JSON.stringify(c)); } catch { /* ignore */ }
@@ -412,8 +421,20 @@ export default function HomePage() {
             }),
           },
         ];
-        const current = TYPES.find((x) => x.k === concern.type) ?? null;
-        const showPicker = concernEdit || (!current && !concern.text);
+        const MAX_CONCERNS = 3;
+        // The chosen concerns, in the order they were picked.
+        const chosen = concern.types
+          .map((k) => TYPES.find((x) => x.k === k))
+          .filter((x): x is (typeof TYPES)[number] => !!x);
+        const showPicker = concernEdit || (chosen.length === 0 && !concern.text);
+        const toggleDraftType = (k: string) => {
+          const has = concernDraft.types.includes(k);
+          if (!has && concernDraft.types.length >= MAX_CONCERNS) return; // three is the cap
+          setConcernDraft({
+            ...concernDraft,
+            types: has ? concernDraft.types.filter((t) => t !== k) : [...concernDraft.types, k],
+          });
+        };
 
         if (showPicker) {
           return (
@@ -426,25 +447,37 @@ export default function HomePage() {
               </h2>
               <p className="text-[11px] text-white/70 leading-relaxed mb-4 max-w-xl">
                 {L(
-                  'الناس لا تفكر بأرقام — تفكر بشيء: بيت، قرض، مدارس، سفرة. اختر هاجسك أو اكتبه بكلماتك، وسيدور المنتج كله حوله.',
-                  "People don't think in numbers — they think of a thing: a home, a loan, schools, a trip. Pick your concern or write it in your own words, and the whole product turns around it."
+                  'الناس لا تفكر بأرقام — تفكر بشيء: بيت، قرض، مدارس، سفرة. اختر حتى ثلاثة هواجس أو اكتبها بكلماتك، وسيدور المنتج كله حولها.',
+                  "People don't think in numbers — they think of a thing: a home, a loan, schools, a trip. Pick up to three concerns or write them in your own words, and the whole product turns around them."
                 )}
               </p>
-              <div className="flex flex-wrap gap-1.5 mb-3.5">
-                {TYPES.map((x) => (
-                  <button
-                    key={x.k}
-                    onClick={() => setConcernDraft({ ...concernDraft, type: concernDraft.type === x.k ? null : x.k })}
-                    aria-pressed={concernDraft.type === x.k}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition-all ${
-                      concernDraft.type === x.k
-                        ? 'bg-[var(--gold)] border-[var(--gold)] text-[#2A1F05] font-semibold'
-                        : 'border-white/25 text-white/80 hover:border-white/50'
-                    }`}
-                  >
-                    <span>{x.icon}</span><span>{x.label}</span>
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {TYPES.map((x) => {
+                  const picked = concernDraft.types.includes(x.k);
+                  const full = !picked && concernDraft.types.length >= MAX_CONCERNS;
+                  return (
+                    <button
+                      key={x.k}
+                      onClick={() => toggleDraftType(x.k)}
+                      aria-pressed={picked}
+                      disabled={full}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition-all ${
+                        picked
+                          ? 'bg-[var(--gold)] border-[var(--gold)] text-[#2A1F05] font-semibold'
+                          : full
+                            ? 'border-white/10 text-white/30'
+                            : 'border-white/25 text-white/80 hover:border-white/50'
+                      }`}
+                    >
+                      <span>{x.icon}</span><span>{x.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-[10px] text-white/45 mb-3.5">
+                {concernDraft.types.length === 0
+                  ? L('اختر حتى ثلاثة', 'Pick up to three')
+                  : L(`اخترت ${concernDraft.types.length} من ٣`, `${concernDraft.types.length} of 3 picked`)}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <input
@@ -455,12 +488,12 @@ export default function HomePage() {
                 />
                 <button
                   onClick={() => saveConcern(concernDraft)}
-                  disabled={!concernDraft.type && !concernDraft.text.trim()}
+                  disabled={concernDraft.types.length === 0 && !concernDraft.text.trim()}
                   className="text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-full px-4 py-2 disabled:opacity-40"
                 >
-                  {L('هذا هاجسي ✓', "That's my concern ✓")}
+                  {concernDraft.types.length > 1 ? L('هذه هواجسي ✓', 'These are my concerns ✓') : L('هذا هاجسي ✓', "That's my concern ✓")}
                 </button>
-                {(concern.type || concern.text) && (
+                {(concern.types.length > 0 || concern.text) && (
                   <button onClick={() => setConcernEdit(false)} className="text-[11px] text-white/60 hover:text-white">
                     {L('إلغاء', 'Cancel')}
                   </button>
@@ -470,30 +503,63 @@ export default function HomePage() {
           );
         }
 
-        const tie = current ? current.tie() : null;
+        const many = chosen.length > 1;
         return (
           <div className="drv-story bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl mt-4 mb-4 p-5 sm:p-6 text-white relative overflow-hidden">
             <div className="absolute -top-12 -end-12 w-44 h-44 rounded-full bg-[var(--gold)]/10 blur-3xl pointer-events-none" />
             <div className="relative">
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <div className="text-[10px] tracking-[0.14em] uppercase text-[var(--gold)] font-semibold">
-                  {L('أكبر هاجس يشغل بالك هذه الأيام', 'The biggest thing on your mind these days')}
+                  {many
+                    ? L('أكبر هواجس تشغل بالك هذه الأيام', 'The biggest things on your mind these days')
+                    : L('أكبر هاجس يشغل بالك هذه الأيام', 'The biggest thing on your mind these days')}
                 </div>
                 <button
                   onClick={() => { setConcernDraft(concern); setConcernEdit(true); }}
                   className="text-[10px] text-white/50 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-2.5 py-1 transition-colors"
                 >
-                  {L('غيّره', 'Change it')}
+                  {many ? L('غيّرها', 'Change them') : L('غيّره', 'Change it')}
                 </button>
               </div>
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-snug mb-2.5">
-                {current && <span className="me-2">{current.icon}</span>}
-                {concern.text.trim() ? `«${concern.text.trim()}»` : current?.label}
-              </h2>
-              {tie && (
-                <p className="text-xs text-white/80 leading-relaxed mb-3 max-w-xl">{tie.line}</p>
+
+              {/* the written hājis leads when present; the picked ones follow */}
+              {concern.text.trim() && (
+                <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-snug mb-2.5">
+                  {`«${concern.text.trim()}»`}
+                </h2>
               )}
-              {!tie && concern.text.trim() && (
+              {!concern.text.trim() && chosen.length === 1 && (
+                <h2 className="font-serif text-2xl sm:text-3xl font-bold leading-snug mb-2.5">
+                  <span className="me-2">{chosen[0].icon}</span>
+                  {chosen[0].label}
+                </h2>
+              )}
+
+              {/* each concern gets its own answer: the live line + the tool
+                  built for exactly that pain */}
+              {chosen.length > 0 && (
+                <div className={many ? 'divide-y divide-white/10' : ''}>
+                  {chosen.map((c) => {
+                    const tie = c.tie();
+                    return (
+                      <div key={c.k} className={many ? 'py-3 first:pt-0 last:pb-0' : ''}>
+                        {(many || concern.text.trim()) && (
+                          <div className="font-serif text-base font-bold mb-1">
+                            <span className="me-1.5">{c.icon}</span>
+                            {c.label}
+                          </div>
+                        )}
+                        <p className="text-xs text-white/80 leading-relaxed mb-2 max-w-xl">{tie.line}</p>
+                        <Link href={tie.href} className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2">
+                          {tie.cta}
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {chosen.length === 0 && concern.text.trim() && (
                 <p className="text-xs text-white/80 leading-relaxed mb-3 max-w-xl">
                   {L(
                     'هاجسٌ بكلماتك سؤالٌ في جوهره — والعقل يقرأ أرقامك الحقيقية ويجيبك عمّا يعنيه لوضعك أنت.',
@@ -501,26 +567,24 @@ export default function HomePage() {
                   )}
                 </p>
               )}
-              <div className="flex items-center gap-2 flex-wrap">
-                {tie && (
-                  <Link href={tie.href} className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2">
-                    {tie.cta}
-                  </Link>
-                )}
-                {concern.text.trim() && (
+
+              {concern.text.trim() && (
+                <div className={chosen.length > 0 ? 'mt-3 pt-3 border-t border-white/10' : ''}>
                   <button
                     onClick={() => {
-                      // a written hājis is a question at heart — hand it to the Brain
+                      // a written hājis is a question at heart — hand it to the
+                      // Brain, together with any picked concerns for context
+                      const names = chosen.map((c) => c.label).join(ar ? '، ' : ', ');
                       try {
                         window.sessionStorage.setItem('mm-ask', L(
-                          `أكبر هاجس يشغلني هذه الأيام: «${concern.text.trim()}». اقرأ أرقامي وأخبرني ماذا يعني هذا لوضعي، ومن أين أبدأ؟`,
-                          `The biggest thing on my mind these days: "${concern.text.trim()}". Read my numbers and tell me what this means for my situation, and where do I start?`
+                          `أكبر هواجسي هذه الأيام: «${concern.text.trim()}»${names ? ` — ومعها: ${names}` : ''}. اقرأ أرقامي وأخبرني ماذا يعني هذا لوضعي، ومن أين أبدأ؟`,
+                          `The biggest things on my mind these days: "${concern.text.trim()}"${names ? ` — along with: ${names}` : ''}. Read my numbers and tell me what this means for my situation, and where do I start?`
                         ));
                       } catch { /* ignore */ }
                       router.push('/advisor');
                     }}
                     className={`inline-flex items-center gap-1.5 text-xs rounded-lg px-3.5 py-2 border transition-colors ${
-                      tie
+                      chosen.length > 0
                         ? 'border-white/25 text-white/85 hover:border-white/50'
                         : 'font-semibold text-[#2A1F05] bg-[var(--gold)] border-[var(--gold)]'
                     }`}
@@ -528,8 +592,8 @@ export default function HomePage() {
                     <span aria-hidden>🧠</span>
                     {L('اسأل العقل عن هاجسك ←', 'Ask the Brain about it →')}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         );
