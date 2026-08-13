@@ -1,30 +1,20 @@
 'use client';
 
-// MalMind is desktop-first — for now. Phones can land, sign up, and confirm
-// their email (those pages are mobile-proper), but the product itself is
-// designed for a big screen. Instead of serving a phone a broken desktop
-// layout, this gate covers the app with a clear, warm "continue on your
-// computer" screen. It lifts automatically the moment the viewport is
-// desktop-sized, and never appears on the public/auth pages.
+// MalMind's phone experience is a companion, phase one: the door (landing,
+// signup, login, onboarding) and the daily loop — Home with the hājis, the
+// Brain, and the Daily Stack for quick capture. The deep dashboards and
+// modeling tools remain desktop-only for now: instead of serving a phone a
+// broken desktop layout, this gate names the situation and walks the user
+// back to what their phone does well. It never appears on desktop.
 
-import { useEffect, useState } from 'react';
+import { useState, Suspense } from 'react';
+import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useIsPhone } from '@/lib/useIsPhone';
 
-// Pages a phone may use freely: landing, sign-up, sign-in. Everything past
-// the door needs a desktop — for now.
-const MOBILE_OK = ['/', '/login', '/signup'];
-
-function isPhone() {
-  // A phone is a phone: small viewport, or a mobile user agent (catches
-  // landscape phones whose width sneaks past the breakpoint). Tablets and
-  // narrow desktop windows are left alone.
-  return (
-    window.matchMedia('(max-width: 767px)').matches &&
-    window.matchMedia('(pointer: coarse)').matches
-  ) || /Android.*Mobile|iPhone|iPod/i.test(navigator.userAgent);
-}
+// The phase-1 companion surface: everything a phone opens freely.
+const MOBILE_OK = ['/', '/login', '/signup', '/onboarding', '/home', '/advisor', '/daily-stack'];
 
 function GateInner() {
   const pathname = usePathname();
@@ -33,19 +23,8 @@ function GateInner() {
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
 
-  const [phone, setPhone] = useState(false);
+  const phone = useIsPhone();
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    const update = () => setPhone(isPhone());
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('orientationchange', update);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('orientationchange', update);
-    };
-  }, []);
 
   if (!phone || MOBILE_OK.includes(pathname)) return null;
 
@@ -101,17 +80,24 @@ function GateInner() {
           </svg>
 
           <h1 className="font-serif text-xl font-semibold mb-3">
-            {L('التجربة الكاملة على الكمبيوتر — حالياً', 'The full experience is on desktop — for now')}
+            {L('هذه الأداة على الكمبيوتر — حالياً', 'This tool lives on desktop — for now')}
           </h1>
           <p className="text-sm text-[var(--ink-2)] leading-relaxed mb-2">
             {L(
-              'صمّمنا مال مايند أولاً للشاشات الكبيرة، حيث تظهر صورتك المالية كاملة كما تستحق. افتح الرابط من جهاز كمبيوتر لتكمل رحلتك.',
-              'MalMind is designed for big screens first, where your full financial picture shows the way it deserves. Open the link on a computer to continue your journey.'
+              'اللوحات العميقة وأدوات النمذجة صُمّمت للشاشات الكبيرة، حيث تظهر صورتك المالية كاملة كما تستحق. جوالك يفتح الرئيسية والعقل وكومة اليوم — والبقية بانتظارك على الكمبيوتر.',
+              'The deep dashboards and modeling tools are designed for big screens, where your full financial picture shows the way it deserves. Your phone opens Home, the Brain, and the Daily Stack — the rest awaits you on a computer.'
             )}
           </p>
-          <p className="text-xs text-[var(--muted)] leading-relaxed mb-7">
-            {L('نسخة الجوال قادمة في مرحلة لاحقة.', 'A phone experience is coming in a later phase.')}
+          <p className="text-xs text-[var(--muted)] leading-relaxed mb-6">
+            {L('التجربة الكاملة للجوال قادمة في مرحلة لاحقة.', 'The full phone experience is coming in a later phase.')}
           </p>
+
+          <Link
+            href="/home"
+            className="block w-full bg-[var(--green-dark)] text-white rounded-xl py-3 text-sm font-semibold mb-3"
+          >
+            {L('خذني للرئيسية ←', 'Take me home →')}
+          </Link>
 
           <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl px-4 py-3 flex items-center justify-between gap-3 mb-3">
             <span className="font-mono text-sm text-[var(--ink)]" dir="ltr">www.malmind.ai</span>
@@ -125,8 +111,8 @@ function GateInner() {
 
           <p className="text-[11px] text-[var(--muted)] leading-relaxed">
             {L(
-              'حسابك وبياناتك بانتظارك — سجّل دخولك من الكمبيوتر بنفس البريد وكلمة المرور.',
-              'Your account and data are waiting — sign in on your computer with the same email and password.'
+              'حسابك وبياناتك واحدة في كل مكان — افتح الرابط من الكمبيوتر وستجد كل شيء بانتظارك.',
+              'Your account and data are the same everywhere — open the link on a computer and everything is waiting.'
             )}
           </p>
         </div>

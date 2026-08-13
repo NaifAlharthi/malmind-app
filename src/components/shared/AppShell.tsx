@@ -15,6 +15,7 @@ import { XModeProvider, XModeSwitcher, DriveSwitcher } from './ExperienceMode';
 import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
+import { useIsPhone } from '@/lib/useIsPhone';
 
 // Enforces "keep me signed in = off"; browser-only, so load it lazily.
 const EphemeralSessionGuard = dynamic(() => import('./EphemeralSessionGuard'), { ssr: false });
@@ -52,6 +53,15 @@ const NAV_ITEMS = [
   { href: '/advisor', labelKey: 'nav.brain', icon: '🧠' },
 ];
 
+// Phase-1 phone companion: the daily loop only — Home with the hājis, quick
+// capture in the Daily Stack, and the Brain. The time hubs stay desktop-side
+// until they earn their mobile pass.
+const PHONE_NAV_ITEMS = [
+  { href: '/home', labelKey: 'nav.home', icon: '⌂' },
+  { href: '/daily-stack', labelKey: 'hub.card.dailyStack.title', icon: '🧾' },
+  { href: '/advisor', labelKey: 'nav.brain', icon: '🧠' },
+];
+
 const FULL_BLEED_PATHS = ['/', '/onboarding', '/login', '/signup'];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -60,6 +70,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const { theme, toggleTheme } = useTheme();
   const { locale, setLocale, t } = useLocale();
+  const isPhone = useIsPhone();
   const [initials, setInitials] = useState('?');
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileVersion, setProfileVersion] = useState(0);
@@ -214,10 +225,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             {/* utilities */}
             <div className="flex items-center gap-1 shrink-0">
-              {/* experience mode: hold-my-hand · getting a hold · pro */}
-              <XModeSwitcher />
-              {/* the drive: story · numbers · both */}
-              <DriveSwitcher className="me-1" />
+              {/* experience mode + drive: desktop power dials — the phone
+                  companion keeps its top bar to the essentials */}
+              <div className="hidden sm:flex items-center gap-1">
+                <XModeSwitcher />
+                <DriveSwitcher className="me-1" />
+              </div>
               <button
                 onClick={() => setEditProfileOpen(true)}
                 title={t('common.editProfile')}
@@ -298,9 +311,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <TimelineNav />
         </div>
 
-        {/* ── mobile bottom tab bar ── */}
+        {/* ── mobile bottom tab bar: phones get the phase-1 companion set ── */}
         <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[var(--surface-card)] border-t border-[var(--border-default)] flex items-stretch">
-          {NAV_ITEMS.map((item) => (
+          {(isPhone ? PHONE_NAV_ITEMS : NAV_ITEMS).map((item) => (
             <BottomTab key={item.href} {...item} />
           ))}
         </nav>
@@ -316,7 +329,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <DemoTour />
       <DepthRail />
       <CommandMode />
-      <BrainCompanion />
+      {/* the Brain's floating perch overlaps content on small screens —
+          phones reach the Brain through its bottom tab instead */}
+      {!isPhone && <BrainCompanion />}
       <EphemeralSessionGuard />
       </div>
     </ProfileContext.Provider>
