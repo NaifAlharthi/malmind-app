@@ -263,7 +263,66 @@ export default function PastDashboard() {
 
   return (
     <div className="flex flex-col gap-3 mb-6">
-      {/* ═══ 1 · Story ═══ */}
+      {/* T1 by depth — each level is its own room:
+          D1 the summary · D2 the Story · D3 the Numbers · D4 the Lessons */}
+
+      {/* ═══ D1 · the summary: what lives below, in one glance ═══ */}
+      {depth === 1 && (
+        <>
+          <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-5 sm:p-6 text-white">
+            <div className="text-[10px] tracking-[0.14em] uppercase text-[var(--gold)] font-semibold mb-1.5">
+              {L('خلاصة ماضيك', 'Your past, in brief')}
+            </div>
+            <p className="font-serif text-xl sm:text-2xl font-bold leading-snug">
+              {journey >= 0
+                ? L(`${D.n} شهراً مسجّلاً صنعت ${moneyC(Math.abs(journey))} — والتفاصيل تسكن الأعماق.`, `${D.n} logged months built ${moneyC(Math.abs(journey))} — the details live in the deep.`)
+                : L(`${D.n} شهراً مسجّلاً أكلت ${moneyC(Math.abs(journey))} — والأسباب تسكن الأعماق.`, `${D.n} logged months ate ${moneyC(Math.abs(journey))} — the reasons live in the deep.`)}
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3">
+            {([
+              {
+                d: 2 as DepthLevel, icon: '📖', title: L('القصة', 'Story'),
+                line: L(`من ${moneyC(first.nw)} إلى ${moneyC(latest.nw)} — قوس ثروتك وفصول حياتك فوقه.`, `From ${moneyC(first.nw)} to ${moneyC(latest.nw)} — your wealth arc with your life's chapters on it.`),
+              },
+              {
+                d: 3 as DepthLevel, icon: '🔢', title: L('الأرقام', 'Numbers'),
+                line: L(`كسبت ${moneyC(D.totalEarned)}، بقي منها ${moneyC(latest.nw)} — بمعدل ادخار ${D.overallRate.toFixed(0)}٪.`, `You earned ${moneyC(D.totalEarned)}, kept ${moneyC(latest.nw)} — at a ${D.overallRate.toFixed(0)}% saving rate.`),
+              },
+              {
+                d: 4 as DepthLevel, icon: '💡', title: L('الدروس', 'Lessons'),
+                line: verdict
+                  ? verdict.tone === 'up'
+                    ? L('حُكم الماضي: عاداتك تدفعك للأمام — والتفاصيل في العمق.', 'The verdict: your habits push you forward — details in the deep.')
+                    : verdict.tone === 'fix'
+                      ? L('حُكم الماضي: إصلاحات تنتظرك — مرتّبةً بالأثقل أولاً في العمق.', 'The verdict: fixes await — ordered heaviest-first in the deep.')
+                      : L('حُكم الماضي مختلط: أساسٌ موجود وعادات تحتاج ضبطاً.', 'A mixed verdict: a real foundation, with habits needing taming.')
+                  : L('أنماط سلوكك وما تعنيه — كاشف التضخم والمواسم الهجرية.', 'Your behavior patterns and what they mean — the creep detector and Hijri seasons.'),
+              },
+            ]).map((p) => (
+              <button
+                key={p.d}
+                onClick={() => setDepth(p.d)}
+                className="group text-start bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-4 hover:border-[var(--green)] transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-lg leading-none">{p.icon}</span>
+                  <span className="text-sm font-semibold text-[var(--ink)]">{p.title}</span>
+                  <span className="ms-auto text-[9px] text-[var(--muted)] border border-[var(--border-faint)] rounded-full px-2 py-0.5" dir="ltr">D{p.d}</span>
+                </div>
+                <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-2">{p.line}</p>
+                <span className="text-[11px] font-medium text-[var(--green-dark)] group-hover:underline">
+                  {L('اغطس إليها ▾', 'Dive to it ▾')}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ═══ D2 · Story ═══ */}
+      {depth === 2 && (
+      <>
       <Pillar n={1} icon="📖" title={L('القصة', 'Story')} sub={L('ماضيك حكايةً — خط زمني وفصول حياة', 'Your past as a story — a timeline and chapters of life')} />
 
       <Card title={L('قوس ثروتك — وقصتك فوقه', 'Your wealth arc — with your story on it')} href="/story" explain={EX.arc}>
@@ -311,8 +370,12 @@ export default function PastDashboard() {
           </Link>
         </div>
       </Card>
+      </>
+      )}
 
-      {/* ═══ 2 · Numbers ═══ */}
+      {/* ═══ D3 · Numbers ═══ */}
+      {depth === 3 && (
+      <>
       <Pillar n={2} icon="🔢" title={L('الأرقام', 'Numbers')} sub={L('أرشيف حياتك المالية كاملةً حتى اليوم', 'The complete archive of your financial life up to today')} />
 
       <div className="drv-num grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -322,7 +385,7 @@ export default function PastDashboard() {
         <Stat label={L('معدل الادخار العام', 'Overall saving rate')} value={`${D.overallRate.toFixed(1)}%`} />
       </div>
 
-      {depth >= 2 && (
+      {(
         <Card title={L('الداخل والخارج — السجل كاملاً', 'Money in vs out — the whole record')} href="/financial-numbers" className="drv-num">
           <div className="h-44" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
@@ -345,7 +408,7 @@ export default function PastDashboard() {
         </Card>
       )}
 
-      {depth >= 2 && (D.trendReady ? (
+      {(D.trendReady ? (
         <Card title={L('اتجاه معدل ادخارك', 'Saving-rate trend')} href="/ratios" explain={EX.trend} className="drv-num">
           {(() => {
             const s = D.trendSlopeYr;
@@ -378,7 +441,7 @@ export default function PastDashboard() {
         <LockedCard title={L('اتجاه معدل ادخارك', 'Saving-rate trend')} hint={L('يحتاج الاتجاه أربعة أشهر مسجّلة على الأقل.', 'The trend needs at least four logged months.')} />
       ))}
 
-      {depth >= 4 && (
+      {(
         <Card title={L('السجل الكامل — شهراً بشهر', 'The full record — month by month')} href="/financial-numbers" className="drv-num">
           <div className="flex gap-2 flex-wrap mb-3 text-[10px]">
             {D.best && (
@@ -425,12 +488,13 @@ export default function PastDashboard() {
           </div>
         </Card>
       )}
+      </>
+      )}
 
-      {/* ═══ 3 · Lessons ═══ */}
-      <Pillar n={3} icon="💡" title={L('الدروس', 'Lessons')} sub={L('أنماط سلوكك، وما تعنيه — وأين يضعك ماضيك اليوم', 'Your behavior patterns, what they mean — and where your past leaves you today')} />
-
-      {depth >= 3 ? (
+      {/* ═══ D4 · Lessons ═══ */}
+      {depth === 4 && (
         <>
+      <Pillar n={3} icon="💡" title={L('الدروس', 'Lessons')} sub={L('أنماط سلوكك، وما تعنيه — وأين يضعك ماضيك اليوم', 'Your behavior patterns, what they mean — and where your past leaves you today')} />
           {verdict && (
             <Card title={L('حُكم الماضي — أين يضعك اليوم؟', "The past's verdict — where does it leave you today?")} href="/today" className="drv-story">
               {(() => {
@@ -575,21 +639,6 @@ export default function PastDashboard() {
             </Card>
           )}
         </>
-      ) : (
-        <button
-          onClick={() => setDepth(3)}
-          className="text-start bg-[var(--surface-card)] border border-dashed border-[var(--border-default)] rounded-2xl p-5 hover:border-[var(--green)] transition-colors"
-        >
-          <div className="text-sm font-semibold text-[var(--ink)] mb-1">
-            🧊 {L('دروس ماضيك تسكن الأعماق', 'The lessons of your past live in the deep')}
-          </div>
-          <p className="text-[11px] text-[var(--muted)] leading-relaxed">
-            {L(
-              'كاشف تضخم نمط الحياة، ومواسم مصروفك بالتقويم الهجري، ودروس فصولك — اغطس إلى عمق «التحليل» لقراءتها.',
-              'The lifestyle-creep detector, your Hijri spending seasons, and your chapter lessons — dive to the Analysis depth to read them.'
-            )}
-          </p>
-        </button>
       )}
 
       {/* ── dive deeper ── */}
@@ -599,8 +648,8 @@ export default function PastDashboard() {
           className="w-full text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-dashed border-[var(--green-border)] rounded-2xl px-5 py-3.5 hover:border-[var(--green)]"
         >
           {ar
-            ? `🧊 اغطس إلى «${DEPTH_META[(depth + 1) as DepthLevel].name.ar}» — ${depth === 1 ? 'يظهر تاريخ الداخل والخارج واتجاه ادخارك' : depth === 2 ? 'تُفتح الدروس: تضخم نمط الحياة والمواسم الهجرية ودروس الفصول' : 'يظهر السجل الكامل شهراً بشهر'} ▾`
-            : `🧊 Dive to “${DEPTH_META[(depth + 1) as DepthLevel].name.en}” — ${depth === 1 ? 'your in/out history and saving trend appear' : depth === 2 ? 'the Lessons open: lifestyle creep, Hijri seasons, chapter lessons' : 'the full month-by-month record appears'} ▾`}
+            ? `🧊 اغطس إلى «${DEPTH_META[(depth + 1) as DepthLevel].name.ar}» — ${depth === 1 ? 'تُفتح القصة: قوس ثروتك وفصول حياتك فوقه' : depth === 2 ? 'تُفتح الأرقام: الأرشيف الكامل والسجل شهراً بشهر' : 'تُفتح الدروس: حُكم الماضي وتضخم نمط الحياة والمواسم الهجرية'} ▾`
+            : `🧊 Dive to “${DEPTH_META[(depth + 1) as DepthLevel].name.en}” — ${depth === 1 ? 'the Story opens: your wealth arc with your chapters on it' : depth === 2 ? 'the Numbers open: the full archive and the month-by-month record' : 'the Lessons open: the verdict, lifestyle creep, Hijri seasons'} ▾`}
         </button>
       )}
     </div>
