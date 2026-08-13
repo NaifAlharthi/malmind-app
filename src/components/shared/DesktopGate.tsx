@@ -7,8 +7,7 @@
 // broken desktop layout, this gate names the situation and walks the user
 // back to what their phone does well. It never appears on desktop.
 
-import { useState, Suspense } from 'react';
-import Link from 'next/link';
+import { Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useIsPhone } from '@/lib/useIsPhone';
@@ -24,22 +23,11 @@ function GateInner() {
   const L = (a: string, e: string) => (ar ? a : e);
 
   const phone = useIsPhone();
-  const [copied, setCopied] = useState(false);
 
   if (!phone || MOBILE_OK.includes(pathname)) return null;
 
   // Fresh from the confirmation email — lead with the good news.
   const justSignedUp = params.get('justSignedUp') === '1';
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText('https://www.malmind.ai');
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard unavailable — the address is printed on screen anyway */
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-[200] bg-[var(--surface-0)] text-[var(--ink)] overflow-y-auto">
@@ -92,27 +80,19 @@ function GateInner() {
             {L('التجربة الكاملة للجوال قادمة في مرحلة لاحقة.', 'The full phone experience is coming in a later phase.')}
           </p>
 
-          <Link
+          {/* a plain anchor on purpose: a full page load that no client-router
+              or hydration state can swallow — this button must always work */}
+          <a
             href="/home"
-            className="block w-full bg-[var(--green-dark)] text-white rounded-xl py-3 text-sm font-semibold mb-3"
+            className="block w-full bg-[var(--green-dark)] text-white rounded-xl py-3 text-sm font-semibold mb-4"
           >
             {L('خذني للرئيسية ←', 'Take me home →')}
-          </Link>
-
-          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl px-4 py-3 flex items-center justify-between gap-3 mb-3">
-            <span className="font-mono text-sm text-[var(--ink)]" dir="ltr">www.malmind.ai</span>
-            <button
-              onClick={copyLink}
-              className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 shrink-0"
-            >
-              {copied ? L('نُسخ ✓', 'Copied ✓') : L('انسخ الرابط', 'Copy link')}
-            </button>
-          </div>
+          </a>
 
           <p className="text-[11px] text-[var(--muted)] leading-relaxed">
             {L(
-              'حسابك وبياناتك واحدة في كل مكان — افتح الرابط من الكمبيوتر وستجد كل شيء بانتظارك.',
-              'Your account and data are the same everywhere — open the link on a computer and everything is waiting.'
+              'حسابك وبياناتك واحدة في كل مكان — افتح malmind.ai من الكمبيوتر وستجد كل شيء بانتظارك.',
+              'Your account and data are the same everywhere — open malmind.ai on a computer and everything is waiting.'
             )}
           </p>
         </div>
