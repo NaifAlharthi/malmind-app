@@ -1334,25 +1334,11 @@ function QuadrantStat({ quad, ar }: { quad: QuadKey; ar: boolean }) {
   );
 }
 
-// The Saudi mark — a palm over crossed swords, drawn inline because Windows
+// The Saudi flag (Twemoji asset, CC-BY 4.0) — a real image, because Windows
 // renders the 🇸🇦 flag emoji as plain "SA" letters.
 function SaudiEmblem() {
-  return (
-    <svg viewBox="0 0 32 24" className="h-6 w-8 text-[var(--green-dark)]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-      {/* crossed swords */}
-      <path d="M7 21 L20 10" />
-      <path d="M25 21 L12 10" />
-      <path d="M6 22.5 L8.5 20" strokeWidth="2.4" />
-      <path d="M26 22.5 L23.5 20" strokeWidth="2.4" />
-      {/* the palm: trunk and fronds */}
-      <path d="M16 14 L16 8.5" />
-      <path d="M16 8.5 C13.5 8.5 11.5 7 11 5" />
-      <path d="M16 8.5 C18.5 8.5 20.5 7 21 5" />
-      <path d="M16 8.5 C14.5 7 14 4.5 14.5 2.5" />
-      <path d="M16 8.5 C17.5 7 18 4.5 17.5 2.5" />
-      <path d="M16 8.5 C16 6 16 4 16 2" />
-    </svg>
-  );
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/saudi-flag.svg" alt="🇸🇦" className="h-6 w-8 rounded-[3px] object-cover" />;
 }
 
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title?: string }) {
