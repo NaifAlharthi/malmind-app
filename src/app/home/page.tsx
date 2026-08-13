@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
 import { useDrive, useDepth } from '@/components/shared/ExperienceMode';
-import { useIsPhone } from '@/lib/useIsPhone';
 import { useTheme } from '@/components/shared/ThemeProvider';
 import { localizedFirstName } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -67,11 +66,11 @@ export default function HomePage() {
   const { t, locale, setLocale } = useLocale();
   const { drive } = useDrive();
   const { depth } = useDepth();
-  const phone = useIsPhone();
   // The home grid staging: D1 holds ONLY the hājis — the person's concerns
   // are the center focus, undistracted. Everything else lives in the deeper
-  // Ds. Phones show all sections (no depth control on phones in phase 1).
-  const at = (n: number) => phone || depth >= n;
+  // Ds. Symmetric on web and phone: fingers dive by pulling past the page
+  // edge, exactly like the wheel.
+  const at = (n: number) => depth >= n;
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
   const sar = t('common.sar');

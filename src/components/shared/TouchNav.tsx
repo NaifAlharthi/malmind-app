@@ -1,21 +1,21 @@
 'use client';
 
-// The phone's answer to the desktop's 2D map: with no timeline pill and no
-// iceberg on a small screen, horizontal finger swipes walk the companion
-// page strip (Home · Daily Stack · Brain) — and every crossing plays the
-// same focus-segmenting transition the desktop gets, so a page change
-// always FEELS like travel, never like a teleport. Vertical stays pure
-// scrolling: reading is sacred.
+// Touch mirror of the desktop's horizontal wheel-tilt: a horizontal finger
+// flick travels through time (past · today · future) from anywhere in the
+// app, playing the same focus-segmenting sweep + destination flash. Pages
+// off the time strip behave like the desktop tilt does — the flick treats
+// them as standing at "today". Vertical stays pure scrolling; the depth
+// dive lives in the edge-push (DepthStage), same as the wheel.
 
 import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useIsPhone } from '@/lib/useIsPhone';
-import { PHONE_NAV, announcePageNav } from '@/lib/phoneNav';
+import { TIME_STRIP, announcePageNav } from '@/lib/phoneNav';
 
 const MIN_TRAVEL = 72; // px of finger travel that counts as a swipe
 const MAX_TIME = 650; // ms — a swipe is a flick, not a slow drag
-const COOLDOWN = 900; // ms between page crossings
+const COOLDOWN = 900; // ms between crossings
 
 export default function TouchNav() {
   const router = useRouter();
@@ -68,16 +68,17 @@ export default function TouchNav() {
       if (Math.abs(dx) < MIN_TRAVEL || Math.abs(dx) < Math.abs(dy) * 1.7) return;
 
       const { pathname: path, ar, t: tt } = ctx.current;
-      const idx = PHONE_NAV.findIndex((p) => p.href === path);
-      if (idx === -1) return; // not on the page strip (gate, auth, tools)
+      const found = TIME_STRIP.findIndex((p) => p.href === path);
+      // off the strip = standing at today, exactly like the desktop tilt
+      const idx = found === -1 ? 1 : found;
 
-      // Dragging the page strip: a leftward swipe reveals the page sitting
-      // on the RIGHT side of the screen. Which index that is depends on the
-      // reading direction — the strip lays out with the locale.
+      // Dragging the strip: a leftward swipe reveals the page sitting on the
+      // RIGHT side of the screen; which index that is follows the reading
+      // direction — the timeline lays out with the locale.
       const revealsRight = dx < 0;
       const delta = revealsRight ? (ar ? -1 : 1) : (ar ? 1 : -1);
-      const target = PHONE_NAV[idx + delta];
-      if (!target) return; // edge of the strip — nothing beyond
+      const target = TIME_STRIP[idx + delta];
+      if (!target || target.href === path) return; // edge of time — nothing beyond
 
       lastNav.current = now;
       announcePageNav({

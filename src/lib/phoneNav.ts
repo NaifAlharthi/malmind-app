@@ -1,11 +1,11 @@
-// The phone companion's page strip: three pages side by side, walked by
-// bottom tabs or horizontal finger swipes. One shared list keeps the tab
-// bar, the swipe navigator, and the transition theater in agreement.
+// The time axis as a swipeable strip — the touch mirror of the desktop's
+// horizontal wheel-tilt (past · today · future). One shared list keeps the
+// swipe navigator and the transition theater in agreement.
 
-export const PHONE_NAV = [
-  { href: '/home', labelKey: 'nav.home', icon: '⌂' },
-  { href: '/daily-stack', labelKey: 'hub.card.dailyStack.title', icon: '🧾' },
-  { href: '/advisor', labelKey: 'nav.brain', icon: '🧠' },
+export const TIME_STRIP = [
+  { href: '/past', labelKey: 'nav.past', icon: '🕰' },
+  { href: '/today', labelKey: 'nav.today', icon: '☀' },
+  { href: '/future', labelKey: 'nav.future', icon: '🔭' },
 ];
 
 export interface PageNavDetail {

@@ -11,12 +11,14 @@ import TimelineNav from './TimelineNav';
 import DepthRail from './DepthRail';
 import DepthStage from './DepthStage';
 import CommandMode from './CommandMode';
-import { XModeProvider, XModeSwitcher, DriveSwitcher } from './ExperienceMode';
+import { XModeProvider, XModeSwitcher, DriveSwitcher, useXMode, useDrive } from './ExperienceMode';
+import { XMODE_META, type XMode } from '@/lib/experienceMode';
+import { DRIVES, DRIVE_META } from '@/lib/drive';
 import { useTheme } from './ThemeProvider';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
 import { useIsPhone } from '@/lib/useIsPhone';
-import { PHONE_NAV, announcePageNav } from '@/lib/phoneNav';
+import { announcePageNav } from '@/lib/phoneNav';
 import TouchNav from './TouchNav';
 
 // Enforces "keep me signed in = off"; browser-only, so load it lazily.
@@ -55,8 +57,42 @@ const NAV_ITEMS = [
   { href: '/advisor', labelKey: 'nav.brain', icon: '🧠' },
 ];
 
-// Phase-1 phone companion pages live in PHONE_NAV (lib/phoneNav) — shared
-// with the swipe navigator and the page-transition theater.
+// The mode & drive dials for small screens, living in the ☰ menu (the top
+// bar sheds the pill switchers below sm). Tapping cycles to the next value —
+// the same dials as desktop, adapted to the space.
+function SmallScreenDials() {
+  const { mode, setMode } = useXMode();
+  const { drive, setDrive } = useDrive();
+  const { locale } = useLocale();
+  const ar = locale === 'ar';
+  const MODES: XMode[] = ['guided', 'growing', 'pro'];
+  const m = XMODE_META[mode];
+  const d = DRIVE_META[drive];
+  const row = 'w-full flex items-center gap-2.5 px-3.5 py-2 text-[var(--ink-2)] hover:bg-[var(--surface-1)] text-start';
+  return (
+    <>
+      <button
+        role="menuitem"
+        onClick={() => setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length])}
+        className={row}
+      >
+        <span>{m.icon}</span>
+        <span className="flex-1">{ar ? m.label.ar : m.label.en}</span>
+        <span className="text-[10px] text-[var(--muted)]">{ar ? 'المستوى ↻' : 'level ↻'}</span>
+      </button>
+      <button
+        role="menuitem"
+        onClick={() => setDrive(DRIVES[(DRIVES.indexOf(drive) + 1) % DRIVES.length])}
+        className={row}
+      >
+        <span>{d.icon}</span>
+        <span className="flex-1">{ar ? d.label.ar : d.label.en}</span>
+        <span className="text-[10px] text-[var(--muted)]">{ar ? 'المحرّك ↻' : 'drive ↻'}</span>
+      </button>
+    </>
+  );
+}
+
 
 const FULL_BLEED_PATHS = ['/', '/onboarding', '/login', '/signup'];
 
@@ -179,15 +215,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Mobile bottom tab. On phones a tab tap plays the same page-crossing
-  // transition as a swipe — the sweep runs toward the side the target
-  // page occupies on the strip (mirrored in RTL).
+  // Mobile bottom tab. A tab tap plays the same page-crossing transition as
+  // a swipe — the sweep runs toward the side the target occupies in the tab
+  // row (mirrored in RTL).
   function BottomTab({ href, labelKey, icon }: { href: string; labelKey: string; icon: string }) {
     const active = pathname === href.split('?')[0];
     const announceCrossing = () => {
-      if (!isPhone || active) return;
-      const from = PHONE_NAV.findIndex((p) => p.href === pathname);
-      const to = PHONE_NAV.findIndex((p) => p.href === href);
+      if (active) return;
+      const from = NAV_ITEMS.findIndex((p) => p.href === pathname);
+      const to = NAV_ITEMS.findIndex((p) => p.href === href);
       if (from === -1 || to === -1) return;
       const ar = locale === 'ar';
       const toHigher = to > from;
@@ -273,6 +309,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     role="menu"
                     className="absolute end-0 top-full mt-1.5 z-50 min-w-44 rounded-xl border border-[var(--border-default)] bg-[var(--surface-card)] shadow-lg py-1.5 text-sm"
                   >
+                    {/* on small screens the top bar sheds the mode & drive
+                        pills — the same dials live here instead, tap to cycle */}
+                    <div className="sm:hidden">
+                      <SmallScreenDials />
+                      <div className="my-1.5 border-t border-[var(--border-default)]" />
+                    </div>
                     <button
                       role="menuitem"
                       onClick={() => { setLocale(locale === 'en' ? 'ar' : 'en'); setMoreOpen(false); }}
@@ -323,14 +365,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <TimelineNav />
         </div>
 
-        {/* ── mobile bottom tab bar: phones get the phase-1 companion set ── */}
+        {/* ── mobile bottom tab bar — the same product, the same doors ── */}
         <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[var(--surface-card)] border-t border-[var(--border-default)] flex items-stretch">
-          {(isPhone ? PHONE_NAV : NAV_ITEMS).map((item) => (
+          {NAV_ITEMS.map((item) => (
             <BottomTab key={item.href} {...item} />
           ))}
         </nav>
 
-        {/* horizontal swipes walk the phone's page strip */}
+        {/* horizontal swipes travel through time — the touch wheel-tilt */}
         <TouchNav />
 
       <EditProfileModal

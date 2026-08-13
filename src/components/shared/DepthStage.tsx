@@ -108,6 +108,21 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) push(e.deltaY, e.target);
     };
+    // touch mirror of the wheel: keep pulling past the page edge with a
+    // finger and the same push accumulates toward the dive — web and mobile
+    // stay symmetrical, only the input organ differs
+    let touchY: number | null = null;
+    const onTouchStart = (e: TouchEvent) => { touchY = e.touches[0].clientY; };
+    const onTouchMove = (e: TouchEvent) => {
+      if (touchY === null) return;
+      const y = e.touches[0].clientY;
+      const dy = touchY - y; // finger up = pushing downward = diving
+      touchY = y;
+      // touch travel is smaller than wheel deltas — scale so ~170px of pull
+      // past the edge crosses the same threshold
+      if (Math.abs(dy) > 2) push(dy * 2.5, e.target);
+    };
+    const onTouchEnd = () => { touchY = null; };
     const onKey = (e: KeyboardEvent) => {
       if (e.shiftKey) return; // Shift+arrows belong to command mode
       const t = e.target as HTMLElement | null;
@@ -121,9 +136,15 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
     }, 250);
     window.addEventListener('wheel', onWheel, { passive: true });
     window.addEventListener('keydown', onKey);
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
     return () => {
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
       window.clearInterval(tick);
     };
   }, []);
