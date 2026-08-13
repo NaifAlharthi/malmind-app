@@ -293,7 +293,62 @@ export default function HomePage() {
       <div style={{ order: drive === 'numbers' ? 2 : 1 }}>
       {/* ── the hājis: the one thing on their mind — before any number ── */}
       {(() => {
+        // The taxonomy follows what Saudis actually complain about online —
+        // ranked social-listening pains first (salary vanishing, BNPL
+        // installments, rent, failing to save…), the named life goals after.
+        // Every tie() weaves ONE live number from their real picture and
+        // lands on the existing tool built for exactly that pain.
         const TYPES: { k: string; icon: string; label: string; tie: () => { line: string; cta: string; href: string } }[] = [
+          {
+            k: 'vanish', icon: '💨', label: L('الراتب يختفي', 'My salary just disappears'),
+            tie: () => ({
+              line: fin && fin.income > 0
+                ? L(`من كل ريال في راتبك، ${Math.min(100, Math.round((fin.expenses / fin.income) * 100))}٪ محجوز سلفاً قبل أن تختار — الاختفاء ليس غموضاً، بل التزامات لم تُرَ في شاشة واحدة.`, `Of every riyal you earn, ${Math.min(100, Math.round((fin.expenses / fin.income) * 100))}% is spoken for before you choose — the vanishing isn't a mystery, it's commitments never seen on one screen.`)
+                : L('الراتب لا يختفي — يتسرّب في اختيارات صغيرة متكررة لا يجمعها أحد في شاشة واحدة.', "A salary doesn't vanish — it leaks through small recurring choices nobody gathers on one screen."),
+              cta: L('افتح كومة اليوم ←', 'Open the Daily Stack →'), href: '/daily-stack',
+            }),
+          },
+          {
+            k: 'installments', icon: '🧾', label: L('أقساط تأكل الراتب القادم', 'Installments eating next month'),
+            tie: () => ({
+              line: L('مئة هنا ومئة وخمسون هناك تبدو بريئة — حتى تكتشف أن جزءاً من راتبك القادم مصروفٌ سلفاً. اجمع كل قسطٍ واشتراكٍ في شاشة واحدة لترى كم بقي لك فعلاً.', 'SAR 100 here and 150 there feels harmless — until you find a slice of next month’s salary already spent. Gather every installment and subscription on one screen and see what’s truly yours.'),
+              cta: L('اجمعها في الالتزامات ←', 'Gather them in Commitments →'), href: '/commitments',
+            }),
+          },
+          {
+            k: 'rent', icon: '🏘️', label: L('الإيجار يأكل الدخل', 'Rent eats my income'),
+            tie: () => ({
+              line: fin && fin.income > 0
+                ? L(`السكن الصحي يأخذ حتى ٣٠٪ من الدخل — قِس سكنك على دخلك أنت، وقارن مستوى معيشتك بالمتوسط الوطني.`, 'Healthy housing takes up to 30% of income — measure your housing against your income, and your standard of living against the national average.')
+                : L('السؤال ليس «هل الإيجار غالٍ؟» بل «كم يأخذ من دخلك أنت؟» — النسبة تحسم ما لا يحسمه الرقم.', 'The question isn’t "is rent expensive?" but "how much of your income does it take?" — the ratio settles what the number can’t.'),
+              cta: L('قِس مستوى معيشتك ←', 'Measure your standard of living →'), href: '/standard-of-living',
+            }),
+          },
+          {
+            k: 'saving', icon: '💸', label: L('دخلٌ جيد ولا أدّخر', 'Decent income, no savings'),
+            tie: () => ({
+              line: fin && fin.income > 0
+                ? L(`تدّخر حالياً ${Math.max(0, Math.round(((fin.income - fin.expenses) / fin.income) * 100))}٪ من دخلك — والعقدة نادراً ما تكون الدخل؛ غالباً هي تضخم نمط الحياة يزحف بصمت مع كل زيادة.`, `You currently save ${Math.max(0, Math.round(((fin.income - fin.expenses) / fin.income) * 100))}% of your income — and the knot is rarely the income; it’s usually lifestyle creep advancing quietly with every raise.`)
+                : L('الدخل الجيد الذي لا يتراكم له تفسير واحد غالباً: نمط حياةٍ كبر بصمت مع كل زيادة.', 'A decent income that never accumulates usually has one explanation: a lifestyle that quietly grew with every raise.'),
+              cta: L('اكشف زحف نمط الحياة ←', 'Expose the lifestyle creep →'), href: '/past',
+            }),
+          },
+          {
+            k: 'loan', icon: '💳', label: L('ديونٌ تشابكت عليّ', 'Debts I’ve lost track of'),
+            tie: () => ({
+              line: fin && fin.liabilities > 0
+                ? L(`التزاماتك اليوم ${money(fin.liabilities)} — قرض وبطاقة وتمويل سيارة تتشابك حتى لا تعرف كم أنت مكشوف. شاشة واحدة ترتّبها، وترتيبُ سدادٍ أذكى من العشوائية.`, `Your liabilities stand at ${money(fin.liabilities)} — a loan, a card, car finance tangling until you can’t tell your exposure. One screen untangles them, with a payoff order smarter than random.`)
+                : L('أثقل ما في الدين جهله — سجّله كاملاً في شاشة واحدة وسيصغر في عينك.', 'The heaviest part of debt is not knowing it — log it fully on one screen and it shrinks in your eyes.'),
+              cta: L('رتّب السداد في الشلال ←', 'Order the payoff in the Waterfall →'), href: '/waterfall',
+            }),
+          },
+          {
+            k: 'marriage', icon: '💍', label: L('زواجٌ على الأبواب', 'Marriage on the horizon'),
+            tie: () => ({
+              line: L('المهر والحفل والتأثيث والإيجار — الزواج مشروعٌ بأرقام معلومة، لا مجهولٌ يُرهب. جرّبه في «ماذا لو» بالأرقام قبل أن تعيشه، وسيخبرك متى يصير ممكناً.', 'Mahr, wedding, furnishing, rent — marriage is a project with knowable numbers, not a terror of unknowns. Play it in What-If before living it, and it tells you when it becomes possible.'),
+              cta: L('جرّبه في ماذا لو ←', 'Model it in What-If →'), href: '/what-if',
+            }),
+          },
           {
             k: 'house', icon: '🏠', label: L('بيت أتملكه', 'A home of my own'),
             tie: () => ({
@@ -304,15 +359,6 @@ export default function HomePage() {
             }),
           },
           {
-            k: 'loan', icon: '💳', label: L('قرضٌ يثقلني', 'A loan weighing on me'),
-            tie: () => ({
-              line: fin && fin.liabilities > 0
-                ? L(`التزاماتك اليوم ${money(fin.liabilities)} — ولها ترتيبُ سدادٍ أذكى من العشوائية.`, `Your liabilities stand at ${money(fin.liabilities)} — and there's a smarter payoff order than random.`)
-                : L('أثقل ما في القرض جهله — سجّله كاملاً وسيصغر في عينك.', 'The heaviest part of a loan is not knowing it — log it fully and it shrinks in your eyes.'),
-              cta: L('رتّب السداد في الشلال ←', 'Order the payoff in the Waterfall →'), href: '/waterfall',
-            }),
-          },
-          {
             k: 'school', icon: '🏫', label: L('مدارس العيال', "The kids' schools"),
             tie: () => ({
               line: L('رسوم المدارس موعدٌ يتكرر كل سنة — والذي يُدَّخر له باسمٍ ووتيرة لا يفاجئ أحداً.', "School fees are an appointment that returns every year — saved for by name and pace, they surprise no one."),
@@ -320,9 +366,9 @@ export default function HomePage() {
             }),
           },
           {
-            k: 'car', icon: '🚗', label: L('سيارة أرقى', 'A finer car'),
+            k: 'car', icon: '🚗', label: L('هل أقدر على السيارة؟', 'Can I afford the car?'),
             tie: () => ({
-              line: L('السيارة قرارُ مقارنةٍ لا قرار حماس: تمويل أم كاش؟ جديدة أم بضمان؟ الأرقام تحسمها في دقائق.', 'A car is a comparison decision, not an excitement decision: finance or cash? new or certified? The numbers settle it in minutes.'),
+              line: L('«القسط ١,٢٠٠ ريال» ليس السعر الحقيقي — التأمين والوقود والصيانة والقسط معاً هي ما تأكله السيارة من دخلك فعلاً. القدرة على التمويل شيء، والقدرة على التحمّل بارتياح شيء آخر.', '"SAR 1,200 a month" isn’t the real price — insurance, fuel, maintenance and the installment together are what the car truly takes from your income. Qualifying for finance is one thing; affording it comfortably is another.'),
               cta: L('قارن وقرّر ←', 'Compare & decide →'), href: '/compare',
             }),
           },
@@ -334,20 +380,20 @@ export default function HomePage() {
             }),
           },
           {
-            k: 'income', icon: '💼', label: L('الدخل ما يكفي', "Income isn't enough"),
+            k: 'income', icon: '💼', label: L('هل دخلي يكفي أصلاً؟', 'Is my income even enough?'),
             tie: () => ({
               line: fin && fin.income - fin.expenses < 0
-                ? L(`الشهر الحالي ينقصه ${money(Math.abs(fin.income - fin.expenses))} — نصفها غالباً في اختيارات متكررة صغيرة يمكن تقليمها الليلة.`, `This month runs ${money(Math.abs(fin.income - fin.expenses))} short — half of that usually hides in small recurring choices you can trim tonight.`)
-                : L('حين يُرى الدخل والمصروف في شاشة واحدة، يظهر أين يختبئ الفرق.', 'When income and spending sit on one screen, the gap shows where it hides.'),
-              cta: L('افتح كومة اليوم ←', 'Open the Daily Stack →'), href: '/daily-stack',
+                ? L(`الشهر الحالي ينقصه ${money(Math.abs(fin.income - fin.expenses))} — لكن «هل يكفي؟» لا يجيب عنها الراتب وحده، بل علاقته بمدينتك وعائلتك والتزاماتك.`, `This month runs ${money(Math.abs(fin.income - fin.expenses))} short — but "is it enough?" is never answered by the salary alone; it's the salary against your city, family and commitments.`)
+                : L('«هل ٨ آلاف تكفي؟» سؤالٌ لا يُجاب بالرقم — بل بعلاقة الرقم بمدينتك وعائلتك والتزاماتك أنت.', '"Is 8k enough?" is a question no number answers — only the number measured against your city, your family, your commitments.'),
+              cta: L('قِس دخلك على حياتك ←', 'Measure your income against your life →'), href: '/standard-of-living',
             }),
           },
           {
-            k: 'safety', icon: '🛟', label: L('أمانٌ يريّحني', 'Safety that lets me sleep'),
+            k: 'safety', icon: '🛟', label: L('لو انقطع الراتب؟', 'What if the salary stopped?'),
             tie: () => ({
               line: fin && fin.expenses > 0
-                ? L(`نقدك يغطي ${(fin.cash / fin.expenses).toFixed(1)} شهراً من حياتك — والطمأنينة تكتمل عند ستة.`, `Your cash covers ${(fin.cash / fin.expenses).toFixed(1)} months of your life — full calm arrives at six.`)
-                : L('الطمأنينة رقم: ستة أشهر مصاريف في مكان آمن.', 'Peace of mind is a number: six months of costs kept somewhere safe.'),
+                ? L(`لو توقف راتبك اليوم، يغطيك نقدك ${(fin.cash / fin.expenses).toFixed(1)} شهراً من حياتك كما هي — والطمأنينة تكتمل عند ستة.`, `If your salary stopped today, your cash carries your life as it is for ${(fin.cash / fin.expenses).toFixed(1)} months — full calm arrives at six.`)
+                : L('الطمأنينة رقم: ستة أشهر مصاريف في مكان آمن — يبدأ بمعرفة كم تغطيك أشهرك اليوم.', 'Peace of mind is a number: six months of costs kept safe — starting with knowing how many months cover you today.'),
               cta: L('ابنِ صندوق الطوارئ ←', 'Build the emergency fund →'), href: '/goal-fund',
             }),
           },
@@ -445,13 +491,45 @@ export default function HomePage() {
                 {concern.text.trim() ? `«${concern.text.trim()}»` : current?.label}
               </h2>
               {tie && (
-                <>
-                  <p className="text-xs text-white/80 leading-relaxed mb-3 max-w-xl">{tie.line}</p>
+                <p className="text-xs text-white/80 leading-relaxed mb-3 max-w-xl">{tie.line}</p>
+              )}
+              {!tie && concern.text.trim() && (
+                <p className="text-xs text-white/80 leading-relaxed mb-3 max-w-xl">
+                  {L(
+                    'هاجسٌ بكلماتك سؤالٌ في جوهره — والعقل يقرأ أرقامك الحقيقية ويجيبك عمّا يعنيه لوضعك أنت.',
+                    'A concern in your own words is really a question — and the Brain reads your real numbers and answers what it means for your situation.'
+                  )}
+                </p>
+              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {tie && (
                   <Link href={tie.href} className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2">
                     {tie.cta}
                   </Link>
-                </>
-              )}
+                )}
+                {concern.text.trim() && (
+                  <button
+                    onClick={() => {
+                      // a written hājis is a question at heart — hand it to the Brain
+                      try {
+                        window.sessionStorage.setItem('mm-ask', L(
+                          `أكبر هاجس يشغلني هذه الأيام: «${concern.text.trim()}». اقرأ أرقامي وأخبرني ماذا يعني هذا لوضعي، ومن أين أبدأ؟`,
+                          `The biggest thing on my mind these days: "${concern.text.trim()}". Read my numbers and tell me what this means for my situation, and where do I start?`
+                        ));
+                      } catch { /* ignore */ }
+                      router.push('/advisor');
+                    }}
+                    className={`inline-flex items-center gap-1.5 text-xs rounded-lg px-3.5 py-2 border transition-colors ${
+                      tie
+                        ? 'border-white/25 text-white/85 hover:border-white/50'
+                        : 'font-semibold text-[#2A1F05] bg-[var(--gold)] border-[var(--gold)]'
+                    }`}
+                  >
+                    <span aria-hidden>🧠</span>
+                    {L('اسأل العقل عن هاجسك ←', 'Ask the Brain about it →')}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         );
