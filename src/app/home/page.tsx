@@ -10,6 +10,8 @@ import { useTheme } from '@/components/shared/ThemeProvider';
 import { localizedFirstName } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
+import { TOOLS, toolsUnlockedAt, type ViewKey } from '@/lib/toolbox';
+import type { DepthLevel } from '@/lib/depth';
 import { isDemoActive } from '@/lib/demoSupabase';
 import { diagnoseQuadrant, QUADRANT_META, type QuadKey } from '@/lib/quadrant';
 import { demoAr } from '@/lib/demoI18n';
@@ -65,12 +67,17 @@ export default function HomePage() {
   const { theme, toggleTheme } = useTheme();
   const { t, locale, setLocale } = useLocale();
   const { drive } = useDrive();
-  const { depth } = useDepth();
-  // The home grid staging: D1 holds ONLY the hājis — the person's concerns
-  // are the center focus, undistracted. Everything else lives in the deeper
-  // Ds. Symmetric on web and phone: fingers dive by pulling past the page
-  // edge, exactly like the wheel.
-  const at = (n: number) => depth >= n;
+  const { depth, setDepth } = useDepth();
+  // The home grid staging: each depth is its OWN view, composed for its
+  // audience — not a downward extension of the one above.
+  //   D1 التركيز   — the hājis alone, nothing pulling at the eye
+  //   D2 الضبط     — the control room: where you stand · next move · the
+  //                  three time doors · concerns as a compact strip
+  //   D3 التحليل   — the analysis desk: the numbers snapshot · the four
+  //                  foundation elements · this depth's analysis tools
+  //   D4 الاحتراف  — the pro cockpit: snapshot + standing + the FULL tool
+  //                  matrix + your space + who we are
+  // Symmetric on web and phone; fingers dive by pulling past the page edge.
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
   const sar = t('common.sar');
@@ -305,8 +312,9 @@ export default function HomePage() {
           hājis; numbers-driven open with the standing tile — CSS order flips
           the two without touching the DOM */}
       <div className="flex flex-col">
-      <div style={{ order: drive === 'numbers' ? 2 : 1 }}>
-      {/* ── the hājis: the one thing on their mind — before any number ── */}
+      {depth <= 2 && (
+      <div style={{ order: drive === 'numbers' || depth === 2 ? 2 : 1 }}>
+      {/* ── the hājis: hero at D1, compact strip at D2 ── */}
       {(() => {
         // The taxonomy follows what Saudis actually complain about online —
         // ranked social-listening pains first (salary vanishing, BNPL
@@ -432,7 +440,49 @@ export default function HomePage() {
         const chosen = concern.types
           .map((k) => TYPES.find((x) => x.k === k))
           .filter((x): x is (typeof TYPES)[number] => !!x);
-        const showPicker = concernEdit || (chosen.length === 0 && !concern.text);
+        const showPicker = depth === 1 && (concernEdit || (chosen.length === 0 && !concern.text));
+
+        // D2 — the control room keeps the concerns as a compact strip: each
+        // chip walks straight to its tool; the full hero lives at the surface
+        if (depth === 2) {
+          return (
+            <div className="drv-story flex items-center gap-2 flex-wrap bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 mb-4">
+              <span className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold-text-strong)] font-semibold">
+                {L('هواجسك', 'Your concerns')}
+              </span>
+              {chosen.length === 0 && !concern.text.trim() ? (
+                <button
+                  onClick={() => { setDepth(1); setConcernEdit(true); }}
+                  className="text-xs text-[var(--green-dark)] font-medium"
+                >
+                  {L('حدّدها على السطح ←', 'Set them at the surface →')}
+                </button>
+              ) : (
+                <>
+                  {concern.text.trim() && (
+                    <span className="text-xs text-[var(--ink-2)]">«{concern.text.trim()}»</span>
+                  )}
+                  {chosen.map((c) => (
+                    <Link
+                      key={c.k}
+                      href={c.tie().href}
+                      className="inline-flex items-center gap-1 text-[11px] border border-[var(--border-default)] rounded-full px-2.5 py-1 text-[var(--ink-2)] hover:border-[var(--gold)] hover:text-[var(--ink)] transition-colors"
+                    >
+                      <span>{c.icon}</span><span>{c.label}</span>
+                    </Link>
+                  ))}
+                  <button
+                    onClick={() => setDepth(1)}
+                    title={L('اصعد إلى هاجسك', 'Surface to your concern')}
+                    className="ms-auto text-[10px] text-[var(--muted)] hover:text-[var(--ink-2)] transition-colors"
+                  >
+                    {L('السطح ↑', 'surface ↑')}
+                  </button>
+                </>
+              )}
+            </div>
+          );
+        }
         const toggleDraftType = (k: string) => {
           const has = concernDraft.types.includes(k);
           if (!has && concernDraft.types.length >= MAX_CONCERNS) return; // three is the cap
@@ -606,11 +656,13 @@ export default function HomePage() {
       })()}
 
       </div>
+      )}
 
-      {/* D2+ — except for numbers-driven readers, whose D1 would otherwise
-          be empty (the hājis is a story surface) */}
-      {(at(2) || drive === 'numbers') && (
-      <div style={{ order: drive === 'numbers' ? 1 : 2 }}>
+      {/* the standing tile leads the D2 control room and returns in the D4
+          cockpit; numbers-driven readers keep it at D1 too (their drive
+          hides the hājis story surface, which would leave D1 empty) */}
+      {(depth === 2 || depth === 4 || (depth === 1 && drive === 'numbers')) && (
+      <div style={{ order: drive === 'numbers' || depth >= 2 ? 1 : 2 }}>
       {/* ── the opening moment: where you stand · next actionable item ── */}
       {fin && (() => {
         const surplus = fin.income - fin.expenses;
@@ -790,8 +842,8 @@ export default function HomePage() {
       )}
       </div>
 
-      {/* ── personal snapshot — D2+ ── */}
-      {at(2) && (
+      {/* ── personal snapshot — leads the D3 analysis desk, returns in D4 ── */}
+      {depth >= 3 && (
       <div data-tour="profile-card" className="drv-num bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
           onClick={openEditProfile}
@@ -838,8 +890,8 @@ export default function HomePage() {
       </div>
       )}
 
-      {/* ── the three front doors — D2+ ── */}
-      {at(2) && (
+      {/* ── the three front doors — the D2 control room's exits ── */}
+      {depth === 2 && (
       <div data-tour="views-grid" className="mb-8">
         <SectionHeading eyebrow={t('home.views.heading')} />
         <div className="grid sm:grid-cols-3 gap-3">
@@ -851,7 +903,7 @@ export default function HomePage() {
       )}
 
       {/* ── mission band — D4 ── */}
-      {at(4) && (
+      {depth === 4 && (
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 sm:p-8 mb-8 relative overflow-hidden">
         <div className="absolute -top-10 -end-10 w-40 h-40 rounded-full bg-[var(--green-bg)] blur-3xl opacity-60 pointer-events-none" />
         <div className="relative">
@@ -903,11 +955,17 @@ export default function HomePage() {
       </div>
       )}
 
-      {/* ── the foundation: enter · review · link the data everything reads — D3+ ── */}
-      {at(3) && <FoundationHub />}
+      {/* ── the foundation: enter · review · link the data everything reads — the D3 desk ── */}
+      {depth === 3 && <FoundationHub />}
+
+      {/* ── this depth's analysis instruments — the D3 desk's toolbelt ── */}
+      {depth === 3 && <DepthToolShelf level={3} />}
+
+      {/* ── the FULL tool matrix — the D4 cockpit's command wall ── */}
+      {depth === 4 && <FullToolMatrix />}
 
       {/* ── why we exist: problem → answer — D4 ── */}
-      {at(4) && (
+      {depth === 4 && (
       <div className="mb-8">
         <SectionHeading
           eyebrow={L('لماذا وُجد مال مايند', 'Why MalMind exists')}
@@ -938,8 +996,8 @@ export default function HomePage() {
       </div>
       )}
 
-      {/* ── your space: profile · account · integrations · settings — D3+ ── */}
-      {at(3) && (
+      {/* ── your space: profile · account · integrations · settings — the D4 cockpit ── */}
+      {depth === 4 && (
       <div className="mb-4">
         <SectionHeading eyebrow={L('مساحتك', 'Your space')} />
         <div className="grid sm:grid-cols-2 gap-3">
@@ -1501,6 +1559,92 @@ function QuadrantStat({ quad, ar }: { quad: QuadKey; ar: boolean }) {
 function SaudiEmblem() {
   // eslint-disable-next-line @next/next/no-img-element
   return <img src="/saudi-flag.svg" alt="🇸🇦" className="h-6 w-8 rounded-[3px] object-cover" />;
+}
+
+// The tools a given depth unlocks, laid out as this level's instruments —
+// the D3 analysis desk uses it to surface its own gear instead of a longer
+// page. Each chip walks straight into the tool.
+function DepthToolShelf({ level }: { level: DepthLevel }) {
+  const { t, locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const unlocked = toolsUnlockedAt(level);
+  const VIEW_LABEL: Record<ViewKey, string> = {
+    past: t('nav.past'), today: t('nav.today'), future: t('nav.future'),
+  };
+  const rows = (['past', 'today', 'future'] as ViewKey[]).filter((v) => unlocked[v].length > 0);
+  return (
+    <div className="mb-8">
+      <SectionHeading
+        eyebrow={L('عتاد هذا العمق', "This depth's instruments")}
+        title={L('أدوات التحليل التي ينكشف عنها هذا المستوى', 'The analysis tools this level unlocks')}
+      />
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        {rows.flatMap((v) =>
+          unlocked[v].map((tool) => (
+            <Link
+              key={`${v}${tool.href}`}
+              href={tool.href}
+              className="group bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-3.5 hover:border-[var(--green)] transition-colors"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg leading-none">{tool.icon}</span>
+                <span className="text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--green-dark)] transition-colors">{t(tool.titleKey)}</span>
+                <span className="ms-auto text-[9px] text-[var(--muted)] border border-[var(--border-faint)] rounded-full px-2 py-0.5">{VIEW_LABEL[v]}</span>
+              </div>
+              <p className="text-[11px] text-[var(--muted)] leading-relaxed">{t(tool.descKey)}</p>
+            </Link>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// The whole product on one wall — every tool across the three times, its
+// depth marked. The D4 cockpit's command surface: the pro sees everything
+// and walks anywhere in one tap.
+function FullToolMatrix() {
+  const { t, locale } = useLocale();
+  const ar = locale === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const VIEW_META: { key: ViewKey; icon: string; label: string }[] = [
+    { key: 'past', icon: '🕰', label: t('nav.past') },
+    { key: 'today', icon: '☀', label: t('nav.today') },
+    { key: 'future', icon: '🔭', label: t('nav.future') },
+  ];
+  return (
+    <div className="mb-8">
+      <SectionHeading
+        eyebrow={L('المصفوفة كاملة', 'The full matrix')}
+        title={L('كل أداة، عبر الأزمنة الثلاثة', 'Every tool, across the three times')}
+      />
+      <div className="grid sm:grid-cols-3 gap-3">
+        {VIEW_META.map((view) => (
+          <div key={view.key} className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base leading-none">{view.icon}</span>
+              <span className="text-sm font-semibold text-[var(--ink)]">{view.label}</span>
+              <span className="ms-auto text-[10px] text-[var(--muted)]">{TOOLS[view.key].length}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              {TOOLS[view.key].map((tool) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--surface-1)] transition-colors"
+                >
+                  <span className="text-sm leading-none">{tool.icon}</span>
+                  <span className="text-xs text-[var(--ink-2)] group-hover:text-[var(--ink)] transition-colors">{t(tool.titleKey)}</span>
+                  <span className="ms-auto text-[9px] text-[var(--muted)]" dir="ltr">D{tool.depth ?? 1}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title?: string }) {
