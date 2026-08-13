@@ -3,6 +3,7 @@ import Script from 'next/script';
 import localFont from 'next/font/local';
 import './globals.css';
 import AppShell from '@/components/shared/AppShell';
+import DesktopGate from '@/components/shared/DesktopGate';
 import ThemeProvider from '@/components/shared/ThemeProvider';
 import LocaleProvider from '@/lib/i18n/LocaleProvider';
 
@@ -67,6 +68,9 @@ export default function RootLayout({
         <ThemeProvider>
           <LocaleProvider>
             <AppShell>{children}</AppShell>
+            {/* phones may land, sign up, and confirm — the app itself asks
+                for a desktop until the mobile experience ships */}
+            <DesktopGate />
           </LocaleProvider>
         </ThemeProvider>
       </body>

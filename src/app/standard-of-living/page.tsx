@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { isDemoActive } from '@/lib/demoSupabase';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { demoAr } from '@/lib/demoI18n';
+import SaudiFlag from '@/components/shared/SaudiFlag';
 import {
   ladderLabel, ladderShortLabel, getLifestyle, ageForYear, suggestForTier, TIER_COLOR,
   NATIONAL_AVG_INCOME, NATIONAL_AVG_SOURCE, LADDER_TIERS, TIER_MEANING,
@@ -408,7 +409,7 @@ function StandardOfLivingInner() {
 
       {/* national average — grounded in real GaStat data */}
       <div className="flex gap-3 items-start bg-[var(--gold-bg)] border border-[var(--gold)] rounded-xl p-4 mb-6">
-        <span className="text-lg shrink-0">🇸🇦</span>
+        <SaudiFlag className="h-4 w-[21px] shrink-0 mt-0.5" />
         <div className="text-xs text-[var(--gold-text-body)] leading-relaxed">
           <strong className="text-[var(--gold-text-strong)]">{L('المتوسط الوطني:', 'National average:')} {L('14,823 ريال/شهر للأسرة', 'SAR 14,823/mo per household')}</strong>
           <span className="block mt-0.5">{ar ? NATIONAL_AVG_SOURCE.ar : NATIONAL_AVG_SOURCE.en}</span>

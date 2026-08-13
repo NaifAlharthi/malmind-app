@@ -11,6 +11,7 @@ import LanguageToggle from '@/components/shared/LanguageToggle';
 import ContactModal from '@/components/shared/ContactModal';
 import Splash from './Splash';
 import PersonaPicker from './PersonaPicker';
+import SaudiFlag from '@/components/shared/SaudiFlag';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -100,7 +101,7 @@ export default function SignupPage() {
         <div className="absolute inset-x-0 top-0 h-1" style={{ background: 'linear-gradient(90deg, #1D9E75, #17B8C9, #C9A84C)' }} aria-hidden />
         <div className="font-serif text-xl font-semibold mb-1 flex items-center gap-1.5">
           Mal<span className="text-[var(--green)]">Mind</span>
-          <span className="text-xs leading-none">🇸🇦</span>
+          <SaudiFlag className="h-3 w-4" />
         </div>
         <div className="text-[11px] text-[var(--green-dark)] mb-4">{t('common.saudiFirst')}</div>
         {confirmSentTo ? (

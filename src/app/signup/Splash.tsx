@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { SceneApps, SceneFutures, SceneVitals, SceneHiddenWealth } from './ProblemScenes';
+import SaudiFlag from '@/components/shared/SaudiFlag';
 
 interface Act { eyebrow: string; icon: string; title: string; body: string; tackle: string }
 interface Content {
@@ -232,7 +233,7 @@ export default function Splash() {
           <div className="mm-fade flex flex-wrap gap-2 mt-6" style={{ animationDelay: '0.6s' }}>
             {c.trust.map((tr) => (
               <span key={tr.text} className="inline-flex items-center gap-1.5 text-[11px] text-white/60 bg-white/[0.05] border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-sm">
-                <span className="text-xs leading-none">{tr.icon}</span> {tr.text}
+                {tr.icon === '🇸🇦' ? <SaudiFlag className="h-3 w-4" /> : <span className="text-xs leading-none">{tr.icon}</span>} {tr.text}
               </span>
             ))}
           </div>
@@ -298,7 +299,7 @@ function SaudiBadge({ tag }: { tag: string }) {
     <div className="inline-flex items-center gap-2 bg-white/[0.06] border border-[#C9A84C]/30 rounded-full ps-2.5 pe-3 py-1">
       <SaudiEmblem className="w-4 h-5" />
       <span className="text-[11px] font-medium text-[#E4C465]">{tag}</span>
-      <span className="text-xs leading-none">🇸🇦</span>
+      <SaudiFlag className="h-3 w-4" />
     </div>
   );
 }

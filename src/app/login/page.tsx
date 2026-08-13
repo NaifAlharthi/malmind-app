@@ -8,6 +8,7 @@ import LanguageToggle from '@/components/shared/LanguageToggle';
 import ContactModal from '@/components/shared/ContactModal';
 import { applyLoginPrefs, rememberedEmail } from '@/lib/authPrefs';
 import { hasAuthErrorInUrl } from '@/lib/authError';
+import SaudiFlag from '@/components/shared/SaudiFlag';
 
 type Mode = 'password' | 'link';
 
@@ -95,7 +96,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-between mb-1">
           <div className="font-serif text-xl font-semibold flex items-center gap-1.5">
             Mal<span className="text-[var(--green)]">Mind</span>
-            <span className="text-xs leading-none">🇸🇦</span>
+            <SaudiFlag className="h-3 w-4" />
           </div>
           <LanguageToggle />
         </div>
