@@ -25,8 +25,9 @@ export default function DepthRail() {
   const [hover, setHover] = useState<DepthLevel | null>(null);
   const pathname = usePathname();
 
-  // The home page is mission control, not a depth-staged view — no iceberg.
-  if (pathname === '/home') return null;
+  // Home is on the grid too: its D1 is the hājis-only focus view, and the
+  // iceberg is how you dive to the rest.
+  void pathname;
 
   return (
     <div

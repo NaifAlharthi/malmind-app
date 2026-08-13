@@ -19,8 +19,10 @@ import { DEPTH_META, type DepthLevel } from '@/lib/depth';
 import type { PageNavDetail } from '@/lib/phoneNav';
 
 // Pages where the depth system simply doesn't apply — no transitions, no
-// edge-push, no flash. The home page is mission control, not a staged view.
-const DEPTHLESS = ['/home'];
+// edge-push, no flash. Home rejoined the grid when D1 became the hājis-only
+// focus view, so the list is currently empty; the mechanism stays for any
+// future page that needs to opt out.
+const DEPTHLESS: string[] = [];
 
 export default function DepthStage({ children }: { children: React.ReactNode }) {
   const { depth, setDepth } = useDepth();

@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useProfileContext } from '@/components/shared/AppShell';
-import { useDrive } from '@/components/shared/ExperienceMode';
+import { useDrive, useDepth } from '@/components/shared/ExperienceMode';
+import { useIsPhone } from '@/lib/useIsPhone';
 import { useTheme } from '@/components/shared/ThemeProvider';
 import { localizedFirstName } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -65,6 +66,12 @@ export default function HomePage() {
   const { theme, toggleTheme } = useTheme();
   const { t, locale, setLocale } = useLocale();
   const { drive } = useDrive();
+  const { depth } = useDepth();
+  const phone = useIsPhone();
+  // The home grid staging: D1 holds ONLY the hājis — the person's concerns
+  // are the center focus, undistracted. Everything else lives in the deeper
+  // Ds. Phones show all sections (no depth control on phones in phase 1).
+  const at = (n: number) => phone || depth >= n;
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
   const sar = t('common.sar');
@@ -601,6 +608,9 @@ export default function HomePage() {
 
       </div>
 
+      {/* D2+ — except for numbers-driven readers, whose D1 would otherwise
+          be empty (the hājis is a story surface) */}
+      {(at(2) || drive === 'numbers') && (
       <div style={{ order: drive === 'numbers' ? 1 : 2 }}>
       {/* ── the opening moment: where you stand · next actionable item ── */}
       {fin && (() => {
@@ -778,9 +788,11 @@ export default function HomePage() {
         );
       })()}
       </div>
+      )}
       </div>
 
-      {/* ── personal snapshot ── */}
+      {/* ── personal snapshot — D2+ ── */}
+      {at(2) && (
       <div data-tour="profile-card" className="drv-num bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
           onClick={openEditProfile}
@@ -825,8 +837,10 @@ export default function HomePage() {
           </div>
         )}
       </div>
+      )}
 
-      {/* ── the three front doors ── */}
+      {/* ── the three front doors — D2+ ── */}
+      {at(2) && (
       <div data-tour="views-grid" className="mb-8">
         <SectionHeading eyebrow={t('home.views.heading')} />
         <div className="grid sm:grid-cols-3 gap-3">
@@ -835,8 +849,10 @@ export default function HomePage() {
           <ViewCard href="/future" icon="🔭" title={t('home.card.future.title')} desc={t('home.card.future.desc')} />
         </div>
       </div>
+      )}
 
-      {/* ── mission band ── */}
+      {/* ── mission band — D4 ── */}
+      {at(4) && (
       <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 sm:p-8 mb-8 relative overflow-hidden">
         <div className="absolute -top-10 -end-10 w-40 h-40 rounded-full bg-[var(--green-bg)] blur-3xl opacity-60 pointer-events-none" />
         <div className="relative">
@@ -886,11 +902,13 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      )}
 
-      {/* ── the foundation: enter · review · link the data everything reads ── */}
-      <FoundationHub />
+      {/* ── the foundation: enter · review · link the data everything reads — D3+ ── */}
+      {at(3) && <FoundationHub />}
 
-      {/* ── why we exist: problem → answer ── */}
+      {/* ── why we exist: problem → answer — D4 ── */}
+      {at(4) && (
       <div className="mb-8">
         <SectionHeading
           eyebrow={L('لماذا وُجد مال مايند', 'Why MalMind exists')}
@@ -919,8 +937,10 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+      )}
 
-      {/* ── your space: profile · account · integrations · settings ── */}
+      {/* ── your space: profile · account · integrations · settings — D3+ ── */}
+      {at(3) && (
       <div className="mb-4">
         <SectionHeading eyebrow={L('مساحتك', 'Your space')} />
         <div className="grid sm:grid-cols-2 gap-3">
@@ -1035,6 +1055,7 @@ export default function HomePage() {
           </SpaceTile>
         </div>
       </div>
+      )}
 
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} source="home" />
     </div>
