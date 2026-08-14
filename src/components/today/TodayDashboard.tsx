@@ -157,6 +157,7 @@ const ASSET_SERIES = [
 export default function TodayDashboard() {
   const supabase = createClient();
   const { t, locale } = useLocale();
+  const L = (a: string, e: string) => (locale === 'ar' ? a : e);
   const [data, setData] = useState<Data | null>(null);
   const [credit, setCredit] = useState<{ score: number | null; prev: number | null } | null>(null);
   const [sol, setSol] = useState<{ phases: SolPhaseRow[]; actualsByYear: Record<number, Tier>; offset: number } | null>(null);
@@ -484,6 +485,7 @@ export default function TodayDashboard() {
       compare,
       hasCompareData: compare.some((p) => p.you != null),
       cash, liquidityPct, monthsOfCash, assetTiles, paceLadder,
+      monthlyDebtPayments: riskInputs.monthlyDebtPayments,
       latest, avgIncome, avgExpenses, totalAssets, liabilities, netWorth, cashFlow, yearCashFlow,
       quad: diagnoseQuadrant(avgIncome, avgExpenses, totalAssets),
       nwPace, nwSeries, milestone, monthsToMilestone,
@@ -598,6 +600,25 @@ export default function TodayDashboard() {
 
   // The Brain's card-by-card explanations (the "?" on each card).
   const EX: Record<string, ExplainContent> = {
+    ratiosPanel: {
+      title: L('نسبك المالية الشخصية', 'Your personal financial ratios'),
+      what: L(
+        'ثماني نسب هي فحص الدم الشامل لحياتك المالية: الادخار والمصروف وغطاء الطوارئ وخدمة الدين والدين إلى الأصول والملاءة والأصول العاملة ومؤشر الثروة العمرية — كل واحدة على شريط مناطقها الصحية وعلامتك عليه.',
+        'Eight ratios are the full blood panel of your financial life: saving, expenses, emergency cover, debt service, debt-to-assets, solvency, working assets and the age-wealth index — each drawn on its healthy-zone band with your marker on it.'
+      ),
+      how: L(
+        'تُحسب كلها من أرقامك الحيّة: متوسط دخلك ومصروفك، وأصولك والتزاماتك من آخر شهر مسجّل، وأقساطك وعمرك من ملفك. الحدود من القواعد المتعارف عليها — وحدّ خدمة الدين من إرشادات ساما للإقراض المسؤول (٣٣٪).',
+        "All computed from your live numbers: average income and spending, assets and liabilities from your latest logged month, payments and age from your profile. The bands follow standard personal-finance rules — the debt-service line from SAMA's responsible-lending guidance (33%)."
+      ),
+      action: L(
+        'ابدأ بالنسبة الأكثر احمراراً — إصلاح واحدة غالباً يجرّ البقية: خفض قسطٍ يرفع الادخار ويطلق الطوارئ.',
+        'Start with the reddest ratio — fixing one usually drags the rest along: cutting an installment lifts saving and frees the emergency fund.'
+      ),
+      ask: L(
+        'اقرأ نسبي المالية الثماني وأخبرني أيها أخطر على وضعي، وما أول خطوة عملية لإصلاحها؟',
+        'Read my eight financial ratios — which is most dangerous for my situation, and what is the first practical step to fix it?'
+      ),
+    },
     balances: {
       title: t('today.balances.title'),
       what: 'What you own right now, split by asset class — cash, stocks, real estate, equity and other — with your net worth, and how liquid you are.',
@@ -720,7 +741,7 @@ export default function TodayDashboard() {
     1: ['hajis', 'dive'],
     2: ['balances', 'quadCash', 'planPace', 'freedom', 'dive'],
     3: ['dailyStack', 'sourcesRisks', 'debt', 'sol', 'compare', 'balances', 'quadCash', 'planPace', 'dive', 'freedom'],
-    4: ['credit', 'debt', 'compare', 'assets', 'lifetime', 'sourcesRisks', 'dailyStack', 'sol', 'quadCash', 'balances', 'planPace', 'freedom'],
+    4: ['credit', 'ratios', 'debt', 'compare', 'assets', 'lifetime', 'sourcesRisks', 'dailyStack', 'sol', 'quadCash', 'balances', 'planPace', 'freedom'],
   };
   const layout = LAYOUTS[depth];
   // A slot renders only when its part belongs to this depth, at its rank in
@@ -1425,6 +1446,172 @@ export default function TodayDashboard() {
         </button>
       )}
 
+      </Slot>
+
+      <Slot id="ratios">
+      {/* ── T2·D4: personal financial ratios — the full instrument panel.
+             Eight canon ratios, each with its healthy zones drawn as a band,
+             the person's marker on it, and one line of meaning. ── */}
+      {(() => {
+        const inc = avgIncome, exp = avgExpenses;
+        const mdp = derived.monthlyDebtPayments;
+        const investedAssets = derived.latest
+          ? Number(derived.latest.stocks) + Number(derived.latest.equity) + Number(derived.latest.real_estate)
+          : 0;
+        type Status = 'green' | 'amber' | 'red';
+        const C: Record<Status, string> = { green: 'var(--green-dark)', amber: 'var(--gold-2)', red: 'var(--red-2)' };
+        interface Ratio {
+          key: string; name: string; value: number | null; display: string;
+          scaleMax: number; zones: { upTo: number; s: Status }[];
+          status: Status | null; meaning: string; bench: string;
+        }
+        const pct = (n: number) => `${Math.round(n)}٪`;
+        const RATIOS: Ratio[] = [
+          (() => {
+            const v = inc > 0 ? ((inc - exp) / inc) * 100 : null;
+            return {
+              key: 'save', name: L('معدل الادخار', 'Saving rate'), value: v,
+              display: v === null ? '—' : pct(v), scaleMax: 50,
+              zones: [{ upTo: 10, s: 'red' as Status }, { upTo: 20, s: 'amber' as Status }, { upTo: 50, s: 'green' as Status }],
+              status: v === null ? null : v >= 20 ? 'green' as Status : v >= 10 ? 'amber' as Status : 'red' as Status,
+              meaning: L('كم يبقى من كل مئة ريال تكسبها — محرّك بناء الثروة الأول.', 'How much of every hundred you earn survives — wealth-building engine number one.'),
+              bench: L('الصحي ٢٠٪ فأكثر', 'healthy: 20%+'),
+            };
+          })(),
+          (() => {
+            const v = inc > 0 ? (exp / inc) * 100 : null;
+            return {
+              key: 'expense', name: L('نسبة المصروف', 'Expense ratio'), value: v,
+              display: v === null ? '—' : pct(v), scaleMax: 120,
+              zones: [{ upTo: 70, s: 'green' as Status }, { upTo: 90, s: 'amber' as Status }, { upTo: 120, s: 'red' as Status }],
+              status: v === null ? null : v <= 70 ? 'green' as Status : v <= 90 ? 'amber' as Status : 'red' as Status,
+              meaning: L('كم يأكل نمط حياتك من دخلك — فوق التسعين تعيش على الحافة.', 'How much of your income your lifestyle eats — above ninety you live on the edge.'),
+              bench: L('الصحي ٧٠٪ فأقل', 'healthy: ≤70%'),
+            };
+          })(),
+          (() => {
+            const v = monthsOfCash;
+            return {
+              key: 'emergency', name: L('غطاء الطوارئ', 'Emergency cover'), value: v,
+              display: v === null ? '—' : L(`${v.toFixed(1)} أشهر`, `${v.toFixed(1)} months`), scaleMax: 12,
+              zones: [{ upTo: 1, s: 'red' as Status }, { upTo: 3, s: 'amber' as Status }, { upTo: 6, s: 'green' as Status }, { upTo: 12, s: 'amber' as Status }],
+              status: v === null ? null : v < 1 ? 'red' as Status : v < 3 ? 'amber' as Status : v <= 6 ? 'green' as Status : 'amber' as Status,
+              meaning: L('كم شهراً تصمد لو توقف الدخل اليوم — وفوق الستة نقدٌ خامل يستحق الاستثمار.', 'How many months you survive if income stopped today — beyond six, idle cash worth investing.'),
+              bench: L('الصحي ٣–٦ أشهر', 'healthy: 3–6 months'),
+            };
+          })(),
+          (() => {
+            const v = mdp !== null && inc > 0 ? (mdp / inc) * 100 : null;
+            return {
+              key: 'dsr', name: L('خدمة الدين من الدخل', 'Debt service of income'), value: v,
+              display: v === null ? L('سجّل أقساطك', 'log your payments') : pct(v), scaleMax: 60,
+              zones: [{ upTo: 33, s: 'green' as Status }, { upTo: 45, s: 'amber' as Status }, { upTo: 60, s: 'red' as Status }],
+              status: v === null ? null : v <= 33 ? 'green' as Status : v <= 45 ? 'amber' as Status : 'red' as Status,
+              meaning: L('كم من راتبك محجوز للأقساط قبل أن يصلك — حدّ ساما للإقراض المسؤول ٣٣٪.', "How much of your salary is claimed by installments before it reaches you — SAMA's responsible-lending line is 33%."),
+              bench: L('الصحي ٣٣٪ فأقل', 'healthy: ≤33%'),
+            };
+          })(),
+          (() => {
+            const v = totalAssets > 0 ? (liabilities / totalAssets) * 100 : null;
+            return {
+              key: 'dta', name: L('الدين إلى الأصول', 'Debt to assets'), value: v,
+              display: v === null ? '—' : pct(v), scaleMax: 100,
+              zones: [{ upTo: 30, s: 'green' as Status }, { upTo: 50, s: 'amber' as Status }, { upTo: 100, s: 'red' as Status }],
+              status: v === null ? null : v <= 30 ? 'green' as Status : v <= 50 ? 'amber' as Status : 'red' as Status,
+              meaning: L('كم من كل ما تملك مموّل بالدين — فوق النصف، الملكية اسمية أكثر منها فعلية.', 'How much of what you own is financed by debt — past half, ownership is more nominal than real.'),
+              bench: L('الصحي ٣٠٪ فأقل', 'healthy: ≤30%'),
+            };
+          })(),
+          (() => {
+            const v = totalAssets > 0 ? (netWorth / totalAssets) * 100 : null;
+            return {
+              key: 'solvency', name: L('الملاءة', 'Solvency'), value: v,
+              display: v === null ? '—' : pct(v), scaleMax: 100,
+              zones: [{ upTo: 30, s: 'red' as Status }, { upTo: 50, s: 'amber' as Status }, { upTo: 100, s: 'green' as Status }],
+              status: v === null ? null : v >= 50 ? 'green' as Status : v >= 30 ? 'amber' as Status : 'red' as Status,
+              meaning: L('كم من أصولك ملكك صافياً بعد سداد كل دين — عمودك الفقري المالي.', 'How much of your assets is truly yours after every debt — your financial backbone.'),
+              bench: L('الصحي ٥٠٪ فأكثر', 'healthy: 50%+'),
+            };
+          })(),
+          (() => {
+            const v = totalAssets > 0 ? (investedAssets / totalAssets) * 100 : null;
+            return {
+              key: 'invested', name: L('الأصول العاملة', 'Working assets'), value: v,
+              display: v === null ? '—' : pct(v), scaleMax: 100,
+              zones: [{ upTo: 25, s: 'red' as Status }, { upTo: 50, s: 'amber' as Status }, { upTo: 100, s: 'green' as Status }],
+              status: v === null ? null : v >= 50 ? 'green' as Status : v >= 25 ? 'amber' as Status : 'red' as Status,
+              meaning: L('كم من ثروتك يعمل ويولّد — أسهماً وعقاراً وحصصاً، لا نقداً نائماً.', 'How much of your wealth works and yields — stocks, property, equity, not sleeping cash.'),
+              bench: L('الصحي ٥٠٪ فأكثر', 'healthy: 50%+'),
+            };
+          })(),
+          (() => {
+            const expected = age && inc > 0 ? (age * inc * 12) / 10 : null;
+            const v = expected ? netWorth / expected : null;
+            return {
+              key: 'wealthIndex', name: L('مؤشر الثروة العمرية', 'Age-wealth index'), value: v === null ? null : v * 100,
+              display: v === null ? L('أدخل عمرك', 'add your age') : `×${v.toFixed(2)}`, scaleMax: 200,
+              zones: [{ upTo: 50, s: 'red' as Status }, { upTo: 100, s: 'amber' as Status }, { upTo: 200, s: 'green' as Status }],
+              status: v === null ? null : v >= 1 ? 'green' as Status : v >= 0.5 ? 'amber' as Status : 'red' as Status,
+              meaning: L('ثروتك مقارنةً بالمتوقع لعمرك ودخلك (العمر × الدخل السنوي ÷ ١٠) — فوق الواحد تسبق جيلك.', 'Your wealth vs what your age and income predict (age × annual income ÷ 10) — above ×1 you lead your cohort.'),
+              bench: L('الصحي ×١ فأكثر', 'healthy: ×1+'),
+            };
+          })(),
+        ];
+        const counts = { green: 0, amber: 0, red: 0 } as Record<Status, number>;
+        RATIOS.forEach((r) => { if (r.status) counts[r.status] += 1; });
+        return (
+          <div data-depth-first="4">
+          <Card title={L('نسبك المالية الشخصية', 'Your personal financial ratios')} href="/ratios" explain={EX.ratiosPanel}>
+            {/* the panel verdict */}
+            <div className="drv-num flex items-center gap-2 flex-wrap mb-4 text-[10px]">
+              <span className="rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] text-[var(--green-dark)] px-2.5 py-1">
+                ● {counts.green} {L('صحية', 'healthy')}
+              </span>
+              <span className="rounded-full bg-[var(--gold-bg)] border border-[var(--gold)]/40 text-[var(--gold-text-alt)] px-2.5 py-1">
+                ● {counts.amber} {L('تحتاج انتباهاً', 'need attention')}
+              </span>
+              <span className="rounded-full bg-[var(--red-bg)] border border-[var(--red-border)] text-[var(--red-dark-text)] px-2.5 py-1">
+                ● {counts.red} {L('حمراء', 'red')}
+              </span>
+              <Link href="/ratios" className="ms-auto text-[11px] font-semibold text-[var(--green-dark)] hover:underline">
+                {L('افتح أداة النسب كاملة ←', 'Open the full ratios tool →')}
+              </Link>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+              {RATIOS.map((r) => (
+                <div key={r.key}>
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <span className="text-xs font-semibold text-[var(--ink)]">{r.name}</span>
+                    <span className="drv-num font-serif text-base font-bold shrink-0" style={{ color: r.status ? C[r.status] : 'var(--muted)' }}>
+                      {r.display}
+                    </span>
+                  </div>
+                  {/* the zone band with the person's marker */}
+                  <div className="drv-num relative h-2 rounded-full overflow-hidden flex" dir="ltr" title={r.bench}>
+                    {r.zones.map((z, zi) => {
+                      const from = zi === 0 ? 0 : r.zones[zi - 1].upTo;
+                      return (
+                        <div key={zi} style={{ width: `${((z.upTo - from) / r.scaleMax) * 100}%`, background: C[z.s], opacity: 0.28 }} />
+                      );
+                    })}
+                    {r.value !== null && (
+                      <div
+                        className="absolute top-0 bottom-0 w-1 rounded-full"
+                        style={{ left: `calc(${Math.min(100, Math.max(0, (r.value / r.scaleMax) * 100))}% - 2px)`, background: r.status ? C[r.status] : 'var(--ink)' }}
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2 mt-1">
+                    <p className="drv-story text-[10px] text-[var(--muted)] leading-relaxed">{r.meaning}</p>
+                    <span className="drv-num text-[9px] text-[var(--muted)] shrink-0">{r.bench}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          </div>
+        );
+      })()}
       </Slot>
 
       <Slot id="compare">
