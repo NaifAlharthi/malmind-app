@@ -1460,8 +1460,17 @@ export default function TodayDashboard() {
           : 0;
         type Status = 'green' | 'amber' | 'red';
         const C: Record<Status, string> = { green: 'var(--green-dark)', amber: 'var(--gold-2)', red: 'var(--red-2)' };
+        // Ratios cluster by the financial AREA they serve, so each gauge
+        // announces what part of your life it helps you steer.
+        type Area = 'engine' | 'safety' | 'debt' | 'wealth';
+        const AREAS: { key: Area; icon: string; name: string; helps: string }[] = [
+          { key: 'engine', icon: '🔥', name: L('محرّك الشهر', 'The monthly engine'), helps: L('تضبط بها: أين يذهب راتبك كل شهر، وكم ينجو منه', 'Steers: where your salary goes each month, and how much survives') },
+          { key: 'safety', icon: '🛟', name: L('شبكة الأمان', 'The safety net'), helps: L('تضبط بها: صمودك لو انقطع الدخل أو ضربتك صدمة', 'Steers: how long you stand if income stops or a shock hits') },
+          { key: 'debt', icon: '⚖️', name: L('صحة الدين', 'Debt health'), helps: L('تضبط بها: كم يملكك الدين — وكم تملك أنت فعلاً', 'Steers: how much debt owns you — and how much you truly own') },
+          { key: 'wealth', icon: '🌱', name: L('بناء الثروة', 'Wealth building'), helps: L('تضبط بها: هل مالك يعمل لصالحك ويسبق عمرك', 'Steers: whether your money works for you and outpaces your age') },
+        ];
         interface Ratio {
-          key: string; name: string; value: number | null; display: string;
+          key: string; area: Area; name: string; value: number | null; display: string;
           scaleMax: number; zones: { upTo: number; s: Status }[];
           status: Status | null; meaning: string; bench: string;
         }
@@ -1470,7 +1479,7 @@ export default function TodayDashboard() {
           (() => {
             const v = inc > 0 ? ((inc - exp) / inc) * 100 : null;
             return {
-              key: 'save', name: L('معدل الادخار', 'Saving rate'), value: v,
+              key: 'save', area: 'engine' as Area, name: L('معدل الادخار', 'Saving rate'), value: v,
               display: v === null ? '—' : pct(v), scaleMax: 50,
               zones: [{ upTo: 10, s: 'red' as Status }, { upTo: 20, s: 'amber' as Status }, { upTo: 50, s: 'green' as Status }],
               status: v === null ? null : v >= 20 ? 'green' as Status : v >= 10 ? 'amber' as Status : 'red' as Status,
@@ -1481,7 +1490,7 @@ export default function TodayDashboard() {
           (() => {
             const v = inc > 0 ? (exp / inc) * 100 : null;
             return {
-              key: 'expense', name: L('نسبة المصروف', 'Expense ratio'), value: v,
+              key: 'expense', area: 'engine' as Area, name: L('نسبة المصروف', 'Expense ratio'), value: v,
               display: v === null ? '—' : pct(v), scaleMax: 120,
               zones: [{ upTo: 70, s: 'green' as Status }, { upTo: 90, s: 'amber' as Status }, { upTo: 120, s: 'red' as Status }],
               status: v === null ? null : v <= 70 ? 'green' as Status : v <= 90 ? 'amber' as Status : 'red' as Status,
@@ -1492,7 +1501,7 @@ export default function TodayDashboard() {
           (() => {
             const v = monthsOfCash;
             return {
-              key: 'emergency', name: L('غطاء الطوارئ', 'Emergency cover'), value: v,
+              key: 'emergency', area: 'safety' as Area, name: L('غطاء الطوارئ', 'Emergency cover'), value: v,
               display: v === null ? '—' : L(`${v.toFixed(1)} أشهر`, `${v.toFixed(1)} months`), scaleMax: 12,
               zones: [{ upTo: 1, s: 'red' as Status }, { upTo: 3, s: 'amber' as Status }, { upTo: 6, s: 'green' as Status }, { upTo: 12, s: 'amber' as Status }],
               status: v === null ? null : v < 1 ? 'red' as Status : v < 3 ? 'amber' as Status : v <= 6 ? 'green' as Status : 'amber' as Status,
@@ -1503,7 +1512,7 @@ export default function TodayDashboard() {
           (() => {
             const v = mdp !== null && inc > 0 ? (mdp / inc) * 100 : null;
             return {
-              key: 'dsr', name: L('خدمة الدين من الدخل', 'Debt service of income'), value: v,
+              key: 'dsr', area: 'debt' as Area, name: L('خدمة الدين من الدخل', 'Debt service of income'), value: v,
               display: v === null ? L('سجّل أقساطك', 'log your payments') : pct(v), scaleMax: 60,
               zones: [{ upTo: 33, s: 'green' as Status }, { upTo: 45, s: 'amber' as Status }, { upTo: 60, s: 'red' as Status }],
               status: v === null ? null : v <= 33 ? 'green' as Status : v <= 45 ? 'amber' as Status : 'red' as Status,
@@ -1514,7 +1523,7 @@ export default function TodayDashboard() {
           (() => {
             const v = totalAssets > 0 ? (liabilities / totalAssets) * 100 : null;
             return {
-              key: 'dta', name: L('الدين إلى الأصول', 'Debt to assets'), value: v,
+              key: 'dta', area: 'debt' as Area, name: L('الدين إلى الأصول', 'Debt to assets'), value: v,
               display: v === null ? '—' : pct(v), scaleMax: 100,
               zones: [{ upTo: 30, s: 'green' as Status }, { upTo: 50, s: 'amber' as Status }, { upTo: 100, s: 'red' as Status }],
               status: v === null ? null : v <= 30 ? 'green' as Status : v <= 50 ? 'amber' as Status : 'red' as Status,
@@ -1525,7 +1534,7 @@ export default function TodayDashboard() {
           (() => {
             const v = totalAssets > 0 ? (netWorth / totalAssets) * 100 : null;
             return {
-              key: 'solvency', name: L('الملاءة', 'Solvency'), value: v,
+              key: 'solvency', area: 'debt' as Area, name: L('الملاءة', 'Solvency'), value: v,
               display: v === null ? '—' : pct(v), scaleMax: 100,
               zones: [{ upTo: 30, s: 'red' as Status }, { upTo: 50, s: 'amber' as Status }, { upTo: 100, s: 'green' as Status }],
               status: v === null ? null : v >= 50 ? 'green' as Status : v >= 30 ? 'amber' as Status : 'red' as Status,
@@ -1536,7 +1545,7 @@ export default function TodayDashboard() {
           (() => {
             const v = totalAssets > 0 ? (investedAssets / totalAssets) * 100 : null;
             return {
-              key: 'invested', name: L('الأصول العاملة', 'Working assets'), value: v,
+              key: 'invested', area: 'wealth' as Area, name: L('الأصول العاملة', 'Working assets'), value: v,
               display: v === null ? '—' : pct(v), scaleMax: 100,
               zones: [{ upTo: 25, s: 'red' as Status }, { upTo: 50, s: 'amber' as Status }, { upTo: 100, s: 'green' as Status }],
               status: v === null ? null : v >= 50 ? 'green' as Status : v >= 25 ? 'amber' as Status : 'red' as Status,
@@ -1548,7 +1557,7 @@ export default function TodayDashboard() {
             const expected = age && inc > 0 ? (age * inc * 12) / 10 : null;
             const v = expected ? netWorth / expected : null;
             return {
-              key: 'wealthIndex', name: L('مؤشر الثروة العمرية', 'Age-wealth index'), value: v === null ? null : v * 100,
+              key: 'wealthIndex', area: 'wealth' as Area, name: L('مؤشر الثروة العمرية', 'Age-wealth index'), value: v === null ? null : v * 100,
               display: v === null ? L('أدخل عمرك', 'add your age') : `×${v.toFixed(2)}`, scaleMax: 200,
               zones: [{ upTo: 50, s: 'red' as Status }, { upTo: 100, s: 'amber' as Status }, { upTo: 200, s: 'green' as Status }],
               status: v === null ? null : v >= 1 ? 'green' as Status : v >= 0.5 ? 'amber' as Status : 'red' as Status,
@@ -1577,36 +1586,58 @@ export default function TodayDashboard() {
                 {L('افتح أداة النسب كاملة ←', 'Open the full ratios tool →')}
               </Link>
             </div>
-            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-              {RATIOS.map((r) => (
-                <div key={r.key}>
-                  <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <span className="text-xs font-semibold text-[var(--ink)]">{r.name}</span>
-                    <span className="drv-num font-serif text-base font-bold shrink-0" style={{ color: r.status ? C[r.status] : 'var(--muted)' }}>
-                      {r.display}
-                    </span>
+            <div className="space-y-5">
+              {AREAS.map((area) => {
+                const members = RATIOS.filter((r) => r.area === area.key);
+                if (members.length === 0) return null;
+                const worst: Status | null = members.some((r) => r.status === 'red') ? 'red'
+                  : members.some((r) => r.status === 'amber') ? 'amber'
+                  : members.some((r) => r.status === 'green') ? 'green' : null;
+                return (
+                  <div key={area.key}>
+                    {/* the area's banner: what this cluster helps you steer */}
+                    <div className="flex items-baseline gap-2 flex-wrap mb-2 pb-1.5 border-b border-[var(--border-faint)]">
+                      <span className="text-sm leading-none">{area.icon}</span>
+                      <span className="text-xs font-bold text-[var(--ink)]">{area.name}</span>
+                      {worst && (
+                        <span className="drv-num w-1.5 h-1.5 rounded-full self-center" style={{ background: C[worst] }} aria-hidden />
+                      )}
+                      <span className="text-[10px] text-[var(--muted)]">{area.helps}</span>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+                      {members.map((r) => (
+                        <div key={r.key}>
+                          <div className="flex items-baseline justify-between gap-2 mb-1">
+                            <span className="text-xs font-semibold text-[var(--ink)]">{r.name}</span>
+                            <span className="drv-num font-serif text-base font-bold shrink-0" style={{ color: r.status ? C[r.status] : 'var(--muted)' }}>
+                              {r.display}
+                            </span>
+                          </div>
+                          {/* the zone band with the person's marker */}
+                          <div className="drv-num relative h-2 rounded-full overflow-hidden flex" dir="ltr" title={r.bench}>
+                            {r.zones.map((z, zi) => {
+                              const from = zi === 0 ? 0 : r.zones[zi - 1].upTo;
+                              return (
+                                <div key={zi} style={{ width: `${((z.upTo - from) / r.scaleMax) * 100}%`, background: C[z.s], opacity: 0.28 }} />
+                              );
+                            })}
+                            {r.value !== null && (
+                              <div
+                                className="absolute top-0 bottom-0 w-1 rounded-full"
+                                style={{ left: `calc(${Math.min(100, Math.max(0, (r.value / r.scaleMax) * 100))}% - 2px)`, background: r.status ? C[r.status] : 'var(--ink)' }}
+                              />
+                            )}
+                          </div>
+                          <div className="flex items-baseline justify-between gap-2 mt-1">
+                            <p className="drv-story text-[10px] text-[var(--muted)] leading-relaxed">{r.meaning}</p>
+                            <span className="drv-num text-[9px] text-[var(--muted)] shrink-0">{r.bench}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  {/* the zone band with the person's marker */}
-                  <div className="drv-num relative h-2 rounded-full overflow-hidden flex" dir="ltr" title={r.bench}>
-                    {r.zones.map((z, zi) => {
-                      const from = zi === 0 ? 0 : r.zones[zi - 1].upTo;
-                      return (
-                        <div key={zi} style={{ width: `${((z.upTo - from) / r.scaleMax) * 100}%`, background: C[z.s], opacity: 0.28 }} />
-                      );
-                    })}
-                    {r.value !== null && (
-                      <div
-                        className="absolute top-0 bottom-0 w-1 rounded-full"
-                        style={{ left: `calc(${Math.min(100, Math.max(0, (r.value / r.scaleMax) * 100))}% - 2px)`, background: r.status ? C[r.status] : 'var(--ink)' }}
-                      />
-                    )}
-                  </div>
-                  <div className="flex items-baseline justify-between gap-2 mt-1">
-                    <p className="drv-story text-[10px] text-[var(--muted)] leading-relaxed">{r.meaning}</p>
-                    <span className="drv-num text-[9px] text-[var(--muted)] shrink-0">{r.bench}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
           </div>
