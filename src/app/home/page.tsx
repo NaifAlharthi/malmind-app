@@ -264,9 +264,11 @@ export default function HomePage() {
              a snippet that hands you into Today, where the action lives ── */}
       {depth === 1 && <HajisOpener />}
 
-      {/* ── personal snapshot — home·D1: who you are, your headline numbers ── */}
+      {/* ── the profile — home·D1: a name and a summary that TALKS about the
+             person's situation; the numbers themselves live in the Log (D2)
+             and on the timeline ── */}
       {depth === 1 && (
-      <div data-tour="profile-card" className="drv-num bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
+      <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
           onClick={openEditProfile}
           className="absolute top-6 end-6 text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors"
@@ -274,46 +276,39 @@ export default function HomePage() {
           {t('common.edit')}
         </button>
         <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-1">{t('home.profile.eyebrow')}</div>
-        <div className="font-serif text-xl font-semibold">{localizedFirstName(profile.name, locale === 'ar')}</div>
-        <div className="text-xs text-white/50 mb-4">{demoAr(profile.employment, ar)} · {demoAr(profile.city, ar)}</div>
+        <div className="font-serif text-2xl font-semibold">{localizedFirstName(profile.name, locale === 'ar')}</div>
+        <div className="text-xs text-white/50">{demoAr(profile.employment, ar)} · {demoAr(profile.city, ar)}</div>
 
-        {fin ? (
-          <div className="pt-4 border-t border-white/10">
-            <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
-              <div>
-                <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--gold)] mb-1">{t('home.netWorthAsOf', { date: fin.asOf })}</div>
-                <div className="font-serif text-3xl font-bold">{money(fin.netWorth)}</div>
-              </div>
-              <Link href="/financial-numbers" className="text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors">
-                {t('home.updateNumbers')}
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <Balance label={t('home.balance.cash')} value={money(fin.cash)} dot="#2a78d6" />
-              <Balance label={t('home.balance.investments')} value={money(fin.investments)} dot="#17B8C9" />
-              <Balance label={t('home.balance.assets')} value={money(fin.assets)} dot="#E0559E" />
-              <Balance label={t('home.balance.liabilities')} value={money(fin.liabilities)} dot="#E0922A" />
-            </div>
-            <div className="flex flex-wrap items-start gap-x-8 gap-y-3 mt-4 pt-4 border-t border-white/10">
-              <MiniStat label={t('home.stat.monthlyIncome')} value={money(profile.monthly_income)} />
-              {quad && <QuadrantStat quad={quad} ar={ar} />}
-            </div>
-          </div>
-        ) : (
-          <div className="pt-4 border-t border-white/10">
-            <div className="mb-4">
-              <MiniStat label={t('home.stat.monthlyIncome')} value={money(profile.monthly_income)} />
-            </div>
+        <div className="pt-4 mt-4 border-t border-white/10">
+          {quad ? (() => {
+            const meta = QUADRANT_META[quad];
+            const c = ar ? meta.ar : meta.en;
+            return (
+              <>
+                <div className="text-[10px] tracking-[0.08em] uppercase text-white/45 mb-1.5">
+                  {ar ? 'أين تقف الآن' : 'Where you stand now'}
+                </div>
+                <div className="font-serif text-xl sm:text-2xl font-bold flex items-center gap-2 flex-wrap">
+                  <span>{meta.icon}</span>
+                  <span>{c.title}</span>
+                </div>
+                <p className="text-sm text-white/75 leading-relaxed mt-2 max-w-xl">{c.meaning}</p>
+                <Link href="/today" className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2 mt-3">
+                  {ar ? 'الخريطة كاملة في «اليوم» ←' : 'The full map in Today →'}
+                </Link>
+              </>
+            );
+          })() : (
             <Link href="/financial-numbers" className="inline-block text-xs font-medium bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg px-3 py-2 transition-colors">
               {t('home.logPrompt')}
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       )}
 
-      {/* ── the three front doors — home·D1: the action happens there ── */}
-      {depth === 1 && (
+      {/* ── the three front doors — sank to D2 so D1 stays: concern + profile ── */}
+      {depth === 2 && (
       <div data-tour="views-grid" className="mb-8">
         <SectionHeading eyebrow={t('home.views.heading')} />
         <div className="grid sm:grid-cols-3 gap-3">
@@ -931,48 +926,6 @@ function WhatsAppGlyph() {
     <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-[#25D366]" fill="currentColor" aria-hidden="true">
       <path d="M12.04 2a9.9 9.9 0 0 0-8.4 15.1L2 22l5.05-1.6A9.9 9.9 0 1 0 12.04 2Zm0 18a8.1 8.1 0 0 1-4.1-1.1l-.3-.18-3 .95.96-2.92-.2-.3a8.1 8.1 0 1 1 6.64 3.55Zm4.44-6.07c-.24-.12-1.43-.7-1.65-.79-.22-.08-.38-.12-.54.12-.16.24-.62.79-.76.95-.14.16-.28.18-.52.06a6.6 6.6 0 0 1-1.94-1.2 7.3 7.3 0 0 1-1.34-1.67c-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.47-.4-.4-.54-.41h-.46c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.7 2.6 4.12 3.64.58.25 1.03.4 1.38.51.58.18 1.1.16 1.52.1.46-.07 1.43-.58 1.63-1.15.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28Z" />
     </svg>
-  );
-}
-
-function Balance({ label, value, dot }: { label: string; value: string; dot: string }) {
-  return (
-    <div>
-      <div className="flex items-center gap-1.5 mb-1">
-        <span className="w-2 h-2 rounded-full" style={{ background: dot }} />
-        <span className="text-[10px] text-white/45">{label}</span>
-      </div>
-      <div className="text-sm font-medium">{value}</div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-[10px] text-white/45 mb-1">{label}</div>
-      <div className="text-sm font-medium">{value}</div>
-    </div>
-  );
-}
-
-// The "where you stand now" strip on the profile card: the diagnosed
-// quadrant plus one sentence on what being there means. Links to the Today
-// dashboard, where the full quadrant map lives.
-function QuadrantStat({ quad, ar }: { quad: QuadKey; ar: boolean }) {
-  const meta = QUADRANT_META[quad];
-  const c = ar ? meta.ar : meta.en;
-  return (
-    <div className="flex-1 min-w-[240px]">
-      <div className="text-[10px] text-white/45 mb-1">{ar ? 'أين تقف الآن' : 'Where you stand now'}</div>
-      <div className="text-sm font-semibold flex items-center gap-1.5 flex-wrap">
-        <span>{meta.icon}</span>
-        <span>{c.title}</span>
-        <Link href="/today" className="text-[10px] font-normal text-[var(--gold)] hover:underline ms-1">
-          {ar ? 'الخريطة كاملة ←' : 'Full map →'}
-        </Link>
-      </div>
-      <p className="text-[11px] text-white/60 leading-relaxed mt-1 max-w-md">{c.meaning}</p>
-    </div>
   );
 }
 
