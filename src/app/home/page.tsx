@@ -21,6 +21,15 @@ import PersonaAvatar from '@/app/signup/PersonaAvatar';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// The characteristic inflow/outflow silhouette of each stage — the same
+// bars the full map in Today draws (build mode has no income: a zero-line).
+const QUAD_BARS: Record<QuadKey, { incomeH: number; outflowH: number }> = {
+  A: { incomeH: 0, outflowH: 24 },
+  B: { incomeH: 19, outflowH: 28 },
+  C: { incomeH: 25, outflowH: 24 },
+  D: { incomeH: 28, outflowH: 18 },
+};
+
 interface Profile {
   name: string;
   city: string | null;
@@ -243,6 +252,30 @@ export default function HomePage() {
                         </div>
                         <div className={`text-xs font-semibold ${here ? 'text-white' : 'text-white/70'}`}>{cc.title}</div>
                         <div className="text-[9px] text-white/45 leading-relaxed mt-0.5">{cc.mood}</div>
+                        {/* the stage's in/out silhouette — same bars as the full map */}
+                        {(() => {
+                          const b = QUAD_BARS[k];
+                          return (
+                            <div className="flex items-end justify-center gap-3 mt-2.5" dir="ltr">
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="flex items-end h-8">
+                                  {b.incomeH > 0 ? (
+                                    <div className="w-3.5 rounded-sm bg-[#2EBD85]" style={{ height: b.incomeH }} />
+                                  ) : (
+                                    <div className="w-3.5 border-t-2 border-dashed border-white/35" />
+                                  )}
+                                </div>
+                                <span className="text-[7px] text-white/40 leading-none">{ar ? 'داخل' : 'in'}</span>
+                              </div>
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="flex items-end h-8">
+                                  <div className="w-3.5 rounded-sm bg-[#E05252] opacity-85" style={{ height: b.outflowH }} />
+                                </div>
+                                <span className="text-[7px] text-white/40 leading-none">{ar ? 'خارج' : 'out'}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                         {here && (
                           <div className="text-[9px] font-bold text-[var(--gold)] mt-auto pt-1.5">
                             📍 {ar ? 'أنت هنا' : 'You are here'}

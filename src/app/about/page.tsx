@@ -92,27 +92,30 @@ export default function AboutPage() {
           </h2>
           <p className="text-sm text-[var(--ink-2)] leading-relaxed max-w-2xl">
             {L(
-              'مال مايند رفيقٌ ماليّ سعوديّ أولاً، يحوّل الأرقام المبعثرة إلى صورة واحدة مترابطة تراها وتسائلها وتصمّمها — عبر ماضيك، وحاضرك، والمستقبل الذي تبنيه. ليس شاشة أرصدة أخرى، بل مكانٌ لفهم مالك واتّخاذ قرارات أفضل به.',
-              "MalMind is a Saudi-first financial companion that turns scattered numbers into one connected picture you can see, question, and design — across your past, your present, and the future you're building toward. Not another balance screen: a place to understand your money and make better decisions with it."
+              'بنكك يعرف حركاتك، ووسيطك يعرف أسهمك، وتطبيق الأقساط يعرف التزاماتك — كلٌّ يمسك شريحةً من حياتك المالية، ولا أحد يعرف ماذا تعني الشرائح مجتمعةً لك أنت. مال مايند هو الطبقة الناقصة: طبقة تفكيرٍ تعمل بالذكاء الاصطناعي تجلس بين بياناتك المالية وبين أدوات القرار — تقرأ الشرائح كلّها، وتحوّلها إلى معنى: ماذا يعني وضعي؟ وماذا يحدث لو قرّرت؟',
+              "Your bank knows your transactions, your broker knows your stocks, your installment app knows your commitments — each holds one slice of your financial life, and none knows what the slices MEAN together for you. MalMind is the missing layer: an AI-powered thinking layer that sits between your financial data and your decision tools — reading every slice and turning it into meaning: what does my situation mean, and what happens if I decide?"
             )}
           </p>
 
-          {/* what makes MalMind itself: the Brain, the iceberg, the modes, the drives */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-5">
-            {([
-              ['🧠', L('العقل', 'The Brain'), L('مستشار ذكاء اصطناعي يرافقك صفحةً بصفحة ويجيب من أرقامك أنت', 'An AI advisor that walks with you page by page and answers from your own numbers')],
-              ['🧊', L('الغوص بالعمق', 'Depth diving'), L('جبل جليد بأربع طبقات — من الأساسيات إلى الاحتراف الكامل', 'A four-layer iceberg — from the essentials down to full mastery')],
-              ['🥄', L('مستوى المساندة', 'Assistance level'), L('بالملعقة · شبه محترف · محترف — بقدر ما تحتاج من يدٍ تمسكك', 'Spoon-fed · Semi-pro · Pro — exactly as much hand-holding as you want')],
-              ['📖', L('المحرّكات', 'Drivers'), L('قصص · أرقام · قصص وأرقام — يتشكّل المنتج على طريقة تفكيرك', 'Stories · Numbers · Both — the product reshapes to how you think')],
-            ] as [string, string, string][]).map(([icon, name, desc]) => (
-              <div key={name} className="bg-[var(--surface-0)]/50 border border-[var(--border-faint)] rounded-xl p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-base leading-none">{icon}</span>
-                  <span className="text-xs font-semibold text-[var(--ink)]">{name}</span>
-                </div>
-                <p className="text-[10px] text-[var(--muted)] leading-relaxed">{desc}</p>
+          {/* the thinking layer, drawn: data below · MalMind between · decisions above */}
+          <div className="mt-5 flex flex-col gap-1.5 max-w-2xl">
+            <div className="rounded-xl border border-[var(--border-faint)] bg-[var(--surface-0)]/50 px-4 py-3">
+              <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] font-semibold mb-1">{L('قراراتك وتطبيقاتها', 'Your decisions & their applications')}</div>
+              <div className="text-[11px] text-[var(--ink-2)]">{L('هل أقدر على السيارة؟ · متى أبلغ حريتي؟ · أيّ دين أسدّد أولاً؟ · هل أنا بخير؟', 'Can I afford the car? · When am I free? · Which debt first? · Am I OK?')}</div>
+            </div>
+            <div className="text-center text-[var(--muted)] text-xs leading-none" aria-hidden>↑</div>
+            <div className="rounded-xl border-2 border-[var(--green)] bg-[var(--green-bg)] px-4 py-3.5">
+              <div className="flex items-center gap-2">
+                <span className="text-lg leading-none">🧠</span>
+                <span className="text-sm font-bold text-[var(--green-dark)]">{L('مال مايند — طبقة التفكير، بالذكاء الاصطناعي', 'MalMind — the thinking layer, powered by AI')}</span>
               </div>
-            ))}
+              <div className="text-[11px] text-[var(--ink-2)] mt-1">{L('يقرأ الشرائح كلّها · يربطها في صورة واحدة · يجيب من أرقامك أنت لا من قواعد عامة', 'Reads every slice · connects them into one picture · answers from YOUR numbers, not generic rules')}</div>
+            </div>
+            <div className="text-center text-[var(--muted)] text-xs leading-none" aria-hidden>↑</div>
+            <div className="rounded-xl border border-[var(--border-faint)] bg-[var(--surface-0)]/50 px-4 py-3">
+              <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] font-semibold mb-1">{L('بياناتك المالية المبعثرة', 'Your scattered financial data')}</div>
+              <div className="text-[11px] text-[var(--ink-2)]">{L('البنوك · الوسطاء · الأقساط · الرواتب · الجداول · الأصول الحقيقية', 'Banks · brokers · installments · salaries · spreadsheets · real assets')}</div>
+            </div>
           </div>
 
           {/* the stats wear the same dress as the cards above — one system */}
@@ -207,8 +210,8 @@ export default function AboutPage() {
               <div>
                 <p className="text-xs text-[var(--ink-2)] leading-relaxed mb-3">
                   {L(
-                    'نظام قيادة بمستوى المنصات الاحترافية العالمية — من طراز بلومبيرغ وأرقى — لكن هادئ، إنساني، وبالعربية أولاً: خريطة ذات بُعدين تسافر فيها عبر الزمن أفقياً (الماضي · اليوم · المستقبل)، وتغوص عمودياً في جبل الجليد — أربع طبقات من البساطة إلى الاحتراف، وكل صفحة تعيد ترتيب نفسها حسب عمقك.',
-                    "A command system at the level of the world's pro terminals — Bloomberg-grade and beyond — but calm, human, and Arabic-first: a two-dimensional map where you travel time horizontally (past · today · future) and dive the iceberg vertically — four layers from simplicity to mastery, every page restaging itself to your depth."
+                    'ثلاث أدوات، خريطة واحدة: الخطُّ الزمني يُبحر بك عبر عمر مالك — ماضيه ويومه ومستقبله؛ وجبلُ الجليد يغوص بك من الأساسيات الهادئة إلى الاحتراف الكامل، وكل صفحة تعيد ترتيب نفسها حسب عمقك؛ ووضعُ الأوامر يضع الخريطة كلها تحت أصابعك. قوة بمستوى بلومبيرغ وأبعد — وهدوء بمقياس إنسان، بالعربية أولاً.',
+                    "Three instruments, one map: the timeline sails you across your money's whole life — its past, its today, its future; the iceberg sinks you from calm essentials to full mastery, every page restaging itself to your depth; and command mode puts the entire map under your fingers. Bloomberg-grade power and beyond — human-grade calm, Arabic-first."
                   )}
                 </p>
                 <ul className="text-[11px] text-[var(--muted)] leading-relaxed space-y-1.5">
@@ -238,26 +241,84 @@ export default function AboutPage() {
                 </div>
               </div>
             </div>
-            {/* a still of the command palette itself — the popup, in miniature */}
-            <div className="mt-5 flex flex-col items-center">
-              <div className="w-full max-w-sm rounded-2xl border border-[var(--border-default)] p-4 shadow-lg" style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }} dir="ltr">
-                <div className="text-center font-serif text-sm font-semibold text-[var(--ink)] mb-3">{L('وضع الأوامر', 'Command mode')}</div>
-                <div className="flex flex-col items-center gap-1 text-[10px] text-[var(--muted)]">
-                  <kbd className="text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-2 py-0.5 text-[var(--ink)]">↑</kbd>
-                  <span>🌊 {L('اصعد إلى «الأساس»', 'Surface to “The essentials”')}</span>
-                  <div className="flex items-center gap-2.5 my-1.5">
-                    <kbd className="text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-2 py-0.5 text-[var(--ink)]">←</kbd>
-                    <span>🕰 {L('الماضي', 'Past')}</span>
-                    <span className="rounded-full border border-[var(--gold)] bg-[var(--gold)]/10 text-[var(--gold-text-strong)] px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap">☀ {L('اليوم', 'Today')} · D2</span>
-                    <span>🔭 {L('المستقبل', 'The Future')}</span>
-                    <kbd className="text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-2 py-0.5 text-[var(--ink)]">→</kbd>
+            {/* the three instruments LIVE — each miniature loops its own
+                motion: the walker travels, the marker dives, the keys press */}
+            <style>{`
+              @keyframes mmTlKnob { 0%,10%{left:50%} 25%,35%{left:4%} 50%,60%{left:50%} 75%,85%{left:96%} 100%{left:50%} }
+              @keyframes mmIceDive { 0%,10%{transform:translateY(0)} 25%,35%{transform:translateY(48px)} 50%,62%{transform:translateY(109px)} 78%,88%{transform:translateY(171px)} 100%{transform:translateY(0)} }
+              @keyframes mmKeyPress { 0%,5%{background:var(--gold);color:#2A1F05;border-color:var(--gold)} 9%,100%{background:var(--surface-1);color:var(--ink);border-color:var(--border-default)} }
+              .mm-tl-knob { animation: mmTlKnob 9s ease-in-out infinite; }
+              .mm-ice-marker { animation: mmIceDive 9s ease-in-out infinite; }
+              .mm-key { animation: mmKeyPress 9s infinite; }
+              @media (prefers-reduced-motion: reduce) {
+                .mm-tl-knob, .mm-tl-prog, .mm-ice-marker, .mm-key { animation: none; }
+              }
+            `}</style>
+            <div className="grid sm:grid-cols-3 gap-3 mt-5 items-stretch">
+              {/* the timeline pill */}
+              <div className="rounded-2xl border border-[var(--border-default)] p-4 flex flex-col" style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }}>
+                <div className="flex-1 flex items-center">
+                  <div className="w-full rounded-full border border-[var(--border-default)] bg-[var(--surface-card)] px-5 pt-4 pb-2" dir="ltr">
+                    <div className="relative h-3">
+                      <div className="absolute inset-x-1 top-1/2 -translate-y-1/2 h-px bg-[var(--border-medium)]" />
+                      {[0, 50, 100].map((x) => (
+                        <span key={x} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" style={{ left: `${Math.max(2, Math.min(98, x))}%` }} />
+                      ))}
+                      {/* the walker — loops past → today → future */}
+                      <span className="mm-tl-knob absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-4 rounded-sm bg-[var(--gold)] border border-[var(--gold)] shadow" style={{ left: '50%' }} />
+                    </div>
+                    <div className="flex justify-between text-[8px] text-[var(--muted)] mt-1">
+                      <span>{L('الماضي', 'The Past')}</span><span className="font-semibold text-[var(--ink-2)]">{L('اليوم', 'Today')}</span><span>{L('المستقبل', 'The Future')}</span>
+                    </div>
                   </div>
-                  <span>🐬 {L('اغطس إلى «التحليل»', 'Dive to “The analysis”')}</span>
-                  <kbd className="text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-2 py-0.5 text-[var(--ink)]">↓</kbd>
                 </div>
+                <div className="text-[9px] text-[var(--muted)] text-center mt-2.5">↔ {L('الخط الزمني — سافر عبر الزمن', 'The timeline — travel through time')}</div>
+                <p className="text-[10px] text-[var(--ink-2)] leading-relaxed text-center mt-1.5">
+                  {L('لماذا؟ لأن قرار اليوم يُفهم من الماضي ويُختبر في المستقبل — شاشة واحدة لا تتسع لعمرٍ مالي.', "Why: today's decision is understood from the past and tested in the future — one screen can't hold a financial lifetime.")}
+                </p>
               </div>
-              <div className="text-[10px] text-[var(--muted)] mt-2">
-                {L('هكذا تظهر لوحة القيادة لحظة إمساك Shift — فوق أي صفحة، شفافةً بلون ما خلفها', 'This is the command palette the moment you hold Shift — over any page, tinted by what is behind it')}
+
+              {/* the iceberg */}
+              <div className="rounded-2xl border border-[var(--border-default)] p-4 flex flex-col" style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }}>
+                <div className="flex-1 flex items-center justify-center">
+                  <svg viewBox="0 0 56 240" className="h-32 w-auto" aria-hidden="true">
+                    <line x1="0" y1="44" x2="56" y2="44" stroke="#4A85B9" strokeWidth="1" strokeDasharray="3 3" opacity="0.7" />
+                    <polygon points="28,14 33,27 35,42 20,42 23,25" fill="#DDEEFA" stroke="#9CC8E8" strokeWidth="1" />
+                    <polygon points="17,48 39,48 44,100 12,102" fill="#7FB6DE" />
+                    <polygon points="10,106 46,105 51,164 6,166" fill="#2F6494" opacity="0.6" />
+                    <polygon points="4,170 52,169 47,224 28,236 9,226" fill="#153D63" opacity="0.55" />
+                    {/* the marker — loops tip → −20m → −200m → −1000m */}
+                    <g className="mm-ice-marker">
+                      <circle cx="46" cy="26" r="5" fill="var(--gold)" stroke="var(--surface-0)" strokeWidth="2" />
+                    </g>
+                  </svg>
+                </div>
+                <div className="text-[9px] text-[var(--muted)] text-center mt-2.5">↕ {L('جبل الجليد — اغطس بالعمق', 'The iceberg — dive by depth')}</div>
+                <p className="text-[10px] text-[var(--ink-2)] leading-relaxed text-center mt-1.5">
+                  {L('لماذا؟ لأن التعقيد يُكتسب ولا يُفرض — تبدأ بهدوء، وتفتح العمق متى أردته أنت.', 'Why: complexity is earned, never imposed — you start calm, and unlock depth only when YOU want it.')}
+                </p>
+              </div>
+
+              {/* the command palette */}
+              <div className="rounded-2xl border border-[var(--border-default)] p-4 flex flex-col" style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }}>
+                <div className="flex-1 flex flex-col items-center justify-center gap-1 text-[9px] text-[var(--muted)]" dir="ltr">
+                  <div className="font-serif text-xs font-semibold text-[var(--ink)] mb-1">{L('وضع الأوامر', 'Command mode')}</div>
+                  <kbd className="mm-key text-[9px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-1.5 py-0.5 text-[var(--ink)]" style={{ animationDelay: '0s' }}>↑</kbd>
+                  <span>🌊 {L('اصعد', 'Surface')}</span>
+                  <div className="flex items-center gap-1.5 my-1">
+                    <kbd className="mm-key text-[9px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-1.5 py-0.5 text-[var(--ink)]" style={{ animationDelay: '2.25s' }}>←</kbd>
+                    <span>🕰</span>
+                    <span className="rounded-full border border-[var(--gold)] bg-[var(--gold)]/10 text-[var(--gold-text-strong)] px-2 py-0.5 text-[9px] font-semibold whitespace-nowrap">☀ {L('اليوم', 'Today')} · D2</span>
+                    <span>🔭</span>
+                    <kbd className="mm-key text-[9px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-1.5 py-0.5 text-[var(--ink)]" style={{ animationDelay: '4.5s' }}>→</kbd>
+                  </div>
+                  <span>🐬 {L('اغطس', 'Dive')}</span>
+                  <kbd className="mm-key text-[9px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-1.5 py-0.5 text-[var(--ink)]" style={{ animationDelay: '6.75s' }}>↓</kbd>
+                </div>
+                <div className="text-[9px] text-[var(--muted)] text-center mt-2.5">⇧ {L('لوحة الأوامر — كل شيء تحت أصابعك', 'The palette — everything under your fingers')}</div>
+                <p className="text-[10px] text-[var(--ink-2)] leading-relaxed text-center mt-1.5">
+                  {L('لماذا؟ لأن السرعة تغيّر علاقتك بمالك — الخريطة كلها تُدار بيدٍ واحدة دون مغادرة لوحة المفاتيح.', 'Why: speed changes your relationship with your money — the whole map driven one-handed, never leaving the keyboard.')}
+                </p>
               </div>
             </div>
 
