@@ -270,7 +270,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* Today is where the action happens — home is identity */}
             <TopNavLink href="/today" labelKey="nav.today" icon="☀" className="hidden sm:flex" compact />
             <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" compact />
-            <TopNavLink href="/tour" labelKey="nav.tour" icon="🧭" className="hidden sm:flex" compact />
+            {/* one pill, two doors: About MalMind ｜ Take a tour */}
+            <div className="hidden sm:flex items-center rounded-full border border-[var(--border-default)] overflow-hidden shrink-0">
+              <Link
+                href="/about"
+                title={locale === 'ar' ? 'عن مال مايند' : 'About MalMind'}
+                className={`flex items-center gap-1.5 ps-3 pe-2.5 py-1.5 text-sm transition-colors ${
+                  pathname === '/about' ? 'bg-[var(--ink)] text-[var(--surface-0)] font-medium' : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
+                }`}
+              >
+                <span>💡</span>
+                <span className="hidden lg:inline">{locale === 'ar' ? 'عن مال مايند' : 'About MalMind'}</span>
+              </Link>
+              <span className="w-px self-stretch bg-[var(--border-default)]" aria-hidden />
+              <Link
+                href="/tour"
+                title={t('nav.tour')}
+                className={`flex items-center gap-1.5 ps-2.5 pe-3 py-1.5 text-sm transition-colors ${
+                  pathname === '/tour' ? 'bg-[var(--ink)] text-[var(--surface-0)] font-medium' : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
+                }`}
+              >
+                <span>🧭</span>
+                <span className="hidden lg:inline">{t('nav.tour')}</span>
+              </Link>
+            </div>
 
             {/* push utilities to the end (time travel floats at the bottom now) */}
             <div className="flex-1" />
