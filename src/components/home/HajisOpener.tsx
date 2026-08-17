@@ -51,6 +51,14 @@ export default function HajisOpener() {
   const [howTools, setHowTools] = useState<string[]>([]);
   const [howNote, setHowNote] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
+  // the sigh: options float away like a released breath, then a wave
+  // of relief washes over the cleared room
+  const [sighing, setSighing] = useState(false);
+  const [relief, setRelief] = useState(false);
+  const breatheOut = () => {
+    setRelief(true);
+    window.setTimeout(() => setRelief(false), 1800);
+  };
 
   useEffect(() => {
     try {
@@ -83,7 +91,15 @@ export default function HajisOpener() {
     if (!startedAt[k]) startedAt[k] = new Date().toISOString();
     saveConcern({ types, text: concern.text, none: false, startedAt });
   };
-  const chooseNone = () => saveConcern({ types: [], text: '', none: true, startedAt: concern.startedAt });
+  const chooseNone = () => {
+    // let the options drift away first — THEN the room clears
+    setSighing(true);
+    window.setTimeout(() => {
+      saveConcern({ types: [], text: '', none: true, startedAt: concern.startedAt });
+      setSighing(false);
+      breatheOut();
+    }, 750);
+  };
   // step 1: the ✓ opens the "how" dialog; step 2 below actually resolves
   const openResolve = (entry: { k?: string; text?: string }) => {
     setHowTools([]);
@@ -104,6 +120,7 @@ export default function HajisOpener() {
     if (resolveTarget.k) saveConcern({ types: concern.types.filter((t) => t !== resolveTarget.k), text: concern.text, none: false, startedAt: concern.startedAt });
     else saveConcern({ types: concern.types, text: '', none: false, startedAt: concern.startedAt });
     setResolveTarget(null);
+    breatheOut();
   };
 
   const chosen = concern.types
@@ -125,6 +142,36 @@ export default function HajisOpener() {
 
   return (
     <div className="drv-story w-full bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl mb-6 p-7 sm:p-12 text-white relative overflow-hidden min-h-[52vh] flex flex-col justify-center">
+      {/* the sigh — concerns drift upward and dissolve like a released
+          breath; then soft rings ripple out with the relief */}
+      <style>{`
+        @keyframes mmSighAway { 0% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } 100% { opacity: 0; transform: translateY(-52px) scale(0.9); filter: blur(5px); } }
+        .mm-sigh-away > * { animation: mmSighAway 0.7s ease-in forwards; }
+        .mm-sigh-away > *:nth-child(2n) { animation-delay: 0.09s; }
+        .mm-sigh-away > *:nth-child(3n) { animation-delay: 0.18s; }
+        .mm-sigh-away > *:nth-child(5n) { animation-delay: 0.26s; }
+        @keyframes mmReliefRing { 0% { transform: scale(0.15); opacity: 0.65; } 100% { transform: scale(2.8); opacity: 0; } }
+        .mm-relief-ring { animation: mmReliefRing 1.5s ease-out forwards; }
+        @keyframes mmReliefText { 0% { opacity: 0; transform: translateY(14px) scale(0.85); } 22% { opacity: 1; transform: translateY(0) scale(1.06); } 34% { transform: scale(1); } 70% { opacity: 1; transform: translateY(-6px); } 100% { opacity: 0; transform: translateY(-26px); } }
+        .mm-relief-text { animation: mmReliefText 1.8s ease-out forwards; }
+        @media (prefers-reduced-motion: reduce) { .mm-sigh-away > *, .mm-relief-ring, .mm-relief-text { animation: none; } .mm-relief-ring { opacity: 0; } }
+      `}</style>
+
+      {/* the wave of relief — rings + one long exhale */}
+      {relief && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="mm-relief-ring absolute w-40 h-40 rounded-full border-2 border-[var(--gold)]/50"
+              style={{ animationDelay: `${i * 0.18}s` }}
+            />
+          ))}
+          <span className="mm-relief-text text-2xl sm:text-3xl font-serif font-bold text-[var(--gold)] drop-shadow-lg">
+            😮‍💨 {L('يا للراحة…', 'What a relief…')}
+          </span>
+        </div>
+      )}
       <div className="absolute -top-16 -end-16 w-72 h-72 rounded-full bg-[var(--gold)]/10 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-20 -start-16 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
       <div className="relative max-w-3xl mx-auto w-full">
@@ -192,19 +239,22 @@ export default function HajisOpener() {
             <div className="font-serif text-2xl sm:text-4xl font-bold leading-snug text-center mb-4">
               {L('لا هاجس كبير هذه الفترة — وهذا إنجاز بحد ذاته.', 'No major concern this season — that is an achievement in itself.')}
             </div>
+            {/* a clear mind gets a clear room — no options, no noise */}
             <p className="text-center text-[12px] text-white/60 mb-7 max-w-md mx-auto leading-relaxed">
-              {L('نبقى معك على المراقبة. ومتى طرأ هاجس، اختره من هنا ونتولاه معاً.', "We keep watch with you. Whenever one arises, pick it here and we'll take it on together.")}
+              {L('نبقى معك على المراقبة — وذهنك صافٍ، فلا شيء يستدعي القلق الآن.', 'We keep watch with you — and your mind is clear: nothing calls for worry right now.')}
             </p>
-            <div className="flex flex-wrap justify-center gap-2 mb-7">
-              {HAJIS_TYPES_LITE.slice(0, 8).map((c) => (
-                <button key={c.k} onClick={() => pick(c.k)} className="inline-flex items-center gap-1.5 text-xs border border-white/25 rounded-full px-3.5 py-2 text-white/90 hover:border-[var(--gold)]/60 hover:text-white transition-colors cursor-pointer">
-                  <span>{c.icon}</span><span>{ar ? c.ar : c.en}</span>
-                </button>
-              ))}
-            </div>
             <div className="text-center">
               <button onClick={goToday} className="inline-block text-sm font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-xl px-6 py-3 hover:translate-x-0.5 transition-transform cursor-pointer">
                 {L('إلى «اليوم» حيث الفعل ←', 'To Today, where the action is →')}
+              </button>
+            </div>
+            {/* the one quiet way back, should a season change */}
+            <div className="text-center mt-4">
+              <button
+                onClick={() => saveConcern({ types: [], text: '', none: false, startedAt: concern.startedAt })}
+                className="text-[11px] text-white/40 hover:text-white/75 underline underline-offset-4 transition-colors cursor-pointer"
+              >
+                {L('طرأ هاجس؟ اختره', 'A concern came up? Pick it')}
               </button>
             </div>
           </>
@@ -216,8 +266,9 @@ export default function HajisOpener() {
             <div className="font-serif text-2xl sm:text-4xl font-bold leading-snug text-center mb-6">
               {L('ما أكبر هاجس يشغل بالك هذه الأيام؟', "What's the biggest thing on your mind these days?")}
             </div>
-            {/* choose here, directly — up to three */}
-            <div className="flex flex-wrap justify-center gap-2 mb-4">
+            {/* choose here, directly — up to three. When "nothing" is
+                chosen they all drift away like a released breath */}
+            <div className={`flex flex-wrap justify-center gap-2 mb-4 ${sighing ? 'mm-sigh-away pointer-events-none' : ''}`}>
               {HAJIS_TYPES_LITE.slice(0, 8).map((c) => (
                 <button key={c.k} onClick={() => pick(c.k)} className="inline-flex items-center gap-1.5 text-xs border border-white/25 rounded-full px-3.5 py-2 text-white/90 hover:border-[var(--gold)]/60 hover:text-white transition-colors cursor-pointer">
                   <span>{c.icon}</span><span>{ar ? c.ar : c.en}</span>
