@@ -20,6 +20,7 @@ import { clearEphemeral } from '@/lib/authPrefs';
 import { useIsPhone } from '@/lib/useIsPhone';
 import { announcePageNav } from '@/lib/phoneNav';
 import TouchNav from './TouchNav';
+import YourSpacePanel from './YourSpacePanel';
 
 // Enforces "keep me signed in = off"; browser-only, so load it lazily.
 const EphemeralSessionGuard = dynamic(() => import('./EphemeralSessionGuard'), { ssr: false });
@@ -105,6 +106,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isPhone = useIsPhone();
   const [initials, setInitials] = useState('?');
   const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [spaceOpen, setSpaceOpen] = useState(false);
   const [profileVersion, setProfileVersion] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -281,9 +283,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <XModeSwitcher />
                 <DriveSwitcher className="me-1" />
               </div>
+              {/* the circle button opens YOUR SPACE — account, reports,
+                  integrations, help (moved off home·D3) */}
               <button
-                onClick={() => setEditProfileOpen(true)}
-                title={t('common.editProfile')}
+                onClick={() => setSpaceOpen(true)}
+                title={locale === 'ar' ? 'مساحتك' : 'Your space'}
                 className="w-8 h-8 rounded-full bg-[var(--green-bg)] border border-[var(--green-border)] flex items-center justify-center text-[10px] font-semibold text-[var(--green-dark)] hover:bg-[var(--green-hover-bg)] transition-colors"
               >
                 {initials}
@@ -379,6 +383,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* horizontal swipes travel through time — the touch wheel-tilt */}
         <TouchNav />
 
+      <YourSpacePanel
+        open={spaceOpen}
+        onClose={() => setSpaceOpen(false)}
+        onEditProfile={() => setEditProfileOpen(true)}
+      />
       <EditProfileModal
         open={editProfileOpen}
         onClose={() => setEditProfileOpen(false)}
