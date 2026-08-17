@@ -10,13 +10,11 @@ import { useTheme } from '@/components/shared/ThemeProvider';
 import { localizedFirstName } from '@/lib/name';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { clearEphemeral } from '@/lib/authPrefs';
-import { TOOLS, toolsUnlockedAt, type ViewKey } from '@/lib/toolbox';
-import HajisBlock from '@/components/shared/HajisBlock';
+import { TOOLS, type ViewKey } from '@/lib/toolbox';
 import type { DepthLevel } from '@/lib/depth';
 import { isDemoActive } from '@/lib/demoSupabase';
 import { diagnoseQuadrant, QUADRANT_META, type QuadKey } from '@/lib/quadrant';
 import { demoAr } from '@/lib/demoI18n';
-import { futureValue, DEFAULT_RETURN } from '@/lib/dailyStack';
 import ContactModal from '@/components/shared/ContactModal';
 import FoundationHub from '@/components/home/FoundationHub';
 import LogTile from '@/components/home/LogTile';
@@ -70,15 +68,12 @@ export default function HomePage() {
   const { t, locale, setLocale } = useLocale();
   const { drive } = useDrive();
   const { depth, setDepth } = useDepth();
-  // The home grid staging: each depth is its OWN view, composed for its
-  // audience — not a downward extension of the one above.
-  //   D1 التركيز   — the hājis alone, nothing pulling at the eye
-  //   D2 الضبط     — the control room: where you stand · next move · the
-  //                  three time doors · concerns as a compact strip
-  //   D3 التحليل   — the analysis desk: the numbers snapshot · the four
-  //                  foundation elements · this depth's analysis tools
-  //   D4 الاحتراف  — the pro cockpit: snapshot + standing + the FULL tool
-  //                  matrix + your space + who we are
+  // Home vs Today, segmented: home is IDENTITY — who you are, your data,
+  // and what MalMind is. The action happens on the timeline (T2 leads).
+  //   D1 التعريف — who you are: the snapshot + the three time doors
+  //   D2 البيانات — your data room: the foundation tower + the Log
+  //   D3 مساحتك  — account · reports · integrations · help
+  //   D4 المنتج   — what MalMind is: mission, four problems, full matrix
   // Symmetric on web and phone; fingers dive by pulling past the page edge.
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
@@ -88,21 +83,8 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [quad, setQuad] = useState<QuadKey | null>(null);
   const [fin, setFin] = useState<Financials | null>(null);
-  const [prevNw, setPrevNw] = useState<number | null>(null);
-  const [goalCount, setGoalCount] = useState(0);
-  // The hājis (biggest concerns) moved into the shared HajisBlock — one
-  // source for home and Today (T2 · D1).
-
-  // Rotates the curated next action once per visit, so the opening moment
-  // feels alive every time the product is opened.
-  const [visitIdx, setVisitIdx] = useState(0);
-  useEffect(() => {
-    try {
-      const n = (Number(window.localStorage.getItem('mm-action-visit')) || 0) + 1;
-      window.localStorage.setItem('mm-action-visit', String(n));
-      setVisitIdx(n);
-    } catch { /* ignore */ }
-  }, []);
+  // The action surfaces (hājis, standing/next-action) live on T2 now —
+  // home is identity: who you are, your data, and what MalMind is.
   const [account, setAccount] = useState<Account | null>(null);
   const [integ, setInteg] = useState<Integrations | null>(null);
   const [loading, setLoading] = useState(true);
@@ -152,22 +134,10 @@ export default function HomePage() {
         recent.reduce((a, r) => a + Number(r.expenses), 0) / recent.length,
         assets,
       ));
-      if (snaps.length >= 2) {
-        const p = snaps[snaps.length - 2];
-        setPrevNw(
-          Number(p.cash) + Number(p.stocks) + Number(p.real_estate) + Number(p.equity) + Number(p.other_assets) - Number(p.liabilities)
-        );
-      } else setPrevNw(null);
     } else {
       setFin(null);
       setQuad(null);
-      setPrevNw(null);
     }
-
-    try {
-      const { data: gf } = await supabase.from('goal_funds').select('id').eq('user_id', user.id);
-      setGoalCount(Array.isArray(gf) ? gf.length : 0);
-    } catch { setGoalCount(0); }
 
     // Integration status — best-effort; failures just leave the tile neutral.
     try {
@@ -286,203 +256,11 @@ export default function HomePage() {
         <button onClick={handleSignOut} className="text-xs text-[var(--muted)]">{t('common.signOut')}</button>
       </div>
 
-      {/* the drive decides what leads: story-driven (and both) open with the
-          hājis; numbers-driven open with the standing tile — CSS order flips
-          the two without touching the DOM */}
-      <div className="flex flex-col">
-      {depth <= 2 && (
-      <div style={{ order: drive === 'numbers' || depth === 2 ? 2 : 1 }}>
-      {/* the hajis: hero at D1, compact strip at D2 */}
-      <HajisBlock fin={fin} mode={depth === 2 ? 'strip' : 'hero'} />
-      </div>
-      )}
+      {/* the action surfaces (hājis, standing, next action) live on T2 —
+          home is identity: who you are, your data, and what MalMind is */}
 
-      {/* the standing tile leads the D2 control room and returns in the D4
-          cockpit; numbers-driven readers keep it at D1 too (their drive
-          hides the hājis story surface, which would leave D1 empty) */}
-      {(depth === 2 || depth === 4 || (depth === 1 && drive === 'numbers')) && (
-      <div style={{ order: drive === 'numbers' || depth >= 2 ? 1 : 2 }}>
-      {/* ── the opening moment: where you stand · next actionable item ── */}
-      {fin && (() => {
-        const surplus = fin.income - fin.expenses;
-        const nwDelta = prevNw !== null ? fin.netWorth - prevNw : null;
-        const qc = quad ? (ar ? QUADRANT_META[quad].ar : QUADRANT_META[quad].en) : null;
-
-        // Curated next actions — every applicable rule joins the pool, and
-        // the visit counter rotates which one greets you today.
-        const pool: { icon: string; title: string; body: string; cta: string; href: string }[] = [];
-        if (surplus < 0) {
-          pool.push({
-            icon: '🩸',
-            title: L('أوقف نزيف هذا الشهر', "Stop this month's bleed"),
-            body: L(
-              `مصروفك تجاوز دخلك بـ${money(Math.abs(surplus))} هذا الشهر. افتح كومة اليوم وقلّم اختياراً واحداً متكرراً — الصغير المتكرر أخطر من الكبير العابر.`,
-              `Spending beat income by ${money(Math.abs(surplus))} this month. Open the Daily Stack and trim one recurring choice — the small repeating one outweighs the big one-off.`
-            ),
-            cta: L('افتح كومة اليوم ←', 'Open the Daily Stack →'), href: '/daily-stack',
-          });
-        }
-        if (surplus > 0) {
-          pool.push({
-            icon: '❄️',
-            title: L('كرة الثلج تنتظر فائضك', 'Your surplus wants to snowball'),
-            body: L(
-              `فائض هذا الشهر ${money(surplus)}. لو تكرر واستُثمر، يصبح نحو ${money(futureValue(surplus, 20, DEFAULT_RETURN))} خلال ٢٠ سنة — حوّله قبل أن يراه المصروف.`,
-              `This month's surplus is ${money(surplus)}. Repeated and invested, it becomes about ${money(futureValue(surplus, 20, DEFAULT_RETURN))} in 20 years — move it before spending sees it.`
-            ),
-            cta: L('شاهد سرعة مالك ←', 'See your money’s velocity →'), href: '/velocity',
-          });
-        }
-        if (fin.cash > 6 * Math.max(1, fin.expenses)) {
-          pool.push({
-            icon: '🧊',
-            title: L('نقدك الخامل يذوب بهدوء', 'Your idle cash is quietly melting'),
-            body: L(
-              `${money(fin.cash)} نقداً — أكثر من ستة أشهر مصاريف. ما فوق الطوارئ يخسر قيمته للتضخم كل سنة؛ فكّر في تشغيل جزء منه.`,
-              `${money(fin.cash)} in cash — over six months of costs. Whatever exceeds the emergency cushion loses value to inflation yearly; consider putting part to work.`
-            ),
-            cta: L('قارن أين يعمل الريال ←', 'Compare where the riyal works →'), href: '/compare',
-          });
-        }
-        if (goalCount === 0) {
-          pool.push({
-            icon: '🎯',
-            title: L('حلمك الكبير بلا اسم بعد', 'Your big dream has no name yet'),
-            body: L(
-              'الهدف الذي له اسمٌ ورقمٌ شهري يتحقق؛ والنية الغامضة لا تتحقق. سمِّ خطوتك الكبيرة القادمة — عمرة، دفعة أولى، سنة تفرّغ — وأعطها وتيرة.',
-              'A goal with a name and a monthly number gets funded; a vague intention does not. Name your next big thing — a down payment, a sabbatical — and give it a pace.'
-            ),
-            cta: L('ابدأ صندوق هدف ←', 'Start a goal fund →'), href: '/goal-fund',
-          });
-        }
-        pool.push({
-          icon: '🔭',
-          title: L('تأمل: أين تقف بعد خمس سنوات؟', 'Contemplate: where do you stand in five years?'),
-          body: L(
-            'خذ دقيقة مع «ماذا لو»: جرّب علاوة، أو سكناً أرخص، أو استثماراً شهرياً — وشاهد أثر القرار على مستقبلك بالأرقام قبل أن تعيشه.',
-            'Take a minute with What-If: try a raise, cheaper housing, or monthly investing — and watch the decision reshape your future in numbers before you live it.'
-          ),
-          cta: L('افتح ماذا لو ←', 'Open What-If →'), href: '/what-if',
-        });
-        const action = pool[visitIdx % pool.length];
-
-        // A rotating provocation — one idea per visit that grows general
-        // financial literacy, not tied to the user's own numbers.
-        const NUGGETS: { ar: string; en: string }[] = [
-          {
-            ar: 'قاعدة ٧٢: اقسم ٧٢ على العائد السنوي تعرف كم سنة يحتاج مالك ليتضاعف — عند ٧٪ يتضاعف كل ~١٠ سنوات.',
-            en: 'The Rule of 72: divide 72 by the annual return to know how many years money needs to double — at 7% it doubles every ~10 years.',
-          },
-          {
-            ar: 'التضخم ضريبةٌ صامتة: ٣٪ سنوياً تكفي لتبخير نصف قوة نقدك الراكد خلال ٢٣ سنة.',
-            en: 'Inflation is a silent tax: 3% a year is enough to evaporate half your idle cash’s power in 23 years.',
-          },
-          {
-            ar: 'تكلفة الفرصة: ثمن أي شيء ليس سعره، بل ما كان سيصيره ذلك المال لو بقي يعمل.',
-            en: 'Opportunity cost: the price of anything is not its tag — it is what that money would have become had it kept working.',
-          },
-          {
-            ar: 'الفائدة المركّبة تعمل في الاتجاهين: من يفهمها يكسبها، ومن يتجاهلها يدفعها لغيره.',
-            en: 'Compound interest works both ways: those who understand it earn it; those who ignore it pay it to someone else.',
-          },
-          {
-            ar: 'متوسط التكلفة: مبلغ ثابت يُستثمر كل شهر يشتري تلقائياً أكثر حين تهبط السوق — الانضباط يغلب التوقيت.',
-            en: 'Cost averaging: a fixed monthly investment automatically buys more when markets fall — discipline beats timing.',
-          },
-          {
-            ar: 'الدخل ليس ثروة: الثروة ما يبقى ويعمل بعد المصروف؛ كم من صاحب دخلٍ مرتفع فقيرٌ في ميزانيته العمومية.',
-            en: 'Income is not wealth: wealth is what stays and works after spending — many high earners are balance-sheet poor.',
-          },
-          {
-            ar: 'قاعدة ٤٪: كل ألف ريال من مصروفك الشهري تحتاج نحو ٣٠٠ ألف مستثمرة لتغطيها إلى الأبد.',
-            en: 'The 4% rule: every SAR 1,000 of monthly spending needs about SAR 300K invested to cover it forever.',
-          },
-          {
-            ar: 'أول مئة ألف هي الأصعب — بعدها يبدأ التراكم يحمل معك طرف الحِمل.',
-            en: 'The first hundred thousand is the hardest — after it, compounding starts carrying its share of the load.',
-          },
-          {
-            ar: 'خطر التسلسل: متوسط عائد جيد قد يُفلسك إن جاءت السنوات السيئة أولاً وأنت تسحب منه.',
-            en: 'Sequence risk: a good average return can still ruin you if the bad years come first while you are withdrawing.',
-          },
-          {
-            ar: 'سيولةٌ بلا عائد أمانٌ يذوب، وعائدٌ بلا سيولة قيدٌ يخنق — الحكمة في النسبة لا في التطرف.',
-            en: 'Liquidity without return is safety that melts; return without liquidity is a chain that chokes — wisdom is in the ratio, not the extreme.',
-          },
-        ];
-        const nugget = NUGGETS[visitIdx % NUGGETS.length];
-
-        return (
-          <div className="bg-[var(--surface-card)] border border-[var(--gold)]/40 rounded-2xl mt-4 mb-6 grid md:grid-cols-2 overflow-hidden">
-            {/* where you stand as of today */}
-            <div className="drv-num p-5">
-              <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] font-semibold mb-2.5">
-                {L('أين تقف اليوم', 'Where you stand today')}
-              </div>
-              <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
-                <span className="font-serif text-3xl font-bold" style={{ color: fin.netWorth >= 0 ? 'var(--ink)' : 'var(--red-2)' }}>
-                  {money(fin.netWorth)}
-                </span>
-                {nwDelta !== null && nwDelta !== 0 && (
-                  <span className={`text-xs font-semibold ${nwDelta > 0 ? 'text-[var(--green-dark)]' : 'text-[var(--red-2)]'}`}>
-                    {nwDelta > 0 ? '▲' : '▼'} {money(Math.abs(nwDelta))} {L('عن الشهر الماضي', 'vs last month')}
-                  </span>
-                )}
-              </div>
-              <div className="text-[11px] text-[var(--muted)] mb-3">{L('صافي ثروتك الآن', 'Your net worth right now')}</div>
-              <div className="flex items-center gap-2 flex-wrap text-[11px]">
-                {qc && quad && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-1)] border border-[var(--border-default)] px-2.5 py-1 text-[var(--ink-2)]">
-                    {QUADRANT_META[quad].icon} {qc.title}
-                  </span>
-                )}
-                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 border ${
-                  surplus >= 0
-                    ? 'bg-[var(--green-bg)] border-[var(--green-border)] text-[var(--green-dark)]'
-                    : 'bg-[var(--gold-bg)] border-[var(--gold)]/40 text-[var(--gold-text-alt)]'
-                }`}>
-                  {surplus >= 0 ? L(`فائض الشهر ${money(surplus)}`, `Month's surplus ${money(surplus)}`) : L(`عجز الشهر ${money(Math.abs(surplus))}`, `Month's deficit ${money(Math.abs(surplus))}`)}
-                </span>
-              </div>
-            </div>
-
-            {/* next actionable item — divided by a line, rotating every visit */}
-            <div className="drv-story p-5 border-t md:border-t-0 md:border-s border-[var(--border-default)]">
-              <div className="flex items-center justify-between gap-2 mb-2.5">
-                <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] font-semibold">
-                  {L('خطوتك التالية', 'Next actionable item')}
-                </div>
-                <span className="text-[9px] text-[var(--muted)]">{L('تتجدد مع كل زيارة', 'refreshes every visit')}</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="text-xl shrink-0">{action.icon}</span>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-[var(--ink)] mb-1">{action.title}</div>
-                  <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-2.5">{action.body}</p>
-                  <Link href={action.href} className="inline-block text-xs font-semibold text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3 py-1.5">
-                    {action.cta}
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* a provocation for the financially curious — rotates per visit */}
-            <div className="drv-story md:col-span-2 border-t border-[var(--border-default)] px-5 py-3 flex items-start gap-2.5 bg-[var(--surface-0)]/40">
-              <span className="text-sm shrink-0 mt-px">💡</span>
-              <p className="text-[11px] leading-relaxed text-[var(--ink-2)] min-w-0">
-                <span className="text-[10px] tracking-[0.1em] uppercase text-[var(--gold)] font-semibold me-2">{L('إثراء', 'Enrich')}</span>
-                {ar ? nugget.ar : nugget.en}
-              </p>
-            </div>
-          </div>
-        );
-      })()}
-      </div>
-      )}
-      </div>
-
-      {/* ── personal snapshot — leads the D3 analysis desk, returns in D4 ── */}
-      {depth >= 3 && (
+      {/* ── personal snapshot — home·D1: who you are, your headline numbers ── */}
+      {depth === 1 && (
       <div data-tour="profile-card" className="drv-num bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
           onClick={openEditProfile}
@@ -529,8 +307,8 @@ export default function HomePage() {
       </div>
       )}
 
-      {/* ── the three front doors — the D2 control room's exits ── */}
-      {depth === 2 && (
+      {/* ── the three front doors — home·D1: the action happens there ── */}
+      {depth === 1 && (
       <div data-tour="views-grid" className="mb-8">
         <SectionHeading eyebrow={t('home.views.heading')} />
         <div className="grid sm:grid-cols-3 gap-3">
@@ -594,14 +372,11 @@ export default function HomePage() {
       </div>
       )}
 
-      {/* ── the foundation: enter · review · link the data everything reads — the D3 desk ── */}
-      {depth === 3 && <FoundationHub />}
+      {/* ── the foundation: enter · review · link the data everything reads — home·D2, the data room ── */}
+      {depth === 2 && <FoundationHub />}
 
-      {/* ── the Log: every number on one spreadsheet-like grid — the D3 desk ── */}
-      {depth === 3 && <LogTile />}
-
-      {/* ── this depth's analysis instruments — the D3 desk's toolbelt ── */}
-      {depth === 3 && <DepthToolShelf level={3} />}
+      {/* ── the Log: every number on one spreadsheet-like grid — home·D2 ── */}
+      {depth === 2 && <LogTile />}
 
       {/* ── the FULL tool matrix — the D4 cockpit's command wall ── */}
       {depth === 4 && <FullToolMatrix />}
@@ -638,8 +413,8 @@ export default function HomePage() {
       </div>
       )}
 
-      {/* ── your space: profile · account · integrations · settings — the D4 cockpit ── */}
-      {depth === 4 && (
+      {/* ── your space: profile · account · integrations · settings — home·D3 ── */}
+      {depth === 3 && (
       <div className="mb-4">
         <SectionHeading eyebrow={L('مساحتك', 'Your space')} />
         <div className="grid sm:grid-cols-2 gap-3">
@@ -1201,46 +976,6 @@ function QuadrantStat({ quad, ar }: { quad: QuadKey; ar: boolean }) {
 function SaudiEmblem() {
   // eslint-disable-next-line @next/next/no-img-element
   return <img src="/saudi-flag.svg" alt="🇸🇦" className="h-6 w-8 rounded-[3px] object-cover" />;
-}
-
-// The tools a given depth unlocks, laid out as this level's instruments —
-// the D3 analysis desk uses it to surface its own gear instead of a longer
-// page. Each chip walks straight into the tool.
-function DepthToolShelf({ level }: { level: DepthLevel }) {
-  const { t, locale } = useLocale();
-  const ar = locale === 'ar';
-  const L = (a: string, e: string) => (ar ? a : e);
-  const unlocked = toolsUnlockedAt(level);
-  const VIEW_LABEL: Record<ViewKey, string> = {
-    past: t('nav.past'), today: t('nav.today'), future: t('nav.future'),
-  };
-  const rows = (['past', 'today', 'future'] as ViewKey[]).filter((v) => unlocked[v].length > 0);
-  return (
-    <div className="mb-8">
-      <SectionHeading
-        eyebrow={L('عتاد هذا العمق', "This depth's instruments")}
-        title={L('أدوات التحليل التي ينكشف عنها هذا المستوى', 'The analysis tools this level unlocks')}
-      />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-        {rows.flatMap((v) =>
-          unlocked[v].map((tool) => (
-            <Link
-              key={`${v}${tool.href}`}
-              href={tool.href}
-              className="group bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl p-3.5 hover:border-[var(--green)] transition-colors"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg leading-none">{tool.icon}</span>
-                <span className="text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--green-dark)] transition-colors">{t(tool.titleKey)}</span>
-                <span className="ms-auto text-[9px] text-[var(--muted)] border border-[var(--border-faint)] rounded-full px-2 py-0.5">{VIEW_LABEL[v]}</span>
-              </div>
-              <p className="text-[11px] text-[var(--muted)] leading-relaxed">{t(tool.descKey)}</p>
-            </Link>
-          ))
-        )}
-      </div>
-    </div>
-  );
 }
 
 // The whole product on one wall — every tool across the three times, its

@@ -265,6 +265,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* desktop nav: Home + the walking timeline + the Brain */}
             {/* the wordmark already goes home, so the pill can yield first when space runs out */}
             <TopNavLink href="/home" labelKey="nav.home" icon="⌂" className="hidden md:flex ms-2" compact />
+            {/* Today is where the action happens — home is identity */}
+            <TopNavLink href="/today" labelKey="nav.today" icon="☀" className="hidden sm:flex" compact />
             <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" compact />
             <TopNavLink href="/tour" labelKey="nav.tour" icon="🧭" className="hidden sm:flex" compact />
 
@@ -355,8 +357,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* ── the floating timeline: the horizontal (time) axis of the 2D map,
                hovering just below the top bar, facing the iceberg's vertical axis ── */}
-        {/* the time axis floats everywhere — on home it's the invitation to
-            travel; the walker rests at the present until you pick an era */}
+        {/* home is identity, the timeline is action — the pill shows only
+            once you've stepped onto the time axis */}
+        {pathname !== '/home' && (
         <div
           className={`hidden sm:block fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg transition-opacity duration-300 ${
             scrolling ? 'opacity-[0.15] pointer-events-none' : 'opacity-100'
@@ -364,6 +367,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         >
           <TimelineNav />
         </div>
+        )}
 
         {/* ── mobile bottom tab bar — the same product, the same doors ── */}
         <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[var(--surface-card)] border-t border-[var(--border-default)] flex items-stretch">

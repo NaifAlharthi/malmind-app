@@ -41,6 +41,7 @@ import { demoAr } from '@/lib/demoI18n';
 import { buildProjection } from '@/lib/lifetimeProjection';
 import ExplainButton, { type ExplainContent } from '@/components/shared/ExplainButton';
 import HajisBlock from '@/components/shared/HajisBlock';
+import StandingTile from '@/components/shared/StandingTile';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -738,8 +739,8 @@ export default function TodayDashboard() {
   //                      manage debt, compare)
   //   D4 all in        — every operation, number and ability, credit first
   const LAYOUTS: Record<DepthLevel, string[]> = {
-    1: ['hajis', 'dive'],
-    2: ['balances', 'quadCash', 'planPace', 'freedom', 'dive'],
+    1: ['hajis', 'standing', 'dive'],
+    2: ['standing', 'balances', 'quadCash', 'planPace', 'freedom', 'dive'],
     3: ['dailyStack', 'sourcesRisks', 'debt', 'sol', 'compare', 'balances', 'quadCash', 'planPace', 'dive', 'freedom'],
     4: ['credit', 'ratios', 'debt', 'compare', 'assets', 'lifetime', 'sourcesRisks', 'dailyStack', 'sol', 'quadCash', 'balances', 'planPace', 'freedom'],
   };
@@ -760,6 +761,17 @@ export default function TodayDashboard() {
       <HajisBlock
         fin={{ income: derived.avgIncome, expenses: derived.avgExpenses, liabilities: derived.liabilities, cash: derived.cash }}
         mode="hero"
+      />
+      </Slot>
+
+      <Slot id="standing">
+      {/* ── where you stand · next actionable item — the action greeting,
+             moved here from home when the two pages were segmented ── */}
+      <StandingTile
+        fin={{ income: derived.avgIncome, expenses: derived.avgExpenses, cash: derived.cash, netWorth: derived.netWorth }}
+        prevNw={derived.nwSeries.length >= 2 ? derived.nwSeries[derived.nwSeries.length - 2].v : null}
+        goalCount={derived.goal ? 1 : 0}
+        quad={derived.quad}
       />
       </Slot>
 
