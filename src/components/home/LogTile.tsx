@@ -18,8 +18,9 @@ interface Snap {
   liabilities: number; income: number; expenses: number;
 }
 
-const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const MONTHS_AR = ['ينا', 'فبر', 'مار', 'أبر', 'ماي', 'يون', 'يول', 'أغس', 'سبت', 'أكت', 'نوف', 'ديس'];
+// Full month names — the shortcuts read as noise, especially in Arabic.
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 const SHOWN = 12; // the latest year of months on the grid
 
 export default function LogTile() {
@@ -292,8 +293,9 @@ function LogChart({
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid vertical={false} stroke="var(--border-faint)" />
-              <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tickFormatter={fmtCompact} tick={{ fontSize: 9, fill: 'var(--muted)' }} width={44} axisLine={false} tickLine={false} />
+              {/* in Arabic the timeline reads right-to-left, like the language */}
+              <XAxis dataKey="label" reversed={ar} tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+              <YAxis orientation={ar ? 'right' : 'left'} tickFormatter={fmtCompact} tick={{ fontSize: 9, fill: 'var(--muted)' }} width={44} axisLine={false} tickLine={false} />
               <ReferenceLine y={0} stroke="var(--border-strong)" strokeDasharray="3 3" />
               <Tooltip
                 formatter={(v, name) => [Math.round(Number(v)).toLocaleString('en-US'), name]}
