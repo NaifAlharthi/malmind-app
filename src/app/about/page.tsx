@@ -106,7 +106,9 @@ export default function AboutPage() {
             @keyframes mmThinkGlow { 0%, 100% { opacity: 0.2; stroke-width: 2; } 50% { opacity: 1; stroke-width: 3.5; } }
             .mm-think-pulse { animation: mmThinkPulse 3.2s ease-in-out infinite; }
             .mm-think-glow { animation: mmThinkGlow 3.2s ease-in-out infinite; }
-            @media (prefers-reduced-motion: reduce) { .mm-think-pulse, .mm-think-glow { animation: none; } }
+            @keyframes mmLineFlow { 0%, 5% { stroke-dashoffset: 0; } 47%, 53% { stroke-dashoffset: -96; } 95%, 100% { stroke-dashoffset: 0; } }
+            .mm-line-flow { stroke-dasharray: 10 14; animation: mmLineFlow 5s ease-in-out infinite; }
+            @media (prefers-reduced-motion: reduce) { .mm-think-pulse, .mm-think-glow, .mm-line-flow { animation: none; } }
           `}</style>
           <figure className="mt-5 max-w-2xl overflow-x-auto" dir="ltr">
             <svg viewBox="0 0 760 400" role="img" className="w-full min-w-[560px]"
@@ -133,40 +135,40 @@ export default function AboutPage() {
                   <>
                     {/* base: the scattered data (violet) */}
                     {plate(cx, 300, 132, 62, 18, '#8A6FC0', '#5D4685', '#4A3769')}
+
+                    {/* ONE fixed spine rising from the base's surface to the
+                    top layer, its gold current ebbing up then flowing back.
+                    Painted BEFORE the middle and top plates so they occlude
+                    it — the real-life ordering the eye expects */}
+                    <line x1={cx} y1={105} x2={cx} y2={305} stroke="var(--gold)" strokeWidth="3" strokeLinecap="round" opacity="0.22" />
+                    <path className="mm-line-flow" d={`M ${cx} 305 L ${cx} 105`} fill="none" stroke="var(--gold)" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+
                     {/* middle: MalMind, the AI thinking layer (brand green, gold glow) */}
                     {plate(cx, 196, 120, 56, 18, '#1D9E75', '#14735A', '#0E5A46', 'var(--gold)')}
                     {/* top: the decisions (light teal) */}
                     {plate(cx, 96, 106, 50, 16, '#8FE7D6', '#4FBFAC', '#3AA694')}
-
-                    {/* the layers converse: up-flow (data feeds thought feeds
-                        decisions) and down-flow (decisions write back) */}
-                    {([[152, 186], [254, 288]] as [number, number][]).map(([yTop, yBottom]) => (
-                      <g key={yTop}>
-                        <line x1={cx - 13} y1={yBottom} x2={cx - 13} y2={yTop + 7} stroke="#5DCAA5" strokeWidth="2" opacity="0.9" />
-                        <polygon points={`${cx - 13},${yTop} ${cx - 17.5},${yTop + 8} ${cx - 8.5},${yTop + 8}`} fill="#5DCAA5" opacity="0.9" />
-                        <line x1={cx + 13} y1={yTop} x2={cx + 13} y2={yBottom - 7} stroke="var(--gold)" strokeWidth="2" opacity="0.85" />
-                        <polygon points={`${cx + 13},${yBottom} ${cx + 8.5},${yBottom - 8} ${cx + 17.5},${yBottom - 8}`} fill="var(--gold)" opacity="0.85" />
-                      </g>
-                    ))}
-
                     {/* the Brain on its plate — same 3D grounding as the rest */}
-                    <ellipse cx={cx} cy={202} rx={14} ry={4} fill="#000" opacity="0.28" />
-                    <text x={cx} y={198} textAnchor="middle" fontSize="26" aria-hidden>🧠</text>
+                    <ellipse cx={cx - 48} cy={202} rx={14} ry={4} fill="#000" opacity="0.28" />
+                    <text x={cx - 48} y={198} textAnchor="middle" fontSize="26" aria-hidden>🧠</text>
 
-                    {/* the life things standing on the decisions plate */}
-                    {([[-66, 8, '🚗'], [-33, -9, '🏠'], [0, 13, '🏫'], [33, -5, '⌚'], [66, 6, '👛']] as [number, number, string][]).map(([dx, dy, e]) => (
+                    {/* the life things standing on the decisions plate, each
+                        named beneath its shadow */}
+                    {([[-70, 6, '🚗', L('سيارتك', 'Your car')], [-36, -8, '🏠', L('بيتك', 'Your home')], [30, 12, '🏫', L('التعليم', 'Education')], [58, -6, '⌚', L('تقاعدك', 'Retirement')], [84, 6, '👛', L('مصروفك', 'Spending')]] as [number, number, string, string][]).map(([dx, dy, e, name]) => (
                       <g key={e}>
                         <ellipse cx={cx + dx} cy={96 + dy + 4} rx={11} ry={3.2} fill="#000" opacity="0.24" />
                         <text x={cx + dx} y={96 + dy} textAnchor="middle" fontSize="21" aria-hidden>{e}</text>
+                        <text x={cx + dx} y={96 + dy + 15} textAnchor="middle" fontSize="7" fontWeight="600" fill="#0E5045" opacity="0.9">{name}</text>
                       </g>
                     ))}
 
-                    {/* the data apps standing on the base plate — app-icon tiles */}
-                    {([[-76, 6, '🏦', '#0B4F8A'], [-26, -10, '📈', '#233247'], [26, 12, '💵', '#1F5C3D'], [76, -2, '📊', '#1D6F42']] as [number, number, string, string][]).map(([dx, dy, e, bg]) => (
+                    {/* the data apps standing on the base plate — app-icon
+                        tiles, each named beneath its shadow */}
+                    {([[-80, 6, '🏦', '#0B4F8A', L('تطبيق بنكك', 'Your bank app')], [-34, -10, '📈', '#233247', L('محفظتك', 'Your portfolio')], [34, 12, '💵', '#1F5C3D', L('نقدك', 'Your cash')], [80, -2, '📊', '#1D6F42', L('جداولك', 'Your sheets')]] as [number, number, string, string, string][]).map(([dx, dy, e, bg, name]) => (
                       <g key={e}>
                         <ellipse cx={cx + dx} cy={300 + dy + 16} rx={14} ry={3.6} fill="#000" opacity="0.28" />
                         <rect x={cx + dx - 13} y={300 + dy - 13} width={26} height={26} rx={6.5} fill={bg} stroke="rgba(255,255,255,0.35)" strokeWidth="0.75" />
                         <text x={cx + dx} y={300 + dy + 6} textAnchor="middle" fontSize="15" aria-hidden>{e}</text>
+                        <text x={cx + dx} y={300 + dy + 26} textAnchor="middle" fontSize="7" fontWeight="600" fill="#EFE8FA" opacity="0.92">{name}</text>
                       </g>
                     ))}
 
@@ -174,9 +176,10 @@ export default function AboutPage() {
                     {/* top → right */}
                     <circle cx={cx + 106} cy={96} r={3} fill="#8FE7D6" />
                     <line x1={cx + 109} y1={96} x2={cx + 168} y2={96} stroke="var(--border-medium)" strokeWidth="1" />
-                    <text x={cx + 176} y={88} fontSize="13" fontWeight="700" fill="#8FE7D6">{L('قراراتك وتطبيقاتها', 'Your decisions & applications')}</text>
-                    <text x={cx + 176} y={104} fontSize="9.5" fill="var(--muted)">{L('هل أقدر على السيارة؟ · متى أبلغ حريتي؟', 'Can I afford the car? · When am I free?')}</text>
-                    <text x={cx + 176} y={117} fontSize="9.5" fill="var(--muted)">{L('أيّ دين أسدّد أولاً؟ · هل أنا بخير؟', 'Which debt first? · Am I OK?')}</text>
+                    <text x={cx + 176} y={82} fontSize="13" fontWeight="700" fill="#8FE7D6">{L('القرارات التي تحتاجها', 'The decisions you need')}</text>
+                    <text x={cx + 176} y={97} fontSize="11.5" fontWeight="700" fill="#8FE7D6">{L('لأفضل حياةٍ مالية', 'for your best financial life')}</text>
+                    <text x={cx + 176} y={112} fontSize="9.5" fill="var(--muted)">{L('هل أقدر على السيارة؟ · متى أبلغ حريتي؟', 'Can I afford the car? · When am I free?')}</text>
+                    <text x={cx + 176} y={125} fontSize="9.5" fill="var(--muted)">{L('أيّ دين أسدّد أولاً؟ · هل أنا بخير؟', 'Which debt first? · Am I OK?')}</text>
 
                     {/* middle → left — the annotation pulses WITH its layer */}
                     <g className="mm-think-pulse">
@@ -383,21 +386,25 @@ export default function AboutPage() {
               @keyframes mmChipFuture4 { 0%,54%{opacity:0} 56%,92%{opacity:1} 94%,100%{opacity:0} }
               .mm-tl-knob { animation: mmTlKnob 12s ease-in-out infinite; }
               .mm-ice-marker { animation: mmIceDive 12s ease-in-out infinite; }
+              @keyframes mmKeyShift { 0%,4%{background:var(--surface-1);color:var(--ink)} 5%,8%{background:var(--gold);color:#2A1F05} 10%,23%{background:var(--surface-1);color:var(--ink)} 24%,27%{background:var(--gold);color:#2A1F05} 28%,29%{background:var(--surface-1);color:var(--ink)} 30%,33%{background:var(--gold);color:#2A1F05} 35%,49%{background:var(--surface-1);color:var(--ink)} 50%,53%{background:var(--gold);color:#2A1F05} 54%,55%{background:var(--surface-1);color:var(--ink)} 56%,59%{background:var(--gold);color:#2A1F05} 60%,61%{background:var(--surface-1);color:var(--ink)} 62%,65%{background:var(--gold);color:#2A1F05} 67%,77%{background:var(--surface-1);color:var(--ink)} 78%,81%{background:var(--gold);color:#2A1F05} 82%,83%{background:var(--surface-1);color:var(--ink)} 84%,87%{background:var(--gold);color:#2A1F05} 88%,89%{background:var(--surface-1);color:var(--ink)} 90%,93%{background:var(--gold);color:#2A1F05} 95%,100%{background:var(--surface-1);color:var(--ink)} }
+              .mm-k-shift { animation: mmKeyShift 12s infinite; }
               .mm-k-left { animation: mmKeyLeft 12s infinite; }
               .mm-k-right { animation: mmKeyRight 12s infinite; }
               .mm-k-down { animation: mmKeyDown 12s infinite; }
               .mm-k-up { animation: mmKeyUp 12s infinite; }
-              .mm-chip { animation-duration: 12s; animation-iteration-count: infinite; animation-timing-function: linear; }
+              .mm-chip, .mm-combo { animation-duration: 12s; animation-iteration-count: infinite; animation-timing-function: linear; }
               @media (prefers-reduced-motion: reduce) {
-                .mm-tl-knob, .mm-ice-marker, .mm-k-left, .mm-k-right, .mm-k-down, .mm-k-up, .mm-chip { animation: none; }
-                .mm-chip { opacity: 0; } .mm-chip-default { opacity: 1 !important; }
+                .mm-tl-knob, .mm-ice-marker, .mm-k-shift, .mm-k-left, .mm-k-right, .mm-k-down, .mm-k-up, .mm-chip, .mm-combo { animation: none; }
+                .mm-chip, .mm-combo { opacity: 0; } .mm-chip-default, .mm-combo-default { opacity: 1 !important; }
               }
             `}</style>
             <div className="rounded-2xl border border-[var(--border-default)] p-5 mt-5" style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }}>
               <div className="text-center font-serif text-sm font-semibold text-[var(--ink)] mb-4">
                 {L('هكذا تقود: زمنٌ وعمقٌ بيدٍ واحدة', 'This is how you drive: time and depth, one hand')}
               </div>
-              <div className="grid gap-x-4 gap-y-2 items-stretch" style={{ gridTemplateColumns: 'auto 1fr auto' }} dir="ltr">
+              <div className="grid gap-4 items-stretch" style={{ gridTemplateColumns: '1fr auto' }} dir="ltr">
+                {/* the 2D view, framed: the two axes and the screen they make */}
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--surface-0)]/30 p-4 grid gap-x-4 gap-y-2 items-stretch" style={{ gridTemplateColumns: 'auto 1fr' }}>
                 {/* corner — where the two axes meet */}
                 <div className="flex items-end justify-end pb-1 pe-1 text-[10px] text-[var(--muted)]" aria-hidden>⌞</div>
 
@@ -418,8 +425,50 @@ export default function AboutPage() {
                   <div className="text-[9px] text-[var(--muted)] mt-1">↔ {L('محور الزمن', 'the time axis')}</div>
                 </div>
 
-                {/* the pressing hand — command mode at the side, spanning both rows */}
-                <div className="flex flex-col items-center justify-center gap-1 text-[9px] text-[var(--muted)] border-s border-[var(--border-faint)] ps-4" style={{ gridRow: '1 / span 2' }}>
+                {/* the depth axis, down the side */}
+                <div className="flex flex-col items-center justify-center">
+                  <svg viewBox="0 0 56 240" className="h-36 w-auto" aria-hidden="true">
+                    <line x1="0" y1="44" x2="56" y2="44" stroke="#4A85B9" strokeWidth="1" strokeDasharray="3 3" opacity="0.7" />
+                    <polygon points="28,14 33,27 35,42 20,42 23,25" fill="#DDEEFA" stroke="#9CC8E8" strokeWidth="1" />
+                    <polygon points="17,48 39,48 44,100 12,102" fill="#7FB6DE" />
+                    <polygon points="10,106 46,105 51,164 6,166" fill="#2F6494" opacity="0.6" />
+                    <polygon points="4,170 52,169 47,224 28,236 9,226" fill="#153D63" opacity="0.55" />
+                    <g className="mm-ice-marker">
+                      <circle cx="46" cy="26" r="5" fill="var(--gold)" stroke="var(--surface-0)" strokeWidth="2" />
+                    </g>
+                  </svg>
+                  <div className="text-[9px] text-[var(--muted)] mt-1 text-center max-w-[90px]">↕ {L('محور العمق', 'the depth axis')}</div>
+                </div>
+
+                {/* THE VIEW — the area the two axes frame. It is LIVE: as the
+                    choreography walks the grid, this cell crossfades to the
+                    explanation of the CURRENT time × depth combo, on the same
+                    12s clock as the position chip beside it */}
+                <div className="relative rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--surface-0)]/40 min-h-[150px]" dir={ar ? 'rtl' : 'ltr'}>
+                  {([
+                    ['mm-combo-default', 'mmChipToday1', '☀ ' + L('اليوم', 'Today') + ' · D1',
+                      L('حاضرك عند قمة جبل الجليد — أهم المعلومات وأبسطها فقط عن وضعك الآن، حتى لا يشتّتك شيء.',
+                        'Your present, at the tip of the iceberg — only the most relevant, simple info about where you stand right now, so nothing distracts you.')],
+                    ['', 'mmChipPast', '🕰 ' + L('الماضي', 'Past') + ' · D1',
+                      L('ضغطة ← وأنت في ماضيك — نفس العنوان البسيط، لكنه يحكي ما حدث: من أين جاء مالك وأين ذهب.',
+                        "One ← and you're in your past — the same simple headline, now telling what happened: where your money came from, and where it went.")],
+                    ['', 'mmChipFuture1', '🔭 ' + L('المستقبل', 'Future') + ' · D1',
+                      L('ضغطتا ← وأنت في مستقبلك — عنوان ما هو قادم: إلى أين تتجه إن لم يتغيّر شيء.',
+                        "Two → and you're in your future — the headline of what's coming: where you're heading if nothing changes.")],
+                    ['', 'mmChipFuture4', '🔭 ' + L('المستقبل', 'Future') + ' · D4',
+                      L('ثلاث ↓ وقد بلغت العمق الكامل — أقوى الأدوات وأعقد الأنظمة تلعب مستقبلك بالأرقام: ماذا لو، وإسقاطات، ومسارات. كما لا تجد في أي مكان آخر.',
+                        "Three ↓ and you've gone wild at full depth — the most powerful tools and complex systems playing your future in numbers: what-ifs, projections, paths. Like no other.")],
+                  ] as [string, string, string, string][]).map(([extra, anim, badge, desc]) => (
+                    <div key={anim} className={`mm-combo ${extra} absolute inset-0 flex flex-col items-center justify-center text-center gap-2 p-4`} style={{ animationName: anim, opacity: 0 }}>
+                      <span className="inline-flex items-center rounded-full border border-[var(--gold)] bg-[var(--gold)]/10 text-[var(--gold-text-strong)] px-2.5 py-0.5 text-[10px] font-semibold" dir="ltr">{badge}</span>
+                      <p className="text-[11px] text-[var(--ink-2)] leading-relaxed max-w-md">{desc}</p>
+                    </div>
+                  ))}
+                </div>
+                </div>
+
+                {/* the pressing hand — command mode, outside the frame */}
+                <div className="flex flex-col items-center justify-center gap-1 text-[9px] text-[var(--muted)]">
                   <div className="font-serif text-xs font-semibold text-[var(--ink)] mb-1">{L('وضع الأوامر', 'Command mode')}</div>
                   <kbd className="mm-k-up text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-2 py-0.5 text-[var(--ink)]">↑</kbd>
                   <div className="flex items-center gap-2 my-1.5">
@@ -439,36 +488,11 @@ export default function AboutPage() {
                     <kbd className="mm-k-right text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-2 py-0.5 text-[var(--ink)]">→</kbd>
                   </div>
                   <kbd className="mm-k-down text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-2 py-0.5 text-[var(--ink)]">↓</kbd>
-                  <div className="text-[9px] text-[var(--muted)] mt-1.5 text-center max-w-[130px]">⇧ {L('يدٌ واحدة تضغط — والمحوران يستجيبان', 'one hand presses — both axes obey')}</div>
+                  {/* the held key — lights with EVERY arrow press */}
+                  <kbd className="mm-k-shift text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-4 py-0.5 text-[var(--ink)] mt-1.5">⇧ Shift</kbd>
+                  <div className="text-[9px] text-[var(--muted)] mt-1.5 text-center max-w-[130px]">{L('يدٌ واحدة تضغط — والمحوران يستجيبان', 'one hand presses — both axes obey')}</div>
                 </div>
 
-                {/* the depth axis, down the side */}
-                <div className="flex flex-col items-center justify-center">
-                  <svg viewBox="0 0 56 240" className="h-36 w-auto" aria-hidden="true">
-                    <line x1="0" y1="44" x2="56" y2="44" stroke="#4A85B9" strokeWidth="1" strokeDasharray="3 3" opacity="0.7" />
-                    <polygon points="28,14 33,27 35,42 20,42 23,25" fill="#DDEEFA" stroke="#9CC8E8" strokeWidth="1" />
-                    <polygon points="17,48 39,48 44,100 12,102" fill="#7FB6DE" />
-                    <polygon points="10,106 46,105 51,164 6,166" fill="#2F6494" opacity="0.6" />
-                    <polygon points="4,170 52,169 47,224 28,236 9,226" fill="#153D63" opacity="0.55" />
-                    <g className="mm-ice-marker">
-                      <circle cx="46" cy="26" r="5" fill="var(--gold)" stroke="var(--surface-0)" strokeWidth="2" />
-                    </g>
-                  </svg>
-                  <div className="text-[9px] text-[var(--muted)] mt-1 text-center max-w-[90px]">↕ {L('محور العمق', 'the depth axis')}</div>
-                </div>
-
-                {/* THE VIEW — the area the two axes frame: the benefit lives here */}
-                <div className="rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--surface-0)]/40 p-4 flex flex-col items-center justify-center text-center">
-                  <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--gold-text-strong)] font-semibold mb-1.5">
-                    {L('هذه المساحة هي شاشتك', 'This area is your screen')}
-                  </div>
-                  <p className="text-[11px] text-[var(--ink-2)] leading-relaxed max-w-md" dir={ar ? 'rtl' : 'ltr'}>
-                    {L(
-                      'المحوران يصنعان شبكةً كل خلية فيها مشهد: زمنٌ × عمق. ضغطة ← ترجع بك إلى الماضي، وضغطتا ← تنقلانك للمستقبل، وثلاث ↓ تغوص من العنوان إلى التفصيل — فيتحرك سؤالك من «ماذا حدث؟» إلى «ماذا لو؟» ومن اللمحة إلى العمق في ثوانٍ: قرارات أسرع، بمعلومة أعمق، دون مغادرة مقعدك.',
-                      'The two axes make a grid where every cell is a view: time × depth. One ← returns you to your past, two → carry you to your future, three ↓ sink you from headline to detail — so your question moves from "what happened?" to "what if?", from glance to depth, in seconds: faster decisions, on deeper information, without leaving your seat.'
-                    )}
-                  </p>
-                </div>
               </div>
             </div>
 
