@@ -19,6 +19,7 @@ import { demoAr } from '@/lib/demoI18n';
 import { futureValue, DEFAULT_RETURN } from '@/lib/dailyStack';
 import ContactModal from '@/components/shared/ContactModal';
 import FoundationHub from '@/components/home/FoundationHub';
+import LogTile from '@/components/home/LogTile';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -595,6 +596,9 @@ export default function HomePage() {
 
       {/* ── the foundation: enter · review · link the data everything reads — the D3 desk ── */}
       {depth === 3 && <FoundationHub />}
+
+      {/* ── the Log: every number on one spreadsheet-like grid — the D3 desk ── */}
+      {depth === 3 && <LogTile />}
 
       {/* ── this depth's analysis instruments — the D3 desk's toolbelt ── */}
       {depth === 3 && <DepthToolShelf level={3} />}
