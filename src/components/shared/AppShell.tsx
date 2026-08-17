@@ -384,9 +384,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* ── the floating timeline: the horizontal (time) axis of the 2D map,
                hovering just below the top bar, facing the iceberg's vertical axis ── */}
-        {/* home is identity, the timeline is action — the pill shows only
-            once you've stepped onto the time axis */}
-        {pathname !== '/home' && (
+        {/* home and about are identity pages, the timeline is action — the
+            pill shows only once you've stepped onto the time axis */}
+        {!['/home', '/about'].includes(pathname) && (
         <div
           className={`hidden sm:block fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg transition-opacity duration-300 ${
             scrolling ? 'opacity-[0.15] pointer-events-none' : 'opacity-100'
