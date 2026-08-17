@@ -97,52 +97,114 @@ export default function AboutPage() {
             )}
           </p>
 
-          {/* the thinking layer, drawn: data below · MalMind between · decisions above */}
-          <div className="mt-5 flex flex-col gap-1.5 max-w-2xl">
-            <div className="rounded-xl border border-[var(--border-faint)] bg-[var(--surface-0)]/50 px-4 py-3">
-              <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] font-semibold mb-1">{L('قراراتك وتطبيقاتها', 'Your decisions & their applications')}</div>
-              <div className="text-[11px] text-[var(--ink-2)]">{L('هل أقدر على السيارة؟ · متى أبلغ حريتي؟ · أيّ دين أسدّد أولاً؟ · هل أنا بخير؟', 'Can I afford the car? · When am I free? · Which debt first? · Am I OK?')}</div>
-            </div>
-            <div className="text-center text-[var(--muted)] text-xs leading-none" aria-hidden>↑</div>
-            <div className="rounded-xl border-2 border-[var(--green)] bg-[var(--green-bg)] px-4 py-3.5">
-              <div className="flex items-center gap-2">
-                <span className="text-lg leading-none">🧠</span>
-                <span className="text-sm font-bold text-[var(--green-dark)]">{L('مال مايند — طبقة التفكير، بالذكاء الاصطناعي', 'MalMind — the thinking layer, powered by AI')}</span>
+          {/* the thinking layer, drawn as it is: an isometric stack — your
+              scattered data at the base, MalMind's AI layer between, your
+              decisions on top. Annotations alternate sides, reference-style. */}
+          <figure className="mt-5 max-w-2xl overflow-x-auto" dir="ltr">
+            <svg viewBox="0 0 760 400" role="img" className="w-full min-w-[560px]"
+              aria-label={L('ثلاث طبقات: بياناتك المبعثرة في الأسفل، مال مايند طبقة التفكير بالذكاء الاصطناعي في الوسط، وقراراتك في الأعلى', 'Three layers: your scattered data at the base, MalMind the AI thinking layer between, your decisions on top')}>
+              {(() => {
+                const plate = (cx: number, cy: number, w: number, h: number, d: number, top: string, sideL: string, sideR: string, glow?: string) => (
+                  <g>
+                    {glow && <polygon points={`${cx},${cy - h - 3} ${cx + w + 4},${cy} ${cx},${cy + h + 3} ${cx - w - 4},${cy}`} fill="none" stroke={glow} strokeWidth="2" opacity="0.55" />}
+                    <polygon points={`${cx - w},${cy} ${cx},${cy + h} ${cx},${cy + h + d} ${cx - w},${cy + d}`} fill={sideL} />
+                    <polygon points={`${cx + w},${cy} ${cx},${cy + h} ${cx},${cy + h + d} ${cx + w},${cy + d}`} fill={sideR} />
+                    <polygon points={`${cx},${cy - h} ${cx + w},${cy} ${cx},${cy + h} ${cx - w},${cy}`} fill={top} />
+                  </g>
+                );
+                const cx = 380;
+                return (
+                  <>
+                    {/* base: the scattered data (violet) */}
+                    {plate(cx, 300, 132, 62, 18, '#8A6FC0', '#5D4685', '#4A3769')}
+                    {/* middle: MalMind, the AI thinking layer (brand green, gold glow) */}
+                    {plate(cx, 196, 120, 56, 18, '#1D9E75', '#14735A', '#0E5A46', 'var(--gold)')}
+                    {/* top: the decisions (light teal) */}
+                    {plate(cx, 96, 106, 50, 16, '#8FE7D6', '#4FBFAC', '#3AA694')}
+                    <text x={cx} y={200} textAnchor="middle" fontSize="20" aria-hidden>🧠</text>
+
+                    {/* ── annotations, alternating sides ── */}
+                    {/* top → right */}
+                    <circle cx={cx + 106} cy={96} r={3} fill="#8FE7D6" />
+                    <line x1={cx + 109} y1={96} x2={cx + 168} y2={96} stroke="var(--border-medium)" strokeWidth="1" />
+                    <text x={cx + 176} y={88} fontSize="13" fontWeight="700" fill="#8FE7D6">{L('قراراتك وتطبيقاتها', 'Your decisions & applications')}</text>
+                    <text x={cx + 176} y={104} fontSize="9.5" fill="var(--muted)">{L('هل أقدر على السيارة؟ · متى أبلغ حريتي؟', 'Can I afford the car? · When am I free?')}</text>
+                    <text x={cx + 176} y={117} fontSize="9.5" fill="var(--muted)">{L('أيّ دين أسدّد أولاً؟ · هل أنا بخير؟', 'Which debt first? · Am I OK?')}</text>
+
+                    {/* middle → left */}
+                    <circle cx={cx - 120} cy={196} r={3} fill="#1D9E75" />
+                    <line x1={cx - 123} y1={196} x2={cx - 182} y2={196} stroke="var(--border-medium)" strokeWidth="1" />
+                    <text x={cx - 190} y={182} fontSize="13" fontWeight="700" fill="var(--green-dark)" textAnchor="end">{L('مال مايند — طبقة التفكير', 'MalMind — the thinking layer')}</text>
+                    <text x={cx - 190} y={198} fontSize="10" fontWeight="600" fill="var(--gold-text-strong)" textAnchor="end">{L('تعمل بالذكاء الاصطناعي', 'Powered by AI')}</text>
+                    <text x={cx - 190} y={212} fontSize="9.5" fill="var(--muted)" textAnchor="end">{L('تقرأ الشرائح وتربطها في صورة', 'Reads every slice, one picture')}</text>
+                    <text x={cx - 190} y={225} fontSize="9.5" fill="var(--muted)" textAnchor="end">{L('وتجيب من أرقامك أنت', 'Answers from YOUR numbers')}</text>
+
+                    {/* base → right */}
+                    <circle cx={cx + 132} cy={300} r={3} fill="#8A6FC0" />
+                    <line x1={cx + 135} y1={300} x2={cx + 168} y2={300} stroke="var(--border-medium)" strokeWidth="1" />
+                    <text x={cx + 176} y={292} fontSize="13" fontWeight="700" fill="#A78BD8">{L('بياناتك المالية المبعثرة', 'Your scattered financial data')}</text>
+                    <text x={cx + 176} y={308} fontSize="9.5" fill="var(--muted)">{L('الراجحي · الأهلي · تداول · تمارا · Sheets', 'Alrajhi · SNB · Tadawul · Tamara · Sheets')}</text>
+                    <text x={cx + 176} y={321} fontSize="9.5" fill="var(--muted)" fontFamily="monospace">6,240 · −48,500 · 34% · 12,000 · 3.3</text>
+                  </>
+                );
+              })()}
+            </svg>
+          </figure>
+
+          {/* what a thinking layer IS — and, just as loudly, what it is NOT */}
+          <div className="grid sm:grid-cols-2 gap-2.5 mt-4 max-w-2xl">
+            <div className="rounded-xl border border-[var(--green-border)] bg-[var(--green-bg)]/60 p-4">
+              <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--green-dark)] font-semibold mb-2">
+                {L('طبقة التفكير تعني', 'A thinking layer means')}
               </div>
-              <div className="text-[11px] text-[var(--ink-2)] mt-1">{L('يقرأ الشرائح كلّها · يربطها في صورة واحدة · يجيب من أرقامك أنت لا من قواعد عامة', 'Reads every slice · connects them into one picture · answers from YOUR numbers, not generic rules')}</div>
+              <ul className="space-y-1.5">
+                {[
+                  L('يقرأ صورتك كاملة ويجيب: ماذا يعني هذا لوضعي أنا؟', 'Reads your whole picture and answers: what does this mean for MY situation?'),
+                  L('يجرّب القرار بالأرقام قبل أن تعيشه', 'Plays a decision in numbers before you live it'),
+                  L('يحوّل الأرقام إلى أولويات: ماذا أفعل أولاً؟', 'Turns numbers into priorities: what do I do first?'),
+                  L('يتعلّم واقعك السعودي: الراتب والأقساط والمواسم', 'Speaks your Saudi reality: salary day, installments, seasons'),
+                ].map((s) => (
+                  <li key={s} className="flex gap-2 text-[11px] text-[var(--ink-2)] leading-relaxed">
+                    <span className="text-[var(--green-dark)] font-bold shrink-0">✓</span>{s}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="text-center text-[var(--muted)] text-xs leading-none" aria-hidden>↑</div>
-            <div className="rounded-xl border border-[var(--border-faint)] bg-[var(--surface-0)]/50 px-4 py-3">
-              <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] font-semibold mb-1">{L('بياناتك المالية المبعثرة', 'Your scattered financial data')}</div>
-              <div className="text-[11px] text-[var(--ink-2)]">{L('البنوك · الوسطاء · الأقساط · الرواتب · الجداول · الأصول الحقيقية', 'Banks · brokers · installments · salaries · spreadsheets · real assets')}</div>
+            <div className="rounded-xl border border-[var(--red-border)] bg-[var(--red-bg)]/40 p-4">
+              <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--red-dark-text)] font-semibold mb-2">
+                {L('ولا تعني', 'And does NOT mean')}
+              </div>
+              <ul className="space-y-1.5">
+                {[
+                  L('ليس بنكاً — لا يحفظ أموالك ولا يحرّكها', 'Not a bank — it never holds or moves your money'),
+                  L('ليس شاشة أرصدة أخرى تعرض ما تملك وتصمت', 'Not another balance screen that shows totals and goes silent'),
+                  L('ليس نصائح معلّبة بقواعد عامة (٥٠/٣٠/٢٠)', 'Not canned advice from generic rules (50/30/20)'),
+                  L('لا يبيع بياناتك ولا يتدرّب عليها ولا يتداول بها', 'Never sells your data, trains on it, or trades with it'),
+                ].map((s) => (
+                  <li key={s} className="flex gap-2 text-[11px] text-[var(--ink-2)] leading-relaxed">
+                    <span className="text-[var(--red-dark-text)] font-bold shrink-0">✗</span>{s}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
 
-          {/* the stats wear the same dress as the cards above — one system */}
-          <div className="grid grid-cols-3 gap-2.5 mt-2.5">
-            <div className="bg-[var(--surface-0)]/50 border border-[var(--border-faint)] rounded-xl p-3 flex flex-col items-center justify-center text-center">
-              <div className="font-serif text-xl font-bold text-[var(--green-dark)] leading-none mb-1">19</div>
-              <div className="text-[10px] text-[var(--muted)]">{L('أداة مترابطة', 'connected tools')}</div>
-            </div>
-            <div className="bg-[var(--surface-0)]/50 border border-[var(--border-faint)] rounded-xl p-3 flex flex-col items-center justify-center text-center">
-              <div className="font-serif text-xl font-bold text-[var(--green-dark)] leading-none mb-1">3</div>
-              <div className="text-[10px] text-[var(--muted)]">{L('نظرات زمنية', 'time views')}</div>
-            </div>
-            <div className="bg-[var(--surface-0)]/50 border border-[var(--border-faint)] rounded-xl p-3 flex flex-col items-center justify-center text-center">
-              <SaudiEmblem />
-              <div className="text-[10px] text-[var(--muted)] mt-1">{L('مصمَّم للسعودية', 'made for Saudi')}</div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* ── your money, in three views ── */}
-      <div data-tour="views-grid" className="mb-8">
-        <SectionHeading eyebrow={t('home.views.heading')} />
-        <div className="grid sm:grid-cols-3 gap-3">
-          <ViewCard href="/past" icon="🕰" title={t('home.card.past.title')} desc={t('home.card.past.desc')} />
-          <ViewCard href="/today" icon="☀" title={t('home.card.today.title')} desc={t('home.card.today.desc')} />
-          <ViewCard href="/future" icon="🔭" title={t('home.card.future.title')} desc={t('home.card.future.desc')} />
+      {/* ── the numbers that describe us — standalone tiles ── */}
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+          <div className="font-serif text-3xl font-bold text-[var(--green-dark)] leading-none mb-1.5">19</div>
+          <div className="text-[11px] text-[var(--muted)]">{L('أداة مترابطة', 'connected tools')}</div>
+        </div>
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+          <div className="font-serif text-3xl font-bold text-[var(--green-dark)] leading-none mb-1.5">3</div>
+          <div className="text-[11px] text-[var(--muted)]">{L('نظرات زمنية', 'time views')}</div>
+        </div>
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+          <SaudiEmblem />
+          <div className="text-[11px] text-[var(--muted)] mt-1.5">{L('مصمَّم للسعودية', 'made for Saudi')}</div>
         </div>
       </div>
 
@@ -173,6 +235,16 @@ export default function AboutPage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── your money, in three views ── */}
+      <div data-tour="views-grid" className="mb-8">
+        <SectionHeading eyebrow={t('home.views.heading')} />
+        <div className="grid sm:grid-cols-3 gap-3">
+          <ViewCard href="/past" icon="🕰" title={t('home.card.past.title')} desc={t('home.card.past.desc')} />
+          <ViewCard href="/today" icon="☀" title={t('home.card.today.title')} desc={t('home.card.today.desc')} />
+          <ViewCard href="/future" icon="🔭" title={t('home.card.future.title')} desc={t('home.card.future.desc')} />
         </div>
       </div>
 
