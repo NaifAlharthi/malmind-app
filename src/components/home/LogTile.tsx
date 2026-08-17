@@ -129,6 +129,62 @@ export default function LogTile() {
         )}
       </p>
 
+      {/* ── where the Log's numbers can come from — the de-friction ladder,
+             shown as doors: manual is one of four, not the only way ── */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {([
+          {
+            icon: '✍️', live: true, href: '/financial-numbers',
+            name: L('إدخال يدوي', 'Manual entry'),
+            sub: L('سجّل شهرك في دقائق', 'Log your month in minutes'),
+          },
+          {
+            icon: '📄', live: true, href: '/financial-numbers',
+            name: L('اسحب جدولك', 'Drop your spreadsheet'),
+            sub: L('CSV/Excel يُحلَّل ويُقرأ بذكاء', 'CSV/Excel, smartly parsed'),
+          },
+          {
+            icon: '🏦', live: false,
+            name: L('واجهات البنوك', 'Bank APIs'),
+            sub: L('ربط مباشر بحساباتك — قادم', 'Direct account linking — coming'),
+          },
+          {
+            icon: '🔗', live: true, href: '/financial-numbers',
+            name: L('Google و Microsoft', 'Google & Microsoft'),
+            sub: L('Google Sheets الآن · Excel 365 قادم', 'Google Sheets now · Excel 365 coming'),
+          },
+        ] as { icon: string; live: boolean; href?: string; name: string; sub: string }[]).map((src) =>
+          src.live && src.href ? (
+            <Link
+              key={src.name}
+              href={src.href}
+              className="group flex items-center gap-2.5 bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3 py-2 hover:border-[var(--green)] transition-colors"
+            >
+              <span className="text-base leading-none">{src.icon}</span>
+              <span className="min-w-0">
+                <span className="block text-[11px] font-semibold text-[var(--ink)] group-hover:text-[var(--green-dark)] transition-colors">{src.name}</span>
+                <span className="block text-[9px] text-[var(--muted)]">{src.sub}</span>
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] shrink-0" title={L('متاح الآن', 'Available now')} />
+            </Link>
+          ) : (
+            <div
+              key={src.name}
+              className="flex items-center gap-2.5 bg-[var(--surface-1)]/50 border border-dashed border-[var(--border-faint)] rounded-xl px-3 py-2 opacity-75"
+            >
+              <span className="text-base leading-none">{src.icon}</span>
+              <span className="min-w-0">
+                <span className="block text-[11px] font-semibold text-[var(--ink-2)]">{src.name}</span>
+                <span className="block text-[9px] text-[var(--muted)]">{src.sub}</span>
+              </span>
+              <span className="text-[8px] rounded-full border border-[var(--border-default)] text-[var(--muted)] px-1.5 py-0.5 shrink-0">
+                {L('قريباً', 'Soon')}
+              </span>
+            </div>
+          )
+        )}
+      </div>
+
       {/* the chart leads; the cells follow below */}
       <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} ar={ar} />
 
