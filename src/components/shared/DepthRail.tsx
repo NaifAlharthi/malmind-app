@@ -28,7 +28,7 @@ export default function DepthRail() {
   // Home is on the grid too — and pages with named ROOMS (see
   // DEPTH_NAME_OVERRIDES) get their own level names in the flyouts.
   // Depthless identity pages don't carry the dial at all.
-  if (pathname === '/about') return null;
+  if (pathname === '/about' || pathname === '/log') return null;
 
   return (
     <div

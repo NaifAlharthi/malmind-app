@@ -191,6 +191,7 @@ const en: Dict = {
   'nav.past': 'The Past',
   'nav.today': 'Today',
   'nav.future': 'The Future',
+  'nav.log': 'Log',
 
   'hub.eyebrow': 'Time view',
   'hub.past.title': 'The Past',
@@ -594,6 +595,7 @@ const ar: Dict = {
   'nav.past': 'الماضي',
   'nav.today': 'اليوم',
   'nav.future': 'المستقبل',
+  'nav.log': 'السِّجل',
 
   'hub.eyebrow': 'منظور زمني',
   'hub.past.title': 'الماضي',

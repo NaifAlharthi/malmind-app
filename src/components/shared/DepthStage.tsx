@@ -22,7 +22,7 @@ import type { PageNavDetail } from '@/lib/phoneNav';
 // edge-push, no flash. Home rejoined the grid when D1 became the hājis-only
 // focus view, so the list is currently empty; the mechanism stays for any
 // future page that needs to opt out.
-const DEPTHLESS: string[] = ['/about'];
+const DEPTHLESS: string[] = ['/about', '/log'];
 
 export default function DepthStage({ children }: { children: React.ReactNode }) {
   const { depth, setDepth } = useDepth();

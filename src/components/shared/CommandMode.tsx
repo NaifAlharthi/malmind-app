@@ -157,17 +157,14 @@ export default function CommandMode() {
         return;
       }
 
-      // ⇧L — jump straight to the Log (home · D3), from anywhere
+      // ⇧L — jump straight to the Log's own page, from anywhere
       // (physical key: layout-independent)
       if (e.code === 'KeyL' || e.key === 'L' || e.key === 'l') {
         if (suppressed.current) return;
         e.preventDefault();
         if (e.repeat) return;
         setOpen(false);
-        act(() => {
-          setDepthRef.current(3 as DepthLevel);
-          if (pathRef.current !== '/home') router.push('/home');
-        });
+        act(() => { if (pathRef.current !== '/log') router.push('/log'); });
         return;
       }
 

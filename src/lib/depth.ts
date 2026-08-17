@@ -86,9 +86,9 @@ export const DEPTH_NAME_OVERRIDES: Record<string, Record<DepthLevel, {
       desc: { ar: 'عناصرك الأربعة التي تقرأ منها كل أداة: الدخل والأصول والادخار والالتزامات.', en: 'Your four elements every tool reads from: income, assets, savings, liabilities.' },
     },
     3: {
-      icon: '📒',
-      name: { ar: 'السِّجل', en: 'The Log' },
-      desc: { ar: 'كل أرقامك شهراً بجانب شهر — جدولاً يُطوى ورسماً يُقلَّب.', en: 'All your numbers month beside month — a foldable grid and a toggleable chart.' },
+      icon: '🫀',
+      name: { ar: 'نبض الشهر', en: 'The Monthly Pulse' },
+      desc: { ar: 'قصة شهرك الأخير: ماذا تحرّك، وأكبر حركة، وسلسلتك، وإيقاعك.', en: "Your latest month's story: what moved, the biggest mover, your streak, your pace." },
     },
     4: {
       icon: '🧮',

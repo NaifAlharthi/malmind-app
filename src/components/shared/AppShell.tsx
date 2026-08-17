@@ -11,7 +11,7 @@ import TimelineNav from './TimelineNav';
 import DepthRail from './DepthRail';
 import DepthStage from './DepthStage';
 import CommandMode from './CommandMode';
-import { XModeProvider, useXMode, useDrive, useDepth } from './ExperienceMode';
+import { XModeProvider, useXMode, useDrive } from './ExperienceMode';
 import { XMODE_META, type XMode } from '@/lib/experienceMode';
 import { DRIVES, DRIVE_META } from '@/lib/drive';
 import { useTheme } from './ThemeProvider';
@@ -52,6 +52,7 @@ export function useProfileContext() {
 // desktop and a bottom tab bar on mobile.
 const NAV_ITEMS = [
   { href: '/home', labelKey: 'nav.home', icon: '⌂' },
+  { href: '/log', labelKey: 'nav.log', icon: '📒' },
   { href: '/past', labelKey: 'nav.past', icon: '🕰' },
   { href: '/today', labelKey: 'nav.today', icon: '☀' },
   { href: '/future', labelKey: 'nav.future', icon: '🔭' },
@@ -152,30 +153,6 @@ function SmallScreenDials() {
 
 const FULL_BLEED_PATHS = ['/', '/onboarding', '/login', '/signup'];
 
-// The Log's door in the top bar. The Log is a ROOM (home·D3), not a
-// route — so this pill sets the depth and walks home. It lives in its
-// own component because the depth context exists only inside
-// XModeProvider, below AppShell itself.
-function LogNavPill() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { locale } = useLocale();
-  const { depth, setDepth } = useDepth();
-  const active = pathname === '/home' && depth === 3;
-  const name = locale === 'ar' ? 'السِّجل' : 'Log';
-  return (
-    <button
-      onClick={() => { setDepth(3); if (pathname !== '/home') router.push('/home'); }}
-      title={name}
-      className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors shrink-0 cursor-pointer ${
-        active ? 'bg-[var(--ink)] text-[var(--surface-0)] font-medium' : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
-      }`}
-    >
-      <span>📒</span>
-      <span>{name}</span>
-    </button>
-  );
-}
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -348,7 +325,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* the wordmark already goes home, so the pill can yield first when space runs out */}
             <TopNavLink href="/home" labelKey="nav.home" icon="⌂" className="hidden md:flex ms-2" compact />
             {/* the Log rides beside Home — the database deserves a door */}
-            <LogNavPill />
+            <TopNavLink href="/log" labelKey="nav.log" icon="📒" className="hidden md:flex" compact />
             {/* Today is where the action happens — home is identity */}
             <TopNavLink href="/today" labelKey="nav.today" icon="☀" className="hidden sm:flex" compact />
             <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" compact />
@@ -461,7 +438,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                hovering just below the top bar, facing the iceberg's vertical axis ── */}
         {/* home and about are identity pages, the timeline is action — the
             pill shows only once you've stepped onto the time axis */}
-        {!['/home', '/about'].includes(pathname) && (
+        {!['/home', '/about', '/log'].includes(pathname) && (
         <div
           className={`hidden sm:block fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg transition-opacity duration-300 ${
             scrolling ? 'opacity-[0.15] pointer-events-none' : 'opacity-100'

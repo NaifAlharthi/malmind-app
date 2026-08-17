@@ -15,7 +15,7 @@ import type { DepthLevel } from '@/lib/depth';
 import { diagnoseQuadrant, QUADRANT_META, type QuadKey } from '@/lib/quadrant';
 import { demoAr } from '@/lib/demoI18n';
 import FoundationChecklist from '@/components/home/FoundationChecklist';
-import LogTile from '@/components/home/LogTile';
+import MonthlyPulse from '@/components/home/MonthlyPulse';
 import FinancialBoard from '@/components/home/FinancialBoard';
 import HajisOpener from '@/components/home/HajisOpener';
 import PersonaAvatar from '@/app/signup/PersonaAvatar';
@@ -312,8 +312,10 @@ export default function HomePage() {
              sound financial life exist yet? — home·D2 ── */}
       {depth === 2 && <FoundationChecklist />}
 
-      {/* ── the Log: every number on one spreadsheet-like grid — home·D3 ── */}
-      {depth === 3 && <LogTile />}
+      {/* ── the Monthly Pulse: how the blocks MOVED this month — home·D3,
+             the room between existence (D2) and full complexity (D4).
+             The Log itself moved to its own /log page ── */}
+      {depth === 3 && <MonthlyPulse />}
 
       {/* ── home·D4: the full board — every balance, ratio and curve at
              maximum density — with the toolbox tucked in a drawer below ── */}
