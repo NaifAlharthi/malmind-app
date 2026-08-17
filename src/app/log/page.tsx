@@ -13,6 +13,7 @@ import PortfolioTile from '@/components/log/PortfolioTile';
 import OwnershipTile from '@/components/log/OwnershipTile';
 import OtherAssetsTile from '@/components/log/OtherAssetsTile';
 import LiabilitiesTile from '@/components/log/LiabilitiesTile';
+import CreditScoreTile from '@/components/log/CreditScoreTile';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // A slim connector between tiles — the page reads as one river:
@@ -56,6 +57,9 @@ export default function LogPage() {
       <FlowLink label={L('وما يُطرح منها', 'and what subtracts from it')} />
       {/* …and what subtracts */}
       <LiabilitiesTile />
+      <FlowLink label={L('والسوق يشهد على الدفتر', 'and the market testifies to the book')} />
+      {/* the market's testimony: the credit score */}
+      <CreditScoreTile />
     </div>
   );
 }
