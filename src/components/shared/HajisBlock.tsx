@@ -12,6 +12,26 @@ import { useRouter } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useDepth } from '@/components/shared/ExperienceMode';
 
+// Light registry of the concern taxonomy (key · icon · label) for surfaces
+// that only need to NAME concerns — like home's opener snippet — without
+// the full ties/picker machinery. Keep in sync with TYPES below.
+export const HAJIS_TYPES_LITE: { k: string; icon: string; ar: string; en: string }[] = [
+  { k: 'vanish', icon: '💨', ar: 'الراتب يختفي', en: 'My salary just disappears' },
+  { k: 'installments', icon: '🧾', ar: 'أقساط تأكل الراتب القادم', en: 'Installments eating next month' },
+  { k: 'rent', icon: '🏘️', ar: 'الإيجار يأكل الدخل', en: 'Rent eats my income' },
+  { k: 'saving', icon: '💸', ar: 'دخلٌ جيد ولا أدّخر', en: 'Decent income, no savings' },
+  { k: 'loan', icon: '💳', ar: 'ديونٌ تشابكت عليّ', en: 'Debts I’ve lost track of' },
+  { k: 'marriage', icon: '💍', ar: 'زواجٌ على الأبواب', en: 'Marriage on the horizon' },
+  { k: 'house', icon: '🏠', ar: 'بيت أتملكه', en: 'A home of my own' },
+  { k: 'school', icon: '🏫', ar: 'مدارس العيال', en: "The kids' schools" },
+  { k: 'car', icon: '🚗', ar: 'هل أقدر على السيارة؟', en: 'Can I afford the car?' },
+  { k: 'travel', icon: '✈️', ar: 'سفرة العائلة', en: 'The family trip' },
+  { k: 'income', icon: '💼', ar: 'هل دخلي يكفي أصلاً؟', en: 'Is my income even enough?' },
+  { k: 'safety', icon: '🛟', ar: 'لو انقطع الراتب؟', en: 'What if the salary stopped?' },
+  { k: 'umrah', icon: '🕋', ar: 'عمرة أو حج العائلة', en: "The family's Umrah or Hajj" },
+  { k: 'business', icon: '🚀', ar: 'مشروعي الخاص', en: 'My own venture' },
+];
+
 export interface HajisFin {
   income: number;
   expenses: number;

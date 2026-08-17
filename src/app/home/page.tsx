@@ -18,6 +18,7 @@ import { demoAr } from '@/lib/demoI18n';
 import ContactModal from '@/components/shared/ContactModal';
 import FoundationHub from '@/components/home/FoundationHub';
 import LogTile from '@/components/home/LogTile';
+import HajisOpener from '@/components/home/HajisOpener';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -258,6 +259,10 @@ export default function HomePage() {
 
       {/* the action surfaces (hājis, standing, next action) live on T2 —
           home is identity: who you are, your data, and what MalMind is */}
+
+      {/* ── the hājis opener — the most important entry point, first thing:
+             a snippet that hands you into Today, where the action lives ── */}
+      {depth === 1 && <HajisOpener />}
 
       {/* ── personal snapshot — home·D1: who you are, your headline numbers ── */}
       {depth === 1 && (
