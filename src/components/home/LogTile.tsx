@@ -30,7 +30,9 @@ export default function LogTile() {
   const L = (a: string, e: string) => (ar ? a : e);
   const [snaps, setSnaps] = useState<Snap[] | null>(null);
   const [age, setAge] = useState<number | null>(null);
+  const [careerStart, setCareerStart] = useState<number | null>(null);
   const [srcOpen, setSrcOpen] = useState(false);
+  const [backfillOpen, setBackfillOpen] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({ assets: true, liab: true, flow: true });
   // chart controls: which lines are on, how far back, and at what grain
   const [lines, setLines] = useState<Record<string, boolean>>({ nw: true, income: true, expenses: true });
@@ -50,15 +52,28 @@ export default function LogTile() {
         .order('year', { ascending: true })
         .order('month', { ascending: true });
       setSnaps((data as Snap[]) ?? []);
-      // age powers the "share of your life on record" stat
-      const { data: prof } = await supabase.from('profiles').select('age').eq('id', user.id).single();
-      setAge((prof as { age: number | null } | null)?.age ?? null);
+      // age powers the "share of your life on record" stat; career start
+      // anchors where the backfill panel says your financial life began
+      const { data: prof } = await supabase.from('profiles').select('age, career_start_year').eq('id', user.id).single();
+      const p = prof as { age: number | null; career_start_year: number | null } | null;
+      setAge(p?.age ?? null);
+      setCareerStart(p?.career_start_year ?? null);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Latest months first — the freshest column sits beside the labels.
   const cols = useMemo(() => (snaps ?? []).slice(-SHOWN).reverse(), [snaps]);
+
+  // A backfilled year lands straight into local state too, so the life
+  // bar and every chart tick up the moment a row saves.
+  const addSnap = (s: Snap) =>
+    setSnaps((prev) => {
+      const next = (prev ?? []).filter((x) => !(x.year === s.year && x.month === s.month));
+      next.push(s);
+      next.sort((a, b) => a.year - b.year || a.month - b.month);
+      return next;
+    });
 
   // Western digits like every other number surface in the product.
   const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
@@ -231,19 +246,31 @@ export default function LogTile() {
               </div>
             </div>
             {lifePct !== null && (
-              <div className="bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3.5 py-3 col-span-2 sm:col-span-1">
+              <button
+                onClick={() => setBackfillOpen((v) => !v)}
+                aria-expanded={backfillOpen}
+                className={`text-start bg-[var(--surface-1)] border rounded-xl px-3.5 py-3 col-span-2 sm:col-span-1 transition-colors cursor-pointer ${backfillOpen ? 'border-[var(--green)]' : 'border-[var(--border-faint)] hover:border-[var(--green)]'}`}
+              >
                 <div className="text-lg font-bold text-[var(--green-dark)] leading-tight">{lifePctLabel}%</div>
                 <div className="text-[10px] text-[var(--muted)] mt-0.5">
                   🧬 {L('من حياتك موثَّقة هنا — وتزيد كل شهر', 'of your life captured here — growing monthly')}
                 </div>
                 <div className="h-1 rounded-full bg-[var(--border-faint)] mt-2 overflow-hidden">
-                  <div className="h-full rounded-full bg-[var(--green)]" style={{ width: `${Math.max(2, lifePct)}%` }} />
+                  <div className="h-full rounded-full bg-[var(--green)] transition-all duration-700" style={{ width: `${Math.max(2, lifePct)}%` }} />
                 </div>
-              </div>
+                <div className="text-[9px] font-semibold text-[var(--green-dark)] mt-1.5">
+                  {backfillOpen ? L('▴ أغلق', '▴ close') : L('▾ التقط ماضيك المفقود', '▾ capture your missing past')}
+                </div>
+              </button>
             )}
           </div>
         );
       })()}
+
+      {/* ── the backfill room: click the life stat, reclaim your past ── */}
+      {backfillOpen && (
+        <BackfillPanel snaps={snaps} age={age} careerStart={careerStart} ar={ar} supabase={supabase} onSaved={addSnap} />
+      )}
 
       {/* the chart leads; the cells follow below */}
       <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} custom={custom} setCustom={setCustom} ar={ar} />
@@ -308,6 +335,132 @@ const SERIES: { key: string; nameAr: string; nameEn: string; color: string; kind
   { key: 'expenses', nameAr: 'المصروف', nameEn: 'Spending', color: '#D64545', kind: 'flow', get: (s) => Number(s.expenses) },
   { key: 'saved', nameAr: 'المدَّخر', nameEn: 'Saved', color: '#C9A84C', kind: 'flow', get: (s) => Number(s.income) - Number(s.expenses) },
 ];
+
+// ── the backfill room ──
+// The trick that makes reclaiming years painless: the PAST doesn't need
+// monthly resolution. One year-end line per missing year gives every
+// chart its long arc; monthly detail stays available for the meticulous.
+// Rows save straight into financial_snapshots as December entries, and
+// the missing list shrinks as you go — the life bar climbs live.
+function BackfillPanel({
+  snaps, age, careerStart, ar, supabase, onSaved,
+}: {
+  snaps: Snap[]; age: number | null; careerStart: number | null; ar: boolean;
+  supabase: ReturnType<typeof createClient>;
+  onSaved: (s: Snap) => void;
+}) {
+  const L = (a: string, e: string) => (ar ? a : e);
+  const [rows, setRows] = useState<Record<number, { income: string; spending: string; cash: string; debt: string }>>({});
+  const [busy, setBusy] = useState<number | null>(null);
+
+  const first = snaps[0];
+  const nowYear = new Date().getFullYear();
+  // where the financial life begins: career start if we know it,
+  // an 18th birthday if we know the age, five years back otherwise
+  const lifeStart = careerStart ?? (age ? nowYear - age + 18 : first.year - 5);
+  const years: number[] = [];
+  for (let y = first.year - 1; y >= lifeStart; y--) {
+    if (!snaps.some((s) => s.year === y)) years.push(y);
+  }
+  const yearlyMins = Math.max(1, Math.ceil(years.length * 0.5));
+  const monthlyEntries = years.length * 12;
+
+  const num = (v: string) => Number(v.replace(/[^\d.-]/g, '')) || 0;
+  const save = async (y: number) => {
+    const r = rows[y] ?? { income: '', spending: '', cash: '', debt: '' };
+    setBusy(y);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('financial_snapshots').upsert(
+        { user_id: user.id, year: y, month: 12, cash: num(r.cash), liabilities: num(r.debt), income: num(r.income), expenses: num(r.spending) },
+        { onConflict: 'user_id,year,month' },
+      );
+      onSaved({ year: y, month: 12, cash: num(r.cash), stocks: 0, real_estate: 0, equity: 0, other_assets: 0, liabilities: num(r.debt), income: num(r.income), expenses: num(r.spending) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const monthName = (ar ? MONTHS_AR : MONTHS_EN)[first.month - 1];
+
+  if (years.length === 0) {
+    return (
+      <div className="mb-4 rounded-xl border border-[var(--green-border)] bg-[var(--green-bg)]/50 p-4 text-[11px] text-[var(--ink-2)] leading-relaxed">
+        🎉 {L(
+          `سِجلّك يصل أصلاً إلى بداية حياتك المالية (${lifeStart}) — لا سنوات مفقودة. كل شهر جديد يرفع النسبة من تلقاء نفسه.`,
+          `Your record already reaches the start of your financial life (${lifeStart}) — no missing years. Every new month lifts the share on its own.`
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4 rounded-xl border border-[var(--border-default)] bg-[var(--surface-1)]/60 p-4">
+      <div className="text-xs font-semibold text-[var(--ink)] mb-1">🕰 {L('التقط ماضيك', 'Capture your past')}</div>
+      <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-3">
+        {L(
+          `سِجلّك يبدأ من ${monthName} ${first.year}، وحياتك المالية بدأت تقريباً في ${lifeStart} — بين الاثنين ${years.length} ${years.length === 1 ? 'سنة مفقودة' : 'سنوات مفقودة'}. لا يحتاج الماضي دقةً شهرية: سطرٌ واحد بأرقام نهاية كل سنة يرسم القوس الكامل لقصتك.`,
+          `Your record starts ${monthName} ${first.year}; your financial life began around ${lifeStart} — ${years.length} missing ${years.length === 1 ? 'year' : 'years'} in between. The past doesn't need monthly precision: one line of year-end figures per year draws your story's full arc.`
+        )}
+      </p>
+
+      {/* the three roads back, priced honestly in effort */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--green)] bg-[var(--green-bg)]/60 px-2.5 py-1 text-[10px] font-semibold text-[var(--green-dark)]">
+          ⚡ {L(`تعبئة سنوية هنا — ${years.length} ${years.length === 1 ? 'إدخال' : 'إدخالات'} · نحو ${yearlyMins} ${yearlyMins === 1 ? 'دقيقة' : 'دقائق'}`, `Yearly sketch, right here — ${years.length} ${years.length === 1 ? 'entry' : 'entries'} · ~${yearlyMins} min`)}
+        </span>
+        <Link href="/financial-numbers" className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] px-2.5 py-1 text-[10px] font-medium text-[var(--ink-2)] hover:border-[var(--green)]">
+          📄 {L('عندك كشوفات؟ اسحب جدولاً — مرة واحدة، ~١٠ دقائق', 'Have statements? Drop a spreadsheet — once, ~10 min')}
+        </Link>
+        <Link href="/financial-numbers" className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] px-2.5 py-1 text-[10px] font-medium text-[var(--ink-2)] hover:border-[var(--green)]">
+          ✍️ {L(`تفصيل شهري كامل — حتى ${monthlyEntries} إدخالاً`, `Full monthly detail — up to ${monthlyEntries} entries`)}
+        </Link>
+      </div>
+
+      {/* one line per missing year, newest first — saved years vanish
+          from this list and the life bar above climbs immediately */}
+      <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto pe-1">
+        {years.map((y) => {
+          const r = rows[y] ?? { income: '', spending: '', cash: '', debt: '' };
+          const set = (k: keyof typeof r, v: string) => setRows((p) => ({ ...p, [y]: { ...r, [k]: v } }));
+          const fields: [keyof typeof r, string][] = [
+            ['income', L('الدخل/شهر', 'Income/mo')],
+            ['spending', L('المصروف/شهر', 'Spending/mo')],
+            ['cash', L('المدَّخرات', 'Savings')],
+            ['debt', L('الديون', 'Debts')],
+          ];
+          return (
+            <div key={y} className="grid grid-cols-2 sm:grid-cols-[48px_1fr_1fr_1fr_1fr_auto] gap-1.5 items-center">
+              <div className="text-[11px] font-bold text-[var(--ink)] col-span-2 sm:col-span-1" dir="ltr">{y}</div>
+              {fields.map(([k, ph]) => (
+                <input
+                  key={k}
+                  value={r[k]}
+                  onChange={(e) => set(k, e.target.value)}
+                  placeholder={ph}
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="bg-[var(--surface-card)] border border-[var(--border-faint)] rounded-lg px-2 py-1.5 text-[11px] text-[var(--ink)] placeholder:text-[var(--muted)] outline-none focus:border-[var(--green)] w-full min-w-0"
+                />
+              ))}
+              <button
+                onClick={() => save(y)}
+                disabled={busy === y}
+                className="col-span-2 sm:col-span-1 text-[10px] font-semibold text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {busy === y ? '…' : L('احفظ', 'Save')}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[9px] text-[var(--muted)] mt-2.5">
+        {L('تُحفظ كأرقام ديسمبر لكل سنة — ويمكنك صقلها لاحقاً في «أرقامي المالية».', 'Saved as each year\'s December figures — refine them any time in My Financial Numbers.')}
+      </p>
+    </div>
+  );
+}
 
 function LogChart({
   snaps, lines, setLines, range, setRange, gran, setGran, custom, setCustom, ar,
