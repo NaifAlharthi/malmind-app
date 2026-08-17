@@ -91,9 +91,9 @@ export const DEPTH_NAME_OVERRIDES: Record<string, Record<DepthLevel, {
       desc: { ar: 'كل أرقامك شهراً بجانب شهر — جدولاً يُطوى ورسماً يُقلَّب.', en: 'All your numbers month beside month — a foldable grid and a toggleable chart.' },
     },
     4: {
-      icon: '🧰',
-      name: { ar: 'صندوق الأدوات الكامل', en: 'The full toolbox' },
-      desc: { ar: 'كل أداة في المنتج على جدار واحد، مرتبةً عبر الأزمنة الثلاثة.', en: 'Every tool in the product on one wall, arranged across the three times.' },
+      icon: '🧮',
+      name: { ar: 'النظرة المالية الكاملة', en: 'Full financial overview' },
+      desc: { ar: 'أعقد عرض لأرقامك: الأرصدة ومساراتها والنسب والمنحنيات — وصندوق الأدوات في دُرجه.', en: 'Your numbers at full complexity: balances with their trends, ratios and curves — the toolbox waiting in its drawer.' },
     },
   },
 };

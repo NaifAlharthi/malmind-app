@@ -14,8 +14,9 @@ import { TOOLS, type ViewKey } from '@/lib/toolbox';
 import type { DepthLevel } from '@/lib/depth';
 import { diagnoseQuadrant, QUADRANT_META, type QuadKey } from '@/lib/quadrant';
 import { demoAr } from '@/lib/demoI18n';
-import FoundationHub from '@/components/home/FoundationHub';
+import FoundationChecklist from '@/components/home/FoundationChecklist';
 import LogTile from '@/components/home/LogTile';
+import FinancialBoard from '@/components/home/FinancialBoard';
 import HajisOpener from '@/components/home/HajisOpener';
 import PersonaAvatar from '@/app/signup/PersonaAvatar';
 
@@ -86,6 +87,8 @@ export default function HomePage() {
   // The action surfaces (hājis, standing/next-action) live on T2 now —
   // home is identity: who you are, your data, and what MalMind is.
   const [loading, setLoading] = useState(true);
+  // D4: the toolbox waits in its drawer beneath the board
+  const [toolboxOpen, setToolboxOpen] = useState(false);
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -162,15 +165,19 @@ export default function HomePage() {
 
   return (
     <div>
-      <div className="flex justify-between items-start mb-2">
-        <div>
-          <h1 className="font-serif text-2xl font-semibold text-[var(--ink)]">
-            {t('home.greeting', { name: localizedFirstName(profile.name, locale === 'ar') })}
-          </h1>
-          <p className="text-sm text-[var(--ink-2)]">{t('home.subtitle')}</p>
+      {/* the greeting belongs to the front room only — deeper levels
+          open straight onto their content */}
+      {depth === 1 && (
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <h1 className="font-serif text-2xl font-semibold text-[var(--ink)]">
+              {t('home.greeting', { name: localizedFirstName(profile.name, locale === 'ar') })}
+            </h1>
+            <p className="text-sm text-[var(--ink-2)]">{t('home.subtitle')}</p>
+          </div>
+          <button onClick={handleSignOut} className="text-xs text-[var(--muted)]">{t('common.signOut')}</button>
         </div>
-        <button onClick={handleSignOut} className="text-xs text-[var(--muted)]">{t('common.signOut')}</button>
-      </div>
+      )}
 
       {/* the action surfaces (hājis, standing, next action) live on T2 —
           home is identity: who you are, your data, and what MalMind is */}
@@ -301,14 +308,31 @@ export default function HomePage() {
       )}
 
 
-      {/* ── the foundation: enter · review · link the data everything reads — home·D2, the data room ── */}
-      {depth === 2 && <FoundationHub />}
+      {/* ── the foundation, asked as questions: does each block of a
+             sound financial life exist yet? — home·D2 ── */}
+      {depth === 2 && <FoundationChecklist />}
 
       {/* ── the Log: every number on one spreadsheet-like grid — home·D3 ── */}
       {depth === 3 && <LogTile />}
 
-      {/* ── the FULL toolbox — home·D4: every tool on one wall ── */}
-      {depth === 4 && <FullToolMatrix />}
+      {/* ── home·D4: the full board — every balance, ratio and curve at
+             maximum density — with the toolbox tucked in a drawer below ── */}
+      {depth === 4 && (
+        <>
+          <FinancialBoard />
+          <div className="mb-8">
+            <button
+              onClick={() => setToolboxOpen((v) => !v)}
+              aria-expanded={toolboxOpen}
+              className="w-full flex items-center justify-between gap-2 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl px-5 py-4 cursor-pointer hover:border-[var(--green)] transition-colors"
+            >
+              <span className="font-serif text-base font-semibold text-[var(--ink)]">🧰 {ar ? 'صندوق الأدوات الكامل' : 'The full toolbox'}</span>
+              <span className="text-[11px] font-semibold text-[var(--green-dark)]">{toolboxOpen ? (ar ? 'أغلق ▴' : 'Close ▴') : (ar ? 'افتح ▾' : 'Open ▾')}</span>
+            </button>
+            {toolboxOpen && <div className="mt-3"><FullToolMatrix /></div>}
+          </div>
+        </>
+      )}
 
 
 
