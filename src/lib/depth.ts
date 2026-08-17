@@ -78,12 +78,12 @@ export const DEPTH_NAME_OVERRIDES: Record<string, Record<DepthLevel, {
     1: {
       icon: '⌂',
       name: { ar: 'الرئيسي', en: 'Main' },
-      desc: { ar: 'واجهتك: هاجسك وملفّك الشخصي — ومنها تنطلق إلى حيث الفعل.', en: 'Your front: your concern and your profile — the launch point into the action.' },
+      desc: { ar: 'هاجسك وحده، بكامل التركيز — ومنه تنطلق إلى حيث الفعل.', en: 'Your concern alone, in full focus — the launch point into the action.' },
     },
     2: {
       icon: '🏛',
       name: { ar: 'الأساس', en: 'The foundation' },
-      desc: { ar: 'عناصرك الأربعة التي تقرأ منها كل أداة: الدخل والأصول والادخار والالتزامات.', en: 'Your four elements every tool reads from: income, assets, savings, liabilities.' },
+      desc: { ar: 'من أنت ورقمك الواحد وموقعك — ثم بيت أساسك: هل يوجد كل ما ينبغي أن يوجد؟', en: 'Who you are, your one figure, where you stand — then the foundation house: does everything that should exist, exist?' },
     },
     3: {
       icon: '🫀',

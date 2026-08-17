@@ -84,6 +84,7 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [quad, setQuad] = useState<QuadKey | null>(null);
   const [fin, setFin] = useState<Financials | null>(null);
+  const [prevNw, setPrevNw] = useState<number | null>(null);
   // The action surfaces (hājis, standing/next-action) live on T2 now —
   // home is identity: who you are, your data, and what MalMind is.
   const [loading, setLoading] = useState(true);
@@ -129,9 +130,18 @@ export default function HomePage() {
         recent.reduce((a, r) => a + Number(r.expenses), 0) / recent.length,
         assets,
       ));
+      // last month's net worth — the one-figure tile shows the move
+      if (snaps.length > 1) {
+        const p = snaps[snaps.length - 2];
+        const pa = Number(p.cash) + Number(p.stocks) + Number(p.real_estate) + Number(p.equity) + Number(p.other_assets);
+        setPrevNw(pa - Number(p.liabilities));
+      } else {
+        setPrevNw(null);
+      }
     } else {
       setFin(null);
       setQuad(null);
+      setPrevNw(null);
     }
 
 
@@ -186,38 +196,66 @@ export default function HomePage() {
              a snippet that hands you into Today, where the action lives ── */}
       {depth === 1 && <HajisOpener />}
 
-      {/* ── the identity card — home·D1: an image, a name, an age ── */}
-      {depth === 1 && (
-      <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
-        <button
-          onClick={openEditProfile}
-          className="absolute top-6 end-6 text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors"
-        >
-          {t('common.edit')}
-        </button>
-        <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-3">{t('home.profile.eyebrow')}</div>
-        <div className="flex items-center gap-4">
-          {profile.persona ? (
-            <PersonaAvatar id={profile.persona} className="w-16 h-16 shrink-0" />
-          ) : (
-            <div className="w-16 h-16 rounded-full bg-[var(--gold)]/15 border border-[var(--gold)]/40 flex items-center justify-center font-serif text-2xl font-bold text-[var(--gold)] shrink-0">
-              {profile.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div className="min-w-0">
-            <div className="font-serif text-2xl font-semibold">{localizedFirstName(profile.name, locale === 'ar')}</div>
-            <div className="text-xs text-white/60 mt-0.5">
-              {profile.age ? (ar ? `${profile.age} عاماً · ` : `${profile.age} years old · `) : ''}
-              {demoAr(profile.employment, ar)} · {demoAr(profile.city, ar)}
+      {/* ── the identity row — now the OPENING of home·D2: who you are,
+             and the ONE figure that captures everything, side by side.
+             D1 keeps its full focus on the main concern ── */}
+      {depth === 2 && (
+      <div className={`grid gap-4 my-6 items-stretch ${fin ? 'sm:grid-cols-2' : ''}`}>
+        {/* the identity card: an image, a name, an age */}
+        <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 text-white relative">
+          <button
+            onClick={openEditProfile}
+            className="absolute top-6 end-6 text-xs text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-3 py-1.5 transition-colors"
+          >
+            {t('common.edit')}
+          </button>
+          <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-3">{t('home.profile.eyebrow')}</div>
+          <div className="flex items-center gap-4">
+            {profile.persona ? (
+              <PersonaAvatar id={profile.persona} className="w-16 h-16 shrink-0" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-[var(--gold)]/15 border border-[var(--gold)]/40 flex items-center justify-center font-serif text-2xl font-bold text-[var(--gold)] shrink-0">
+                {profile.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="font-serif text-2xl font-semibold">{localizedFirstName(profile.name, locale === 'ar')}</div>
+              <div className="text-xs text-white/60 mt-0.5">
+                {profile.age ? (ar ? `${profile.age} عاماً · ` : `${profile.age} years old · `) : ''}
+                {demoAr(profile.employment, ar)} · {demoAr(profile.city, ar)}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* NET WORTH: all you own minus all you owe, from the Log's latest month */}
+        {fin && (
+          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+            <div className="text-[10px] tracking-[0.12em] uppercase text-[var(--muted)] font-semibold mb-1">
+              {ar ? 'صافي ثروتك' : 'Net worth'}
+            </div>
+            <div className={`font-serif text-4xl sm:text-5xl font-bold leading-tight ${fin.netWorth >= 0 ? 'text-[var(--green-dark)]' : 'text-[#D64545]'}`} dir="ltr">
+              {Math.round(fin.netWorth).toLocaleString('en-US')}
+              <span className="text-lg sm:text-xl font-semibold text-[var(--muted)] ms-2 align-baseline">
+                {(profile.currency ?? 'SAR') === 'SAR' ? (ar ? 'ر.س' : 'SAR') : profile.currency}
+              </span>
+            </div>
+            <div className="text-[11px] text-[var(--muted)] mt-1.5">
+              {ar ? 'كل ما تملك ناقص كل ما عليك' : 'everything you own minus everything you owe'} · {fin.asOf}
+              {prevNw !== null && prevNw !== 0 && (
+                <span className={`ms-2 font-semibold ${fin.netWorth >= prevNw ? 'text-[var(--green-dark)]' : 'text-[#D64545]'}`} dir="ltr">
+                  {fin.netWorth >= prevNw ? '▲' : '▼'} {Math.abs(((fin.netWorth - prevNw) / Math.abs(prevNw)) * 100).toFixed(1)}% {ar ? 'عن الشهر الماضي' : 'MoM'}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       )}
 
-      {/* ── where you stand now — home·D1: the verdict + the four squares,
-             chained by arrows, with the person's marker ── */}
-      {depth === 1 && (
+      {/* ── where you stand now — with the identity row at home·D2: the
+             verdict + the four squares, chained by arrows ── */}
+      {depth === 2 && (
       <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <div className="text-[10px] tracking-[0.08em] uppercase text-white/45 mb-1.5">
           {ar ? 'أين تقف الآن' : 'Where you stand now'}
