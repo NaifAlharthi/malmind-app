@@ -5,13 +5,21 @@
 // home's deeper levels; the founder gave it a door in the top bar instead,
 // paired with Take a tour.
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { enterDemo } from '@/lib/demoSupabase';
+import { DEMO_PERSONAS } from '@/lib/demoWorld';
+import PersonaAvatar from '@/app/signup/PersonaAvatar';
+import ContactModal from '@/components/shared/ContactModal';
 
 export default function AboutPage() {
+  const router = useRouter();
   const { t, locale } = useLocale();
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const PROBLEMS = [
     {
@@ -164,6 +172,91 @@ export default function AboutPage() {
           ))}
         </div>
       </div>
+
+      {/* ── the Brain, the personas, and the door to us ── */}
+      <div className="mb-4">
+        <SectionHeading eyebrow={L('جرّب واسأل وتواصل', 'Try it, ask it, reach us')} />
+        <div className="grid sm:grid-cols-2 gap-3">
+          {/* the Brain, properly introduced */}
+          <div className="sm:col-span-2 bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 text-white relative overflow-hidden">
+            <div className="absolute -top-12 -end-12 w-44 h-44 rounded-full bg-[var(--gold)]/10 blur-3xl pointer-events-none" />
+            <div className="relative">
+              <div className="text-[10px] tracking-[0.14em] uppercase text-[var(--gold)] font-semibold mb-1.5">
+                {L('مستشارك الذي يقرأ أرقامك أنت', 'The advisor that reads YOUR numbers')}
+              </div>
+              <h2 className="font-serif text-2xl font-bold mb-2">🧠 {L('العقل', 'The Brain')}</h2>
+              <p className="text-sm text-white/80 leading-relaxed max-w-2xl mb-3">
+                {L(
+                  'العقل ليس روبوت نصائح عامة — إنه طبقة التفكير فوق بياناتك: يرافقك صفحةً بصفحة، يشرح ما تنظر إليه حين تطلب، ويجيب عن «هل أقدر على السيارة؟» من أرقامك الحقيقية لا من قواعد جاهزة. كل هاجس تكتبه وكل زر «اسأل» في المنتج يصبّ فيه.',
+                  'The Brain is not a generic advice bot — it is the thinking layer above your data: it walks with you page by page, explains what you are looking at when asked, and answers "can I afford the car?" from your real numbers, not canned rules. Every concern you write and every Ask button in the product flows into it.'
+                )}
+              </p>
+              <Link href="/advisor" className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2">
+                {L('افتح العقل ←', 'Open the Brain →')}
+              </Link>
+            </div>
+          </div>
+
+          {/* the personas — walk a ready-made life */}
+          <div className="sm:col-span-2 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">👀</span>
+              <span className="text-sm font-semibold text-[var(--ink)]">{L('جرّب المنتج بشخصية جاهزة', 'Preview the product as a ready-made persona')}</span>
+            </div>
+            <p className="text-xs text-[var(--muted)] leading-relaxed mb-4 max-w-2xl">
+              {L(
+                'أربع حيوات سعودية كاملة — واحدة لكل مرحلة مالية — تمشي فيها المنتج كله ببيانات حقيقية البنية، دون تسجيل ودون حفظ.',
+                'Four complete Saudi lives — one per financial stage — to walk the whole product with realistically-shaped data, no signup, nothing saved.'
+              )}
+            </p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {DEMO_PERSONAS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => { enterDemo(p.id); router.push('/home'); }}
+                  className="group text-start bg-[var(--surface-0)]/50 border border-[var(--border-faint)] rounded-xl p-3 hover:border-[var(--green)] transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 mb-1.5">
+                    <PersonaAvatar id={p.id} className="w-9 h-9 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-[var(--ink)] truncate">{ar ? p.firstNameAr : p.firstName}</div>
+                      <div className="text-[9px] rounded-full px-1.5 py-0.5 inline-block mt-0.5" style={{ background: `${p.accent}22`, color: p.accent }} dir="ltr">
+                        {p.quadrant}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-[var(--muted)] leading-relaxed line-clamp-2">{ar ? p.role.ar : p.role.en}</p>
+                  <span className="text-[10px] font-medium text-[var(--green-dark)] group-hover:underline">
+                    {L('امشِ في حياته ←', 'Walk this life →')}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* reach us */}
+          <div className="sm:col-span-2 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">💬</span>
+              <span className="text-sm font-semibold text-[var(--ink)]">{L('تواصل معنا', 'Reach us')}</span>
+            </div>
+            <p className="text-xs text-[var(--muted)] leading-relaxed mb-3 max-w-2xl">
+              {L(
+                'سؤال، ملاحظة، هاجس لم نغطِّه بعد، استفسار استثماري، أو شراكة — يسعدنا أن نسمع منك، وكل رسالة تُقرأ.',
+                'A question, feedback, a concern we have not covered yet, an investment inquiry, or a partnership — we would love to hear from you, and every message gets read.'
+              )}
+            </p>
+            <button
+              onClick={() => setContactOpen(true)}
+              className="text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3.5 py-2"
+            >
+              {t('common.contactUs')}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} source="about" />
     </div>
   );
 }
