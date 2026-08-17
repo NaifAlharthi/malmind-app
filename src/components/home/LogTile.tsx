@@ -128,6 +128,9 @@ export default function LogTile() {
         )}
       </p>
 
+      {/* the chart leads; the cells follow below */}
+      <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} ar={ar} />
+
       <div className="overflow-x-auto rounded-lg border border-[var(--border-faint)]">
         <table className="w-full text-[11px] border-collapse min-w-[560px]" style={{ fontVariantNumeric: 'tabular-nums' }}>
           <thead>
@@ -170,9 +173,6 @@ export default function LogTile() {
       <p className="text-[10px] text-[var(--muted)] mt-2">
         {L('القيم بالريال السعودي. تفاصيل الأصول المفردة في المحفظة، وتفاصيل كل دين في الالتزامات.', 'Values in SAR. Individual asset detail lives in Holdings; per-debt detail in Commitments.')}
       </p>
-
-      {/* ── the same cells, drawn across time ── */}
-      <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} ar={ar} />
     </div>
   );
 }
@@ -243,7 +243,7 @@ function LogChart({
   const anyOn = SERIES.some((s) => lines[s.key]);
 
   return (
-    <div className="mt-5 pt-4 border-t border-[var(--border-faint)]">
+    <div className="mb-5 pb-4 border-b border-[var(--border-faint)]">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <div className="text-xs font-semibold text-[var(--ink)]">📈 {L('الأرقام عبر الزمن', 'The numbers across time')}</div>
         <div className="flex items-center gap-2 flex-wrap">
