@@ -157,6 +157,20 @@ export default function CommandMode() {
         return;
       }
 
+      // ⇧L — jump straight to the Log (home · D3), from anywhere
+      // (physical key: layout-independent)
+      if (e.code === 'KeyL' || e.key === 'L' || e.key === 'l') {
+        if (suppressed.current) return;
+        e.preventDefault();
+        if (e.repeat) return;
+        setOpen(false);
+        act(() => {
+          setDepthRef.current(3 as DepthLevel);
+          if (pathRef.current !== '/home') router.push('/home');
+        });
+        return;
+      }
+
       // ⇧M — cycle the experience modes alt-tab style; idle or releasing
       // Shift confirms the highlighted one (physical key: layout-independent)
       if (e.code === 'KeyM' || e.key === 'M' || e.key === 'm') {
@@ -448,6 +462,10 @@ export default function CommandMode() {
           <div className="flex items-center gap-2">
             <Key label="H" />
             <Hint text={`⌂ ${L('اذهب إلى الرئيسية', 'Go to the home page')}`} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Key label="L" />
+            <Hint text={`📒 ${L('اقفز إلى السِّجل مباشرة', 'Jump straight to the Log')}`} />
           </div>
         </div>
       </div>
