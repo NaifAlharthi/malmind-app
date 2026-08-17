@@ -16,6 +16,8 @@ import { demoAr } from '@/lib/demoI18n';
 import { isDemoActive } from '@/lib/demoSupabase';
 import { clearEphemeral } from '@/lib/authPrefs';
 import ContactModal from '@/components/shared/ContactModal';
+import { useTier } from '@/components/shared/ExperienceMode';
+import { TIER_META, TIER_ORDER } from '@/lib/tier';
 
 interface SpaceProfile {
   name: string;
@@ -49,6 +51,7 @@ export default function YourSpacePanel({
   const supabase = createClient();
   const { t, locale, setLocale } = useLocale();
   const { theme, toggleTheme } = useTheme();
+  const { tier, setTier } = useTier();
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
 
@@ -189,6 +192,43 @@ export default function YourSpacePanel({
                   </div>
                 </div>
               </div>
+            </div>
+          </SpaceTile>
+
+          {/* the plan — the ceiling on the depth dial, product-wide. It
+              lives HERE, in the account, not in the top-bar menus; the
+              picker is the placeholder until billing lands */}
+          <SpaceTile icon="🎫" title={L('باقتك', 'Your plan')} className="sm:col-span-2">
+            <p className="text-[10px] text-[var(--muted)] leading-relaxed mb-2.5">
+              {L(
+                'باقتك تحدد أقصى عمق يفتحه المنتج لك — في المِسبار وداخل كل أداة.',
+                "Your plan sets the deepest level the product opens for you — on the dial and inside every tool."
+              )}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {TIER_ORDER.map((k) => {
+                const meta = TIER_META[k];
+                const active = tier === k;
+                return (
+                  <button
+                    key={k}
+                    onClick={() => setTier(k)}
+                    aria-pressed={active}
+                    className={`rounded-xl border px-3 py-2.5 text-start transition-colors cursor-pointer ${
+                      active
+                        ? 'border-[var(--green)] bg-[var(--green-bg)]/50 ring-1 ring-[var(--green)]'
+                        : 'border-[var(--border-faint)] bg-[var(--surface-1)] hover:border-[var(--green)]'
+                    }`}
+                  >
+                    <div className="text-[12px] font-bold text-[var(--ink)]">
+                      {meta.icon} {ar ? meta.name.ar : meta.name.en}
+                      {active && <span className="ms-1 text-[var(--green-dark)]">✓</span>}
+                    </div>
+                    <div className="text-[9px] font-semibold text-[var(--muted)] mb-0.5" dir="ltr">D1–D{meta.maxDepth}</div>
+                    <div className="text-[9px] text-[var(--muted)] leading-relaxed">{ar ? meta.blurb.ar : meta.blurb.en}</div>
+                  </button>
+                );
+              })}
             </div>
           </SpaceTile>
 
