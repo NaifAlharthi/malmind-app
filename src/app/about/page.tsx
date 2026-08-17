@@ -371,7 +371,7 @@ export default function AboutPage() {
               </div>
             </div>
             {/* ONE choreographed loop: the palette drives, the timeline and the
-                iceberg obey — a 12s story of commanding time and depth from
+                iceberg obey — a 24s story of commanding time and depth from
                 the keyboard. Chip crossfades narrate the position. */}
             <style>{`
               @keyframes mmTlKnob { 0%,4%{left:50%} 10%,22%{left:4%} 32%,88%{left:96%} 96%,100%{left:50%} }
@@ -384,15 +384,15 @@ export default function AboutPage() {
               @keyframes mmChipPast { 0%,8%{opacity:0} 10%,22%{opacity:1} 24%,100%{opacity:0} }
               @keyframes mmChipFuture1 { 0%,30%{opacity:0} 32%,52%{opacity:1} 54%,100%{opacity:0} }
               @keyframes mmChipFuture4 { 0%,54%{opacity:0} 56%,92%{opacity:1} 94%,100%{opacity:0} }
-              .mm-tl-knob { animation: mmTlKnob 12s ease-in-out infinite; }
-              .mm-ice-marker { animation: mmIceDive 12s ease-in-out infinite; }
+              .mm-tl-knob { animation: mmTlKnob 24s ease-in-out infinite; }
+              .mm-ice-marker { animation: mmIceDive 24s ease-in-out infinite; }
               @keyframes mmKeyShift { 0%,4%{background:var(--surface-1);color:var(--ink)} 5%,8%{background:var(--gold);color:#2A1F05} 10%,23%{background:var(--surface-1);color:var(--ink)} 24%,27%{background:var(--gold);color:#2A1F05} 28%,29%{background:var(--surface-1);color:var(--ink)} 30%,33%{background:var(--gold);color:#2A1F05} 35%,49%{background:var(--surface-1);color:var(--ink)} 50%,53%{background:var(--gold);color:#2A1F05} 54%,55%{background:var(--surface-1);color:var(--ink)} 56%,59%{background:var(--gold);color:#2A1F05} 60%,61%{background:var(--surface-1);color:var(--ink)} 62%,65%{background:var(--gold);color:#2A1F05} 67%,77%{background:var(--surface-1);color:var(--ink)} 78%,81%{background:var(--gold);color:#2A1F05} 82%,83%{background:var(--surface-1);color:var(--ink)} 84%,87%{background:var(--gold);color:#2A1F05} 88%,89%{background:var(--surface-1);color:var(--ink)} 90%,93%{background:var(--gold);color:#2A1F05} 95%,100%{background:var(--surface-1);color:var(--ink)} }
-              .mm-k-shift { animation: mmKeyShift 12s infinite; }
-              .mm-k-left { animation: mmKeyLeft 12s infinite; }
-              .mm-k-right { animation: mmKeyRight 12s infinite; }
-              .mm-k-down { animation: mmKeyDown 12s infinite; }
-              .mm-k-up { animation: mmKeyUp 12s infinite; }
-              .mm-chip, .mm-combo { animation-duration: 12s; animation-iteration-count: infinite; animation-timing-function: linear; }
+              .mm-k-shift { animation: mmKeyShift 24s infinite; }
+              .mm-k-left { animation: mmKeyLeft 24s infinite; }
+              .mm-k-right { animation: mmKeyRight 24s infinite; }
+              .mm-k-down { animation: mmKeyDown 24s infinite; }
+              .mm-k-up { animation: mmKeyUp 24s infinite; }
+              .mm-chip, .mm-combo { animation-duration: 24s; animation-iteration-count: infinite; animation-timing-function: linear; }
               @media (prefers-reduced-motion: reduce) {
                 .mm-tl-knob, .mm-ice-marker, .mm-k-shift, .mm-k-left, .mm-k-right, .mm-k-down, .mm-k-up, .mm-chip, .mm-combo { animation: none; }
                 .mm-chip, .mm-combo { opacity: 0; } .mm-chip-default, .mm-combo-default { opacity: 1 !important; }
@@ -443,7 +443,7 @@ export default function AboutPage() {
                 {/* THE VIEW — the area the two axes frame. It is LIVE: as the
                     choreography walks the grid, this cell crossfades to the
                     explanation of the CURRENT time × depth combo, on the same
-                    12s clock as the position chip beside it */}
+                    24s clock as the position chip beside it */}
                 <div className="relative rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--surface-0)]/40 min-h-[150px]" dir={ar ? 'rtl' : 'ltr'}>
                   {([
                     ['mm-combo-default', 'mmChipToday1', '☀ ' + L('اليوم', 'Today') + ' · D1',
@@ -473,22 +473,10 @@ export default function AboutPage() {
                   <kbd className="mm-k-up text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-2 py-0.5 text-[var(--ink)]">↑</kbd>
                   <div className="flex items-center gap-2 my-1.5">
                     <kbd className="mm-k-left text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-2 py-0.5 text-[var(--ink)]">←</kbd>
-                    <span className="relative inline-block min-w-[92px] h-6">
-                      {([
-                        ['mm-chip-default', 'mmChipToday1', '☀ ' + L('اليوم', 'Today') + ' · D1'],
-                        ['', 'mmChipPast', '🕰 ' + L('الماضي', 'Past') + ' · D1'],
-                        ['', 'mmChipFuture1', '🔭 ' + L('المستقبل', 'Future') + ' · D1'],
-                        ['', 'mmChipFuture4', '🔭 ' + L('المستقبل', 'Future') + ' · D4'],
-                      ] as [string, string, string][]).map(([extra, anim, label]) => (
-                        <span key={anim} className={`mm-chip ${extra} absolute inset-0 flex items-center justify-center rounded-full border border-[var(--gold)] bg-[var(--gold)]/10 text-[var(--gold-text-strong)] px-2 text-[9px] font-semibold whitespace-nowrap`} style={{ animationName: anim, opacity: 0 }}>
-                          {label}
-                        </span>
-                      ))}
-                    </span>
                     <kbd className="mm-k-right text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-2 py-0.5 text-[var(--ink)]">→</kbd>
                   </div>
                   <kbd className="mm-k-down text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-2 py-0.5 text-[var(--ink)]">↓</kbd>
-                  <div className="text-[9px] text-[var(--muted)] mt-1.5 text-center max-w-[130px]">{L('يدٌ واحدة تضغط — والمحوران يستجيبان', 'one hand presses — both axes obey')}</div>
+                  <div className="text-[9px] text-[var(--muted)] mt-1.5 text-center max-w-[130px]">{L('اضغط مطوّلاً على Shift +', 'hold and press Shift +')}</div>
                   {/* the held key — set apart below, lighting with EVERY arrow press */}
                   <kbd className="mm-k-shift text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-4 py-0.5 text-[var(--ink)] mt-2">⇧ Shift</kbd>
                 </div>
