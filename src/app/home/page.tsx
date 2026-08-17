@@ -197,7 +197,39 @@ export default function HomePage() {
                   <span>{c.title}</span>
                 </div>
                 <p className="text-sm text-white/75 leading-relaxed mt-2 max-w-xl">{c.meaning}</p>
-                <Link href="/today" className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2 mt-3">
+
+                {/* the four stages, with the person's marker on their own */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                  {(['A', 'B', 'C', 'D'] as QuadKey[]).map((k) => {
+                    const m = QUADRANT_META[k];
+                    const cc = ar ? m.ar : m.en;
+                    const here = k === quad;
+                    return (
+                      <div
+                        key={k}
+                        className={`rounded-xl p-3 border transition-colors ${
+                          here
+                            ? 'bg-[var(--gold)]/15 border-[var(--gold)]'
+                            : 'bg-white/[0.04] border-white/10 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[10px] font-bold text-white/40" dir="ltr">{k}</span>
+                          <span className="text-sm leading-none">{m.icon}</span>
+                          <span className={`text-xs font-semibold ${here ? 'text-white' : 'text-white/70'}`}>{cc.title}</span>
+                        </div>
+                        <div className="text-[9px] text-white/45 leading-relaxed">{cc.mood}</div>
+                        {here && (
+                          <div className="text-[9px] font-bold text-[var(--gold)] mt-1">
+                            📍 {ar ? 'أنت هنا' : 'You are here'}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Link href="/today" className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2 mt-3.5">
                   {ar ? 'الخريطة كاملة في «اليوم» ←' : 'The full map in Today →'}
                 </Link>
               </>
