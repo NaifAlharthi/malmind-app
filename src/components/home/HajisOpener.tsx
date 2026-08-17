@@ -13,8 +13,30 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { HAJIS_TYPES_LITE } from '@/components/shared/HajisBlock';
 import { announcePageNav } from '@/lib/phoneNav';
 
-interface Concern { types: string[]; text: string; none?: boolean }
-interface Resolved { k?: string; text?: string; at: string }
+interface Concern { types: string[]; text: string; none?: boolean; startedAt?: Record<string, string> }
+interface Resolved { k?: string; text?: string; at: string; startedAt?: string | null; how?: { tools: string[]; note: string } }
+
+// the product's rooms a concern is usually resolved in
+const RESOLVE_TOOLS: { k: string; ar: string; en: string }[] = [
+  { k: 'log', ar: 'السِّجل', en: 'The Log' },
+  { k: 'budget', ar: 'الميزانية', en: 'Budgeting' },
+  { k: 'whatif', ar: 'ماذا لو', en: 'What-if' },
+  { k: 'payoff', ar: 'سداد الديون', en: 'Loan payoff' },
+  { k: 'goal', ar: 'صندوق الهدف', en: 'Goal fund' },
+  { k: 'freedom', ar: 'الحرية المالية', en: 'Freedom' },
+  { k: 'brain', ar: 'العقل', en: 'The Brain' },
+  { k: 'stack', ar: 'المكدّس اليومي', en: 'Daily stack' },
+  { k: 'other', ar: 'غير ذلك', en: 'Other' },
+];
+
+const MONTHS_EN_S = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_AR_S = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const fmtDate = (iso: string | null | undefined, ar: boolean) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getDate()} ${(ar ? MONTHS_AR_S : MONTHS_EN_S)[d.getMonth()]} ${d.getFullYear()}`;
+};
 
 export default function HajisOpener() {
   const router = useRouter();
@@ -24,6 +46,11 @@ export default function HajisOpener() {
 
   const [concern, setConcern] = useState<Concern>({ types: [], text: '' });
   const [resolved, setResolved] = useState<Resolved[]>([]);
+  // the "how was it resolved" mini-dialog, and the history popup
+  const [resolveTarget, setResolveTarget] = useState<{ k?: string; text?: string } | null>(null);
+  const [howTools, setHowTools] = useState<string[]>([]);
+  const [howNote, setHowNote] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -34,6 +61,7 @@ export default function HajisOpener() {
           types: Array.isArray(parsed.types) ? parsed.types : parsed.type ? [parsed.type] : [],
           text: parsed.text ?? '',
           none: !!parsed.none,
+          startedAt: parsed.startedAt && typeof parsed.startedAt === 'object' ? parsed.startedAt : {},
         });
       }
       const rawR = window.localStorage.getItem('mm-concern-resolved');
@@ -50,15 +78,32 @@ export default function HajisOpener() {
   };
   const pick = (k: string) => {
     const types = concern.types.includes(k) ? concern.types : [...concern.types, k].slice(0, 3);
-    saveConcern({ types, text: concern.text, none: false });
+    // stamp the day the work on this concern began
+    const startedAt = { ...(concern.startedAt ?? {}) };
+    if (!startedAt[k]) startedAt[k] = new Date().toISOString();
+    saveConcern({ types, text: concern.text, none: false, startedAt });
   };
-  const chooseNone = () => saveConcern({ types: [], text: '', none: true });
-  const resolve = (entry: { k?: string; text?: string }) => {
-    const next = [...resolved, { ...entry, at: new Date().toISOString() }];
+  const chooseNone = () => saveConcern({ types: [], text: '', none: true, startedAt: concern.startedAt });
+  // step 1: the ✓ opens the "how" dialog; step 2 below actually resolves
+  const openResolve = (entry: { k?: string; text?: string }) => {
+    setHowTools([]);
+    setHowNote('');
+    setResolveTarget(entry);
+  };
+  const confirmResolve = () => {
+    if (!resolveTarget) return;
+    const entry: Resolved = {
+      ...resolveTarget,
+      at: new Date().toISOString(),
+      startedAt: resolveTarget.k ? concern.startedAt?.[resolveTarget.k] ?? null : null,
+      how: { tools: howTools, note: howNote.trim() },
+    };
+    const next = [...resolved, entry];
     try { window.localStorage.setItem('mm-concern-resolved', JSON.stringify(next)); } catch { /* ignore */ }
     setResolved(next);
-    if (entry.k) saveConcern({ types: concern.types.filter((t) => t !== entry.k), text: concern.text, none: false });
-    else saveConcern({ types: concern.types, text: '', none: false });
+    if (resolveTarget.k) saveConcern({ types: concern.types.filter((t) => t !== resolveTarget.k), text: concern.text, none: false, startedAt: concern.startedAt });
+    else saveConcern({ types: concern.types, text: '', none: false, startedAt: concern.startedAt });
+    setResolveTarget(null);
   };
 
   const chosen = concern.types
@@ -87,13 +132,18 @@ export default function HajisOpener() {
         {/* the running score — concerns this product helped put to rest */}
         {resolved.length > 0 && (
           <div className="flex justify-center mb-4">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/10 px-4 py-1.5 text-[11px] font-semibold text-[var(--gold)]">
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/10 px-4 py-1.5 text-[11px] font-semibold text-[var(--gold)] hover:bg-[var(--gold)]/20 transition-colors cursor-pointer"
+              aria-haspopup="dialog"
+            >
               🏆 {L(
                 `${resolved.length} ${resolved.length === 1 ? 'هاجس حُلّ' : resolved.length === 2 ? 'هاجسان حُلّا' : 'هواجس حُلّت'} حتى الآن`,
                 `${resolved.length} ${resolved.length === 1 ? 'concern' : 'concerns'} resolved so far`
               )}
               {lastResolvedName && <span className="text-white/60 font-normal">· {L('آخرها', 'latest')}: {lastResolvedName}</span>}
-            </span>
+              <span className="text-white/50 font-normal">▾</span>
+            </button>
           </div>
         )}
 
@@ -106,7 +156,7 @@ export default function HajisOpener() {
               <div className="text-center mb-5">
                 <div className="font-serif text-2xl sm:text-3xl font-bold leading-snug">«{concern.text.trim()}»</div>
                 <button
-                  onClick={() => resolve({ text: concern.text.trim() })}
+                  onClick={() => openResolve({ text: concern.text.trim() })}
                   className="mt-2 text-[10px] font-semibold text-white/60 hover:text-[var(--gold)] border border-white/20 hover:border-[var(--gold)]/50 rounded-full px-3 py-1 transition-colors cursor-pointer"
                 >
                   ✓ {L('حُلّ هذا الهاجس', 'This one is resolved')}
@@ -120,7 +170,7 @@ export default function HajisOpener() {
                   <span className="text-sm font-semibold text-white/95 leading-snug">{ar ? c.ar : c.en}</span>
                   <span className="text-[10px] text-white/55">{L('نتابعه بأرقامك في «اليوم»', 'Tracked with your numbers in Today')}</span>
                   <button
-                    onClick={() => resolve({ k: c.k })}
+                    onClick={() => openResolve({ k: c.k })}
                     className="text-[10px] font-semibold text-white/60 hover:text-[var(--gold)] border border-white/20 hover:border-[var(--gold)]/50 rounded-full px-3 py-1 transition-colors cursor-pointer"
                   >
                     ✓ {L('حُلّ', 'Resolved')}
@@ -202,6 +252,114 @@ export default function HajisOpener() {
           ))}
         </div>
       </div>
+
+      {/* ── "how was it resolved?" — the closing note before a concern
+             joins the trophy shelf ── */}
+      {resolveTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setResolveTarget(null)} />
+          <div className="relative w-full max-w-md bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 text-start">
+            <div className="font-serif text-base font-semibold text-[var(--ink)] mb-1">
+              ✓ {L('كيف حُلّ هذا الهاجس؟', 'How was this concern resolved?')}
+            </div>
+            <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-3">
+              {L('سطران للتاريخ: ماذا فعلت، وأي الأدوات ساعدتك — لتقرأه لاحقاً بفخر.', 'Two lines for the record: what you did, and which tools helped — to read back later with pride.')}
+            </p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {RESOLVE_TOOLS.map((tl) => {
+                const on = howTools.includes(tl.k);
+                return (
+                  <button
+                    key={tl.k}
+                    onClick={() => setHowTools((p) => (on ? p.filter((x) => x !== tl.k) : [...p, tl.k]))}
+                    aria-pressed={on}
+                    className={`text-[10px] font-medium rounded-full px-2.5 py-1 border transition-colors cursor-pointer ${
+                      on ? 'border-transparent bg-[var(--green-dark)] text-white' : 'border-[var(--border-default)] text-[var(--ink-2)] hover:border-[var(--green)]'
+                    }`}
+                  >
+                    {ar ? tl.ar : tl.en}
+                  </button>
+                );
+              })}
+            </div>
+            <textarea
+              value={howNote}
+              onChange={(e) => setHowNote(e.target.value)}
+              rows={2}
+              placeholder={L('ماذا فعلت؟ (اختياري)', 'What did you do? (optional)')}
+              className="w-full bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-[12px] text-[var(--ink)] outline-none focus:border-[var(--green)] mb-3 resize-none"
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={() => setResolveTarget(null)} className="text-[11px] text-[var(--muted)] hover:text-[var(--ink)] px-3 py-2 cursor-pointer">
+                {L('إلغاء', 'Cancel')}
+              </button>
+              <button onClick={confirmResolve} className="text-[11px] font-semibold text-white bg-[var(--green-dark)] rounded-lg px-4 py-2 cursor-pointer">
+                🏆 {L('سجّله محلولاً', 'Mark it resolved')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── the trophy shelf — every concern this product helped put to
+             rest: what it was, when work began, when it ended, and how ── */}
+      {historyOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setHistoryOpen(false)} />
+          <div className="relative w-full max-w-lg max-h-[80vh] overflow-y-auto bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 text-start">
+            <div className="flex items-baseline justify-between gap-2 mb-1">
+              <div className="font-serif text-base font-semibold text-[var(--ink)]">🏆 {L('هواجس وضعناها خلفك', 'Concerns put behind you')}</div>
+              <button onClick={() => setHistoryOpen(false)} className="text-[var(--muted)] hover:text-[var(--ink)] text-sm cursor-pointer" aria-label={L('أغلق', 'Close')}>✕</button>
+            </div>
+            <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-4">
+              {L('واحداً بعد الآخر — هذا سِجل ما قلق ثم انحلّ.', 'One after the other — the record of what worried you, then dissolved.')}
+            </p>
+            <div className="flex flex-col gap-2.5">
+              {[...resolved].reverse().map((r, i) => {
+                const meta = r.k ? HAJIS_TYPES_LITE.find((x) => x.k === r.k) : null;
+                const name = meta ? (ar ? meta.ar : meta.en) : r.text ? `«${r.text}»` : L('هاجس', 'A concern');
+                const started = fmtDate(r.startedAt, ar);
+                const ended = fmtDate(r.at, ar);
+                const days = r.startedAt && r.at ? Math.max(1, Math.round((new Date(r.at).getTime() - new Date(r.startedAt).getTime()) / 86400000)) : null;
+                const tools = (r.how?.tools ?? []).map((k) => RESOLVE_TOOLS.find((t) => t.k === k)).filter(Boolean) as typeof RESOLVE_TOOLS;
+                return (
+                  <div key={i} className="rounded-xl border border-[var(--border-faint)] bg-[var(--surface-1)] px-3.5 py-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      {meta && <span className="text-base" aria-hidden>{meta.icon}</span>}
+                      <span className="text-[12px] font-semibold text-[var(--ink)]">{name}</span>
+                      <span className="ms-auto text-[10px] font-semibold text-[var(--green-dark)]">✓ {L('حُلّ', 'Resolved')}</span>
+                    </div>
+                    <div className="text-[10px] text-[var(--muted)]">
+                      {started
+                        ? L(`بدأ العمل عليه: ${started}`, `Work began: ${started}`)
+                        : L('بداية العمل: غير مسجَّلة', 'Work began: not recorded')}
+                      {ended && <> · {L(`اكتمل: ${ended}`, `Resolved: ${ended}`)}</>}
+                      {days !== null && <> · {L(`خلال ${days} ${days === 1 ? 'يوم' : days === 2 ? 'يومين' : 'أيام'}`, `in ${days} ${days === 1 ? 'day' : 'days'}`)}</>}
+                    </div>
+                    {(tools.length > 0 || r.how?.note) && (
+                      <div className="mt-2 pt-2 border-t border-[var(--border-faint)]">
+                        {tools.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            {tools.map((t) => (
+                              <span key={t.k} className="text-[9px] font-medium rounded-full border border-[var(--green-border)] bg-[var(--green-bg)]/50 text-[var(--green-dark)] px-2 py-0.5">
+                                {ar ? t.ar : t.en}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {r.how?.note && <div className="text-[10px] text-[var(--ink-2)] leading-relaxed">{r.how.note}</div>}
+                      </div>
+                    )}
+                    {!r.how?.tools?.length && !r.how?.note && (
+                      <div className="mt-1 text-[9px] text-[var(--muted)] italic">{L('لم يُسجَّل كيف حُلّ.', 'How it was resolved was not recorded.')}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
