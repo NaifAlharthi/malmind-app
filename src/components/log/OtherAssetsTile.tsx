@@ -138,7 +138,7 @@ export default function OtherAssetsTile() {
             <span className="text-[var(--muted)]"> · {L('مطابقة لسطور السِّجل — لا انحراف.', "matches the Log's lines — no drift.")}</span>
           )}
         </div>
-        <Link href="/financial-numbers" className="text-[10px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] transition-colors whitespace-nowrap">
+        <Link href="/log/update?f=property" className="text-[10px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] transition-colors whitespace-nowrap">
           {L('حدّث سطور السِّجل ←', "Update the Log's lines →")}
         </Link>
       </div>

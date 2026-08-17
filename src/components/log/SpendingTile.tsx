@@ -97,8 +97,8 @@ export default function SpendingTile() {
     <div className="drv-num bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 sm:p-6 mb-8">
       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
         <div className="font-serif text-lg font-semibold text-[var(--ink)]">🔥 {L('المصروف — حيث يغادر الدخل', 'Spending — where income leaves')}</div>
-        <Link href="/financial-numbers" className="text-[11px] font-semibold text-[var(--green-dark)] hover:underline">
-          {L('حدّثه في أرقامك ←', 'Update in your numbers →')}
+        <Link href="/log/update?f=expenses" className="text-[11px] font-semibold text-[var(--green-dark)] hover:underline">
+          {L('حدّث هذا السطر ←', 'Update this line →')}
         </Link>
       </div>
       <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-4">

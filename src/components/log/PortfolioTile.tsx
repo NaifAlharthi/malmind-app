@@ -139,8 +139,8 @@ export default function PortfolioTile() {
             <span className="text-[var(--muted)]"> {L(`(${pf.valued.length - pf.priced} بلا سعر)`, `(${pf.valued.length - pf.priced} unpriced)`)}</span>
           )}
         </div>
-        <Link href="/holdings" className="text-[10px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] transition-colors whitespace-nowrap">
-          {L('حدّث السطر من الحيازات ←', 'Update the line from Holdings →')}
+        <Link href="/log/update?f=stocks" className="text-[10px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] transition-colors whitespace-nowrap">
+          {L('حدّث سطر السِّجل ←', "Update the Log's line →")}
         </Link>
       </div>
     </div>

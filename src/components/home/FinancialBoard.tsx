@@ -87,6 +87,10 @@ export default function FinancialBoard() {
       const trailExp = trail.reduce((acc, t) => acc + Number(t.expenses), 0) / trail.length;
       const trail12 = snaps.slice(Math.max(0, i - 11), i + 1);
       const annualInc = trail12.reduce((acc, t) => acc + Number(t.income), 0) * (12 / trail12.length);
+      // appreciating wealth works while it sits (stocks, stakes, property);
+      // depreciating/idle wealth waits (cash, vehicles, items)
+      const appr = investedOf(s) + Number(s.real_estate);
+      const depr = cashV + Number(s.other_assets);
       return {
         label: `${(ar ? MONTHS_AR : MONTHS_EN)[s.month - 1]} ${String(s.year).slice(2)}`,
         deltaAssets: prevA > 0 ? ((a - prevA) / prevA) * 100 : 0,
@@ -96,6 +100,8 @@ export default function FinancialBoard() {
         dta: a > 0 ? (liabV / a) * 100 : 0,
         safeMonths: trailExp > 0 ? cashV / trailExp : 0,
         dtai: annualInc > 0 ? (liabV / annualInc) * 100 : 0,
+        appr, depr,
+        apprPct: a > 0 ? (appr / a) * 100 : 0,
       };
     });
 
@@ -497,6 +503,21 @@ export default function FinancialBoard() {
                     <Line type="monotone" dataKey="full" name={L('ادخار ١٠٠٪', '100% saving')} stroke="#D64545" strokeWidth={2} dot={false} strokeDasharray="6 4" />
                     <Line type="monotone" dataKey="realistic" name={L('الواقعي', 'Realistic')} stroke="#3B6FD4" strokeWidth={2} dot={false} />
                   </LineChart>
+                </ResponsiveContainer>
+              ))}
+              {card(`⚖️ ${L('الأصول الصاعدة مقابل الهابطة', 'Appreciating vs depreciating assets')}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={gallery} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="amt" tick={axisTick} tickFormatter={fmtCompact} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="pct" tick={axisTick} tickFormatter={(v) => `${v}%`} width={34} orientation={ar ? 'left' : 'right'} domain={[0, 100]} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={(v, name) => (String(name).includes('%') ? `${Number(v).toFixed(1)}%` : fmtFull(Number(v)))} />
+                    <Area yAxisId="amt" type="monotone" dataKey="appr" name={L('صاعدة — تعمل وهي جالسة', 'Appreciating — works while it sits')} stackId="1" stroke="#0E9F6E" fill="#0E9F6E" fillOpacity={0.65} />
+                    <Area yAxisId="amt" type="monotone" dataKey="depr" name={L('هابطة/خاملة — تنتظر', 'Depreciating/idle — waits')} stackId="1" stroke="#8AA097" fill="#8AA097" fillOpacity={0.5} />
+                    <ReferenceLine yAxisId="pct" y={70} stroke="var(--gold)" strokeDasharray="5 4" label={{ value: L('الهدف — ابقَ فوقه', 'target — keep above'), fontSize: 9, fill: 'var(--gold)', position: 'insideBottomLeft' }} />
+                    <Line yAxisId="pct" type="monotone" dataKey="apprPct" name={L('الحصة الصاعدة %', 'Appreciating share %')} stroke="var(--gold)" strokeWidth={2} dot={false} />
+                  </ComposedChart>
                 </ResponsiveContainer>
               ))}
               {doubling && card(`♻️ ${L(`مسار المضاعفة — كل ${doublingYears.toFixed(1)} سنة عند ${roi}٪`, `The doubling path — every ${doublingYears.toFixed(1)}y at ${roi}%`)}`, (

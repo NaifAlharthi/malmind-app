@@ -121,7 +121,7 @@ export default function OwnershipTile() {
             <span className="text-[var(--muted)]"> · {L('مطابق لسطر السِّجل — لا انحراف.', "matches the Log's line — no drift.")}</span>
           )}
         </div>
-        <Link href="/financial-numbers" className="text-[10px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] transition-colors whitespace-nowrap">
+        <Link href="/log/update?f=equity" className="text-[10px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] transition-colors whitespace-nowrap">
           {L('حدّث سطر السِّجل ←', "Update the Log's line →")}
         </Link>
       </div>

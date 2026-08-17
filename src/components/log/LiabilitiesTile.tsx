@@ -176,8 +176,8 @@ export default function LiabilitiesTile() {
             )}</span>
           )}
         </div>
-        <Link href="/commitments" className="text-[10px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] transition-colors whitespace-nowrap">
-          {L('حدّث دفترك ←', 'Update the book →')}
+        <Link href="/log/update?f=liabilities" className="text-[10px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] transition-colors whitespace-nowrap">
+          {L('حدّث سطر السِّجل ←', "Update the Log's line →")}
         </Link>
       </div>
     </div>

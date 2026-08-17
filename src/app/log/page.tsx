@@ -6,6 +6,7 @@
 // Home·D3 became the Monthly Pulse in its place.
 
 import LogTile from '@/components/home/LogTile';
+import IntegrationsTile from '@/components/log/IntegrationsTile';
 import IncomeTile from '@/components/log/IncomeTile';
 import SpendingTile from '@/components/log/SpendingTile';
 import PortfolioTile from '@/components/log/PortfolioTile';
@@ -34,9 +35,12 @@ export default function LogPage() {
   const L = (a: string, e: string) => (ar ? a : e);
   return (
     <div>
+      {/* the inlets first — how numbers reach the record at all */}
+      <IntegrationsTile />
+      <FlowLink label={L('الروافد تصبّ في السِّجل', 'the inlets pour into the record')} />
       {/* the record itself — everything below reads from or reconciles to it */}
       <LogTile />
-      <FlowLink label={L('من السِّجل ينبع النهر', 'from the record, the river')} />
+      <FlowLink label={L('ومن السِّجل ينبع النهر', 'and from the record, the river')} />
       {/* the flow: in… */}
       <IncomeTile />
       <FlowLink label={L('الدخل يمرّ بالمصروف', 'income passes through spending')} />
