@@ -14,7 +14,7 @@ import { useCallback, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useDepth } from '@/components/shared/ExperienceMode';
-import { DEPTH_LEVELS, DEPTH_META, type DepthLevel } from '@/lib/depth';
+import { DEPTH_LEVELS, depthMetaFor, type DepthLevel } from '@/lib/depth';
 
 export default function DepthRail() {
   const { locale } = useLocale();
@@ -25,9 +25,8 @@ export default function DepthRail() {
   const [hover, setHover] = useState<DepthLevel | null>(null);
   const pathname = usePathname();
 
-  // Home is on the grid too: its D1 is the hājis-only focus view, and the
-  // iceberg is how you dive to the rest.
-  void pathname;
+  // Home is on the grid too — and pages with named ROOMS (see
+  // DEPTH_NAME_OVERRIDES) get their own level names in the flyouts.
 
   return (
     <div
@@ -55,7 +54,7 @@ export default function DepthRail() {
             { top: 104, height: 64 },
             { top: 168, height: 72 },
           ][lvl - 1];
-          const meta = DEPTH_META[lvl];
+          const meta = depthMetaFor(pathname, lvl);
           return (
             <button
               key={lvl}

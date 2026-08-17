@@ -56,11 +56,13 @@ export default function HomePage() {
   const { depth, setDepth } = useDepth();
   // Home vs Today, segmented: home is IDENTITY — who you are, your data,
   // and what MalMind is. The action happens on the timeline (T2 leads).
-  //   D1 التعريف — the concern opener + the profile that talks
-  //   D2 البيانات — the data room: the foundation tower + the time doors
-  //   D3 الأدوات  — the full tool matrix
-  //   D4 السِّجل   — the Log, alone
-  // (your space lives behind the avatar; the product story lives on /about)
+  //   D1 الرئيسي — the concern opener + the profile that talks
+  //   D2 الأساس  — the foundation tower
+  //   D3 السِّجل  — the Log
+  //   D4 صندوق الأدوات الكامل — every tool on one wall
+  // (Room names live in DEPTH_NAME_OVERRIDES['/home'] — the rail, flash and
+  // dive hints all speak them. Your space is behind the avatar; the product
+  // story is on /about.)
   // Symmetric on web and phone; fingers dive by pulling past the page edge.
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
@@ -213,12 +215,11 @@ export default function HomePage() {
       {/* ── the foundation: enter · review · link the data everything reads — home·D2, the data room ── */}
       {depth === 2 && <FoundationHub />}
 
-      {/* ── the Log: every number on one spreadsheet-like grid — home·D4,
-             beside the full tool matrix on the pro wall ── */}
-      {depth === 4 && <LogTile />}
+      {/* ── the Log: every number on one spreadsheet-like grid — home·D3 ── */}
+      {depth === 3 && <LogTile />}
 
-      {/* ── the FULL tool matrix — home·D3: the product, as its tools ── */}
-      {depth === 3 && <FullToolMatrix />}
+      {/* ── the FULL toolbox — home·D4: every tool on one wall ── */}
+      {depth === 4 && <FullToolMatrix />}
 
 
 

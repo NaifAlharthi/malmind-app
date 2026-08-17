@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDepth, useXMode, useDrive } from '@/components/shared/ExperienceMode';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { DEPTH_META, type DepthLevel } from '@/lib/depth';
+import { depthMetaFor, type DepthLevel } from '@/lib/depth';
 import { XMODES, XMODE_META, type XMode } from '@/lib/experienceMode';
 import { DRIVES, DRIVE_META, type Drive } from '@/lib/drive';
 
@@ -368,8 +368,8 @@ export default function CommandMode() {
   // what sits to each physical side on the timeline
   const rightRoute = TIME_ROUTES[TIME_ROUTES.indexOf(here) + (ar ? -1 : 1)];
   const leftRoute = TIME_ROUTES[TIME_ROUTES.indexOf(here) - (ar ? -1 : 1)];
-  const up = depth > 1 ? DEPTH_META[(depth - 1) as DepthLevel] : null;
-  const down = depth < 4 ? DEPTH_META[(depth + 1) as DepthLevel] : null;
+  const up = depth > 1 ? depthMetaFor(pathname, (depth - 1) as DepthLevel) : null;
+  const down = depth < 4 ? depthMetaFor(pathname, (depth + 1) as DepthLevel) : null;
 
   const Key = ({ label, active }: { label: string; active?: boolean }) => (
     <span
@@ -415,7 +415,7 @@ export default function CommandMode() {
             <div className="text-xs font-semibold whitespace-nowrap">
               {TIME_LABEL[here].icon} {ar ? TIME_LABEL[here].ar : TIME_LABEL[here].en}
               <span className="text-[var(--muted)]"> · </span>
-              {DEPTH_META[depth].icon} {ar ? DEPTH_META[depth].name.ar : DEPTH_META[depth].name.en}
+              {depthMetaFor(pathname, depth).icon} {ar ? depthMetaFor(pathname, depth).name.ar : depthMetaFor(pathname, depth).name.en}
             </div>
           </div>
           <div className="flex flex-col items-center gap-1">

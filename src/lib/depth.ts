@@ -66,6 +66,45 @@ export const DEPTH_META: Record<DepthLevel, {
   },
 };
 
+// Pages that restage into ROOMS get their own level naming — the global
+// names describe tool staging, but home's levels are literally Main, the
+// foundation, the Log, and the full toolbox (founder naming, 2026-08-17).
+export const DEPTH_NAME_OVERRIDES: Record<string, Record<DepthLevel, {
+  icon: string;
+  name: { ar: string; en: string };
+  desc: { ar: string; en: string };
+}>> = {
+  '/home': {
+    1: {
+      icon: '⌂',
+      name: { ar: 'الرئيسي', en: 'Main' },
+      desc: { ar: 'واجهتك: هاجسك وملفّك الشخصي — ومنها تنطلق إلى حيث الفعل.', en: 'Your front: your concern and your profile — the launch point into the action.' },
+    },
+    2: {
+      icon: '🏛',
+      name: { ar: 'الأساس', en: 'The foundation' },
+      desc: { ar: 'عناصرك الأربعة التي تقرأ منها كل أداة: الدخل والأصول والادخار والالتزامات.', en: 'Your four elements every tool reads from: income, assets, savings, liabilities.' },
+    },
+    3: {
+      icon: '📒',
+      name: { ar: 'السِّجل', en: 'The Log' },
+      desc: { ar: 'كل أرقامك شهراً بجانب شهر — جدولاً يُطوى ورسماً يُقلَّب.', en: 'All your numbers month beside month — a foldable grid and a toggleable chart.' },
+    },
+    4: {
+      icon: '🧰',
+      name: { ar: 'صندوق الأدوات الكامل', en: 'The full toolbox' },
+      desc: { ar: 'كل أداة في المنتج على جدار واحد، مرتبةً عبر الأزمنة الثلاثة.', en: 'Every tool in the product on one wall, arranged across the three times.' },
+    },
+  },
+};
+
+// The meta for a level AS SEEN FROM a page: global meta with the page's
+// room naming layered on top when one exists.
+export function depthMetaFor(pathname: string, level: DepthLevel) {
+  const o = DEPTH_NAME_OVERRIDES[pathname]?.[level];
+  return o ? { ...DEPTH_META[level], icon: o.icon, name: o.name, desc: o.desc } : DEPTH_META[level];
+}
+
 export function getStoredDepth(): DepthLevel {
   if (typeof window === 'undefined') return 1;
   try {

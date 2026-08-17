@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useDepth, useDrive } from '@/components/shared/ExperienceMode';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { DEPTH_META, type DepthLevel } from '@/lib/depth';
+import { DEPTH_META, depthMetaFor, type DepthLevel } from '@/lib/depth';
 import type { PageNavDetail } from '@/lib/phoneNav';
 
 // Pages where the depth system simply doesn't apply — no transitions, no
@@ -197,7 +197,7 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
       {/* the pull indicator — the push building toward the next depth */}
       {pull && (() => {
         const target = Math.min(4, Math.max(1, depth + pull.dir)) as DepthLevel;
-        const meta = DEPTH_META[target];
+        const meta = depthMetaFor(pathname, target);
         return (
           <div className={`fixed ${pull.dir === 1 ? 'bottom-6' : 'top-24'} left-1/2 -translate-x-1/2 z-40 pointer-events-none`}>
             <div className="bg-[var(--surface-card)]/95 backdrop-blur border border-[var(--border-default)] rounded-full px-4 py-2 shadow-lg text-[11px] text-[var(--ink-2)] flex items-center gap-2.5">
@@ -250,8 +250,8 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
             className="text-center text-white"
             style={{ animation: 'mmDepthFlashLabel 1000ms ease-in-out forwards' }}
           >
-            <div className="text-4xl mb-2">{DEPTH_META[flash].icon}</div>
-            <div className="font-serif text-2xl font-bold">{ar ? DEPTH_META[flash].name.ar : DEPTH_META[flash].name.en}</div>
+            <div className="text-4xl mb-2">{depthMetaFor(pathname, flash).icon}</div>
+            <div className="font-serif text-2xl font-bold">{ar ? depthMetaFor(pathname, flash).name.ar : depthMetaFor(pathname, flash).name.en}</div>
             <div className="text-[11px] text-white/70 mt-1" dir="ltr">{flash}/4</div>
           </div>
         </div>
