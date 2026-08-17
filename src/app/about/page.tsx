@@ -197,6 +197,52 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* the 2D navigation system + command mode */}
+          <div className="sm:col-span-2 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">🧭</span>
+              <span className="text-sm font-semibold text-[var(--ink)]">{L('منتجٌ تُبحر فيه، لا تتصفحه', 'A product you navigate, not browse')}</span>
+            </div>
+            <div className="grid md:grid-cols-2 gap-x-8 gap-y-4 mt-3">
+              <div>
+                <p className="text-xs text-[var(--ink-2)] leading-relaxed mb-3">
+                  {L(
+                    'مال مايند خريطة ذات بُعدين: أفقياً تسافر عبر الزمن (الماضي · اليوم · المستقبل)، وعمودياً تغوص في جبل الجليد — أربع طبقات من البساطة إلى الاحتراف. كل صفحة تعيد ترتيب نفسها حسب عمقك.',
+                    'MalMind is a two-dimensional map: horizontally you travel through time (past · today · future); vertically you dive the iceberg — four layers from simplicity to mastery. Every page restages itself to your depth.'
+                  )}
+                </p>
+                <ul className="text-[11px] text-[var(--muted)] leading-relaxed space-y-1.5">
+                  <li>🖱 {L('إمالة عجلة الفأرة أفقياً تسافر بالزمن؛ ومواصلة التمرير عند حافة الصفحة تغوص عمقاً', 'Tilt the mouse wheel to travel time; keep scrolling past the page edge to dive a depth')}</li>
+                  <li>📱 {L('على الجوال: اسحب يميناً ويساراً للزمن، واسحب بعد نهاية الصفحة للغوص', 'On the phone: swipe for time, pull past the page end to dive')}</li>
+                  <li>🧊 {L('جبل الجليد في الطرف يريك عمقك — وكل صفحة تسمّي طبقاتها بأسمائها', 'The iceberg at the edge shows your depth — and each page names its own rooms')}</li>
+                </ul>
+              </div>
+              <div>
+                <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] font-semibold mb-2">
+                  {L('وضع الأوامر — أمسك Shift', 'Command mode — hold Shift')}
+                </div>
+                <div className="flex flex-col gap-1.5" dir="ltr">
+                  {([
+                    ['⇧ ↑↓', L('اصعد أو اغطس في العمق', 'Surface or dive the depth')],
+                    ['⇧ ←→', L('سافر عبر الزمن', 'Travel through time')],
+                    ['⇧ B', L('نقرة: العقل يعلّق هنا · مطوّلاً: صفحة العقل', 'Tap: the Brain comments here · hold: the Brain page')],
+                    ['⇧ M', L('بدّل مستوى المساندة (مثل Alt+Tab)', 'Cycle the assistance level (Alt+Tab style)')],
+                    ['⇧ D', L('بدّل المحرّك: قصص · أرقام · كلاهما', 'Cycle the drive: stories · numbers · both')],
+                    ['⇧ H', L('عُد إلى الرئيسية', 'Go home')],
+                  ] as [string, string][]).map(([keys, what]) => (
+                    <div key={keys} className="flex items-center gap-3">
+                      <kbd className="shrink-0 min-w-[52px] text-center text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-2 py-1 text-[var(--ink)]">{keys}</kbd>
+                      <span className={`text-[11px] text-[var(--ink-2)] ${ar ? 'text-right' : ''}`} dir={ar ? 'rtl' : 'ltr'}>{what}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <Link href="/tour" className="inline-block text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3.5 py-2 mt-4">
+              {L('شاهدها حيّة في الجولة ←', 'See it live in the tour →')}
+            </Link>
+          </div>
+
           {/* the personas — walk a ready-made life */}
           <div className="sm:col-span-2 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-1">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -17,6 +17,7 @@ import { demoAr } from '@/lib/demoI18n';
 import FoundationHub from '@/components/home/FoundationHub';
 import LogTile from '@/components/home/LogTile';
 import HajisOpener from '@/components/home/HajisOpener';
+import PersonaAvatar from '@/app/signup/PersonaAvatar';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -29,6 +30,7 @@ interface Profile {
   life_stage: string | null;
   persona: string | null;
   currency: string | null;
+  age: number | null;
 }
 
 interface Financials {
@@ -83,7 +85,7 @@ export default function HomePage() {
 
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('name, city, employment, monthly_income, email, life_stage, persona, currency')
+      .select('name, city, employment, monthly_income, email, life_stage, persona, currency, age')
       .eq('id', user.id)
       .single();
     if (profileData) setProfile(profileData as Profile);
@@ -168,9 +170,7 @@ export default function HomePage() {
              a snippet that hands you into Today, where the action lives ── */}
       {depth === 1 && <HajisOpener />}
 
-      {/* ── the profile — home·D1: a name and a summary that TALKS about the
-             person's situation; the numbers themselves live in the Log (D2)
-             and on the timeline ── */}
+      {/* ── the identity card — home·D1: an image, a name, an age ── */}
       {depth === 1 && (
       <div data-tour="profile-card" className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
         <button
@@ -179,67 +179,91 @@ export default function HomePage() {
         >
           {t('common.edit')}
         </button>
-        <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-1">{t('home.profile.eyebrow')}</div>
-        <div className="font-serif text-2xl font-semibold">{localizedFirstName(profile.name, locale === 'ar')}</div>
-        <div className="text-xs text-white/50">{demoAr(profile.employment, ar)} · {demoAr(profile.city, ar)}</div>
+        <div className="text-xs tracking-[0.1em] uppercase text-[var(--gold)] mb-3">{t('home.profile.eyebrow')}</div>
+        <div className="flex items-center gap-4">
+          {profile.persona ? (
+            <PersonaAvatar id={profile.persona} className="w-16 h-16 shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-[var(--gold)]/15 border border-[var(--gold)]/40 flex items-center justify-center font-serif text-2xl font-bold text-[var(--gold)] shrink-0">
+              {profile.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="font-serif text-2xl font-semibold">{localizedFirstName(profile.name, locale === 'ar')}</div>
+            <div className="text-xs text-white/60 mt-0.5">
+              {profile.age ? (ar ? `${profile.age} عاماً · ` : `${profile.age} years old · `) : ''}
+              {demoAr(profile.employment, ar)} · {demoAr(profile.city, ar)}
+            </div>
+          </div>
+        </div>
+      </div>
+      )}
 
-        <div className="pt-4 mt-4 border-t border-white/10">
-          {quad ? (() => {
-            const meta = QUADRANT_META[quad];
-            const c = ar ? meta.ar : meta.en;
-            return (
-              <>
-                <div className="text-[10px] tracking-[0.08em] uppercase text-white/45 mb-1.5">
-                  {ar ? 'أين تقف الآن' : 'Where you stand now'}
-                </div>
-                <div className="font-serif text-xl sm:text-2xl font-bold flex items-center gap-2 flex-wrap">
-                  <span>{meta.icon}</span>
-                  <span>{c.title}</span>
-                </div>
-                <p className="text-sm text-white/75 leading-relaxed mt-2 max-w-xl">{c.meaning}</p>
+      {/* ── where you stand now — home·D1: the verdict + the four squares,
+             chained by arrows, with the person's marker ── */}
+      {depth === 1 && (
+      <div className="bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-6 my-6 text-white relative">
+        <div className="text-[10px] tracking-[0.08em] uppercase text-white/45 mb-1.5">
+          {ar ? 'أين تقف الآن' : 'Where you stand now'}
+        </div>
+        {quad ? (() => {
+          const meta = QUADRANT_META[quad];
+          const c = ar ? meta.ar : meta.en;
+          return (
+            <>
+              <div className="font-serif text-xl sm:text-2xl font-bold flex items-center gap-2 flex-wrap">
+                <span>{meta.icon}</span>
+                <span>{c.title}</span>
+              </div>
+              <p className="text-sm text-white/75 leading-relaxed mt-2 max-w-xl">{c.meaning}</p>
 
-                {/* the four stages, with the person's marker on their own */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-                  {(['A', 'B', 'C', 'D'] as QuadKey[]).map((k) => {
-                    const m = QUADRANT_META[k];
-                    const cc = ar ? m.ar : m.en;
-                    const here = k === quad;
-                    return (
+              {/* the journey: four squares, arrows between, marker on yours */}
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] items-stretch gap-2 mt-4">
+                {(['A', 'B', 'C', 'D'] as QuadKey[]).map((k, i) => {
+                  const m = QUADRANT_META[k];
+                  const cc = ar ? m.ar : m.en;
+                  const here = k === quad;
+                  return (
+                    <Fragment key={k}>
+                      {i > 0 && (
+                        <div className="flex items-center justify-center text-white/35 text-lg rotate-90 sm:rotate-0 self-center" aria-hidden>
+                          {ar ? '←' : '→'}
+                        </div>
+                      )}
                       <div
-                        key={k}
-                        className={`rounded-xl p-3 border transition-colors ${
+                        className={`rounded-xl p-3.5 border transition-colors flex flex-col ${
                           here
                             ? 'bg-[var(--gold)]/15 border-[var(--gold)]'
                             : 'bg-white/[0.04] border-white/10 opacity-60'
                         }`}
                       >
-                        <div className="flex items-center gap-1.5 mb-0.5">
+                        <div className="flex items-center gap-1.5 mb-1">
                           <span className="text-[10px] font-bold text-white/40" dir="ltr">{k}</span>
-                          <span className="text-sm leading-none">{m.icon}</span>
-                          <span className={`text-xs font-semibold ${here ? 'text-white' : 'text-white/70'}`}>{cc.title}</span>
+                          <span className="text-base leading-none">{m.icon}</span>
                         </div>
-                        <div className="text-[9px] text-white/45 leading-relaxed">{cc.mood}</div>
+                        <div className={`text-xs font-semibold ${here ? 'text-white' : 'text-white/70'}`}>{cc.title}</div>
+                        <div className="text-[9px] text-white/45 leading-relaxed mt-0.5">{cc.mood}</div>
                         {here && (
-                          <div className="text-[9px] font-bold text-[var(--gold)] mt-1">
+                          <div className="text-[9px] font-bold text-[var(--gold)] mt-auto pt-1.5">
                             📍 {ar ? 'أنت هنا' : 'You are here'}
                           </div>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
+                    </Fragment>
+                  );
+                })}
+              </div>
 
-                <Link href="/today" className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2 mt-3.5">
-                  {ar ? 'الخريطة كاملة في «اليوم» ←' : 'The full map in Today →'}
-                </Link>
-              </>
-            );
-          })() : (
-            <Link href="/financial-numbers" className="inline-block text-xs font-medium bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg px-3 py-2 transition-colors">
-              {t('home.logPrompt')}
-            </Link>
-          )}
-        </div>
+              <Link href="/today" className="inline-block text-xs font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-lg px-3.5 py-2 mt-3.5">
+                {ar ? 'الخريطة كاملة في «اليوم» ←' : 'The full map in Today →'}
+              </Link>
+            </>
+          );
+        })() : (
+          <Link href="/financial-numbers" className="inline-block text-xs font-medium bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg px-3 py-2 transition-colors">
+            {t('home.logPrompt')}
+          </Link>
+        )}
       </div>
       )}
 
