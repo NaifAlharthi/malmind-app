@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import ToolStage from '@/components/shared/ToolStage';
 import { computeFreedom, projectFreedomPath } from '@/lib/financialFreedom';
 import { loadHoldings, valueHoldings } from '@/lib/livePortfolio';
 
@@ -213,7 +214,8 @@ export default function FreedomPage() {
             </div>
           </div>
 
-          {/* ── the projection chart ── */}
+          {/* ── D2 · the projection chart + the levers, explained ── */}
+          <ToolStage level={2} title={t('freedom.chartTitle')}>
           <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-4">
             <div className="text-sm font-medium text-[var(--ink)] mb-3">{t('freedom.chartTitle')}</div>
             <div className="h-64" dir="ltr">
@@ -248,23 +250,7 @@ export default function FreedomPage() {
             </div>
           </div>
 
-          {/* ── the sandbox ── */}
-          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-4">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <div className="text-sm font-medium text-[var(--ink)]">{t('freedom.sandbox')}</div>
-              <button onClick={resetToMine} className="text-xs text-[var(--green-dark)] font-medium">{t('freedom.reset')}</button>
-            </div>
-            <p className="text-xs text-[var(--muted)] mb-4">{t('freedom.sandboxNote')}</p>
-
-            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-              <Lever label={t('freedom.spend')} value={money(spend)} min={0} max={spendMax} step={500} raw={spend} onChange={setSpend} />
-              <Lever label={t('freedom.pace')} value={`${money(pace)}/mo`} min={0} max={paceMax} step={250} raw={pace} onChange={setPace} />
-              <Lever label={t('freedom.growth')} value={`${growthPct.toFixed(1)}%`} min={0} max={12} step={0.5} raw={growthPct} onChange={setGrowthPct} />
-              <Lever label={t('freedom.wr')} value={`${wrPct.toFixed(2)}%`} min={2} max={6} step={0.25} raw={wrPct} onChange={setWrPct} />
-            </div>
-          </div>
-
-          {/* ── the two levers, explained ── */}
+          {/* still D2: understanding the two levers */}
           <div className="mb-4">
             <div className="text-[11px] tracking-[0.1em] uppercase text-[var(--muted)] mb-3">{t('freedom.leversTitle')}</div>
             <div className="grid sm:grid-cols-2 gap-3">
@@ -278,6 +264,35 @@ export default function FreedomPage() {
               </div>
             </div>
           </div>
+          </ToolStage>
+
+          {/* ── D3 · the sandbox: pull the two levers you control ── */}
+          <ToolStage level={3} title={t('freedom.sandbox')}>
+          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-4">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="text-sm font-medium text-[var(--ink)]">{t('freedom.sandbox')}</div>
+              <button onClick={resetToMine} className="text-xs text-[var(--green-dark)] font-medium">{t('freedom.reset')}</button>
+            </div>
+            <p className="text-xs text-[var(--muted)] mb-4">{t('freedom.sandboxNote')}</p>
+
+            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+              <Lever label={t('freedom.spend')} value={money(spend)} min={0} max={spendMax} step={500} raw={spend} onChange={setSpend} />
+              <Lever label={t('freedom.pace')} value={`${money(pace)}/mo`} min={0} max={paceMax} step={250} raw={pace} onChange={setPace} />
+            </div>
+          </div>
+          </ToolStage>
+
+          {/* ── D4 · the engine room: the assumptions themselves ── */}
+          <ToolStage level={4} title={t('freedom.growth') + ' · ' + t('freedom.wr')}>
+          <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 mb-4">
+            <div className="text-sm font-medium text-[var(--ink)] mb-1">⚙️ {t('freedom.growth')} · {t('freedom.wr')}</div>
+            <p className="text-xs text-[var(--muted)] mb-4">{t('freedom.numberSub', { mult, rate: wrPct })}</p>
+            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+              <Lever label={t('freedom.growth')} value={`${growthPct.toFixed(1)}%`} min={0} max={12} step={0.5} raw={growthPct} onChange={setGrowthPct} />
+              <Lever label={t('freedom.wr')} value={`${wrPct.toFixed(2)}%`} min={2} max={6} step={0.25} raw={wrPct} onChange={setWrPct} />
+            </div>
+          </div>
+          </ToolStage>
 
           <button
             onClick={askBrain}

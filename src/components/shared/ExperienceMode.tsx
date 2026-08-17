@@ -9,6 +9,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { getXMode, storeXMode, XMODES, XMODE_META, type XMode } from '@/lib/experienceMode';
 import { getStoredDepth, storeDepth, type DepthLevel } from '@/lib/depth';
 import { getStoredDrive, storeDrive, DRIVES, DRIVE_META, type Drive } from '@/lib/drive';
+import { getStoredTier, storeTier, TIER_META, type TierKey } from '@/lib/tier';
 import { setGuideMode } from '@/lib/brainGuide';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
@@ -19,6 +20,8 @@ const XModeContext = createContext<{
   setDepth: (d: DepthLevel) => void;
   drive: Drive;
   setDrive: (d: Drive) => void;
+  tier: TierKey;
+  setTier: (t: TierKey) => void;
 }>({
   mode: 'guided',
   setMode: () => {},
@@ -26,6 +29,8 @@ const XModeContext = createContext<{
   setDepth: () => {},
   drive: 'both',
   setDrive: () => {},
+  tier: 'mastery',
+  setTier: () => {},
 });
 
 export function useXMode() {
@@ -44,6 +49,14 @@ export function useDrive() {
   return { drive, setDrive };
 }
 
+// The subscription tier — a ceiling on the depth dial. Everything the
+// product stages by depth (hub drawers, dashboard layouts, home rooms,
+// ToolStage sections inside every tool) is gated by it for free.
+export function useTier() {
+  const { tier, setTier, depth } = useContext(XModeContext);
+  return { tier, setTier, maxDepth: TIER_META[tier].maxDepth, depth };
+}
+
 // Each mode implies a natural starting depth; the iceberg then lets the
 // person dive deeper (or resurface) independently at any time.
 const MODE_DEPTH: Record<XMode, DepthLevel> = { guided: 1, growing: 2, pro: 4 };
@@ -52,12 +65,19 @@ export function XModeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<XMode>('guided');
   const [depth, setDepthState] = useState<DepthLevel>(1);
   const [drive, setDriveState] = useState<Drive>('both');
+  const [tier, setTierState] = useState<TierKey>('mastery');
 
   useEffect(() => {
+    const t = getStoredTier();
     setModeState(getXMode());
-    setDepthState(getStoredDepth());
+    setTierState(t);
+    // depth never boots above the plan's ceiling
+    setDepthState(Math.min(getStoredDepth(), TIER_META[t].maxDepth) as DepthLevel);
     setDriveState(getStoredDrive());
   }, []);
+
+  // every road to a depth passes through the plan's ceiling
+  const clamp = (d: DepthLevel, t: TierKey) => Math.min(d, TIER_META[t].maxDepth) as DepthLevel;
 
   const setMode = (m: XMode) => {
     setModeState(m);
@@ -66,14 +86,27 @@ export function XModeProvider({ children }: { children: React.ReactNode }) {
     // No mode forces auto-narration — the bubble opening itself on page
     // arrival is an explicit opt-in from the Brain's own controls.
     setGuideMode(m === 'pro' ? 'off' : 'manual');
-    // …and resets the iceberg to the mode's natural depth.
-    setDepthState(MODE_DEPTH[m]);
-    storeDepth(MODE_DEPTH[m]);
+    // …and resets the iceberg to the mode's natural depth (ceiling applies).
+    const d = clamp(MODE_DEPTH[m], tier);
+    setDepthState(d);
+    storeDepth(d);
   };
 
   const setDepth = (d: DepthLevel) => {
-    setDepthState(d);
-    storeDepth(d);
+    const c = clamp(d, tier);
+    setDepthState(c);
+    storeDepth(c);
+  };
+
+  const setTier = (t: TierKey) => {
+    setTierState(t);
+    storeTier(t);
+    // a lowered ceiling pulls the dial up to the surface with it
+    setDepthState((prev) => {
+      const c = clamp(prev, t);
+      storeDepth(c);
+      return c;
+    });
   };
 
   const setDrive = (d: Drive) => {
@@ -81,7 +114,7 @@ export function XModeProvider({ children }: { children: React.ReactNode }) {
     storeDrive(d);
   };
 
-  return <XModeContext.Provider value={{ mode, setMode, depth, setDepth, drive, setDrive }}>{children}</XModeContext.Provider>;
+  return <XModeContext.Provider value={{ mode, setMode, depth, setDepth, drive, setDrive, tier, setTier }}>{children}</XModeContext.Provider>;
 }
 
 // The three-option segmented control for the top bar — only the chosen one

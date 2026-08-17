@@ -11,8 +11,9 @@ import TimelineNav from './TimelineNav';
 import DepthRail from './DepthRail';
 import DepthStage from './DepthStage';
 import CommandMode from './CommandMode';
-import { XModeProvider, useXMode, useDrive } from './ExperienceMode';
+import { XModeProvider, useXMode, useDrive, useTier } from './ExperienceMode';
 import { DEPTHLESS_PATHS } from '@/lib/depth';
+import { TIER_META, TIER_ORDER } from '@/lib/tier';
 import { XMODE_META, type XMode } from '@/lib/experienceMode';
 import { DRIVES, DRIVE_META } from '@/lib/drive';
 import { useTheme } from './ThemeProvider';
@@ -67,14 +68,15 @@ const NAV_ITEMS = [
 function SmallScreenDials() {
   const { mode, setMode } = useXMode();
   const { drive, setDrive } = useDrive();
+  const { tier, setTier } = useTier();
   const { locale } = useLocale();
   const ar = locale === 'ar';
-  const [openRow, setOpenRow] = useState<'mode' | 'drive' | null>(null);
+  const [openRow, setOpenRow] = useState<'mode' | 'drive' | 'plan' | null>(null);
   const MODES: XMode[] = ['guided', 'growing', 'pro'];
   const row = 'w-full flex items-center gap-2.5 px-3.5 py-2 text-[var(--ink-2)] hover:bg-[var(--surface-1)] text-start';
 
   const section = (
-    id: 'mode' | 'drive',
+    id: 'mode' | 'drive' | 'plan',
     tag: string,
     icon: string,
     name: string,
@@ -145,6 +147,21 @@ function SmallScreenDials() {
           name: ar ? DRIVE_META[k].label.ar : DRIVE_META[k].label.en,
           active: drive === k,
           pick: () => setDrive(k),
+        })),
+      )}
+      {/* the plan — the ceiling on the depth dial, product-wide. The
+          placeholder for the real paywall until billing lands */}
+      {section(
+        'plan',
+        ar ? TIER_META[tier].name.ar : TIER_META[tier].name.en,
+        TIER_META[tier].icon,
+        ar ? 'باقتي' : 'My plan',
+        TIER_ORDER.map((k) => ({
+          key: k,
+          icon: TIER_META[k].icon,
+          name: `${ar ? TIER_META[k].name.ar : TIER_META[k].name.en} · D1–D${TIER_META[k].maxDepth}`,
+          active: tier === k,
+          pick: () => setTier(k),
         })),
       )}
     </>

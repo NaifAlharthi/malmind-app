@@ -13,8 +13,9 @@
 import { useCallback, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { useDepth } from '@/components/shared/ExperienceMode';
+import { useDepth, useTier } from '@/components/shared/ExperienceMode';
 import { DEPTH_LEVELS, DEPTHLESS_PATHS, depthMetaFor, type DepthLevel } from '@/lib/depth';
+import { TIER_META, tierForDepth } from '@/lib/tier';
 
 export default function DepthRail() {
   const { locale } = useLocale();
@@ -22,6 +23,7 @@ export default function DepthRail() {
   const L = useCallback((a: string, e: string) => (ar ? a : e), [ar]);
 
   const { depth, setDepth } = useDepth();
+  const { maxDepth } = useTier();
   const [hover, setHover] = useState<DepthLevel | null>(null);
   const pathname = usePathname();
 
@@ -57,25 +59,34 @@ export default function DepthRail() {
             { top: 168, height: 72 },
           ][lvl - 1];
           const meta = depthMetaFor(pathname, lvl);
+          // depths above the plan's ceiling are visible but locked —
+          // the iceberg shows what exists, the plan decides what opens
+          const locked = lvl > maxDepth;
+          const plan = TIER_META[tierForDepth(lvl)];
           return (
             <button
               key={lvl}
-              onClick={() => setDepth(lvl)}
+              onClick={() => { if (!locked) setDepth(lvl); }}
               onMouseEnter={() => setHover(lvl)}
               onMouseLeave={() => setHover(null)}
-              className="absolute start-0 w-full cursor-pointer group"
+              className={`absolute start-0 w-full group ${locked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
               style={{ top: zones.top, height: zones.height }}
               title={`${meta.icon} ${ar ? meta.name.ar : meta.name.en}`}
               aria-label={ar ? meta.name.ar : meta.name.en}
               aria-pressed={depth === lvl}
+              aria-disabled={locked}
             >
               {depth === lvl && (
                 <span className="absolute top-1/2 -translate-y-1/2 -end-1.5 w-3 h-3 rounded-full bg-[var(--gold)] ring-2 ring-[var(--surface-0)]" />
+              )}
+              {locked && (
+                <span className="absolute top-1/2 -translate-y-1/2 start-1/2 -translate-x-1/2 text-[11px] opacity-80" aria-hidden>🔒</span>
               )}
               {/* hover flyout */}
               <span className="pointer-events-none absolute top-1/2 -translate-y-1/2 start-full ms-2 whitespace-nowrap rounded-lg bg-[var(--surface-card)] border border-[var(--border-default)] px-2.5 py-1 text-[10px] text-[var(--ink-2)] opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
                 {meta.icon} {ar ? meta.name.ar : meta.name.en}
                 {depth === lvl && <span className="text-[var(--gold)] font-semibold"> · {L('عمقك الحالي', 'your current depth')}</span>}
+                {locked && <span className="text-[var(--gold)] font-semibold"> · 🔒 {ar ? `يفتح مع باقة «${plan.name.ar}»` : `unlocks with ${plan.name.en}`}</span>}
               </span>
             </button>
           );
