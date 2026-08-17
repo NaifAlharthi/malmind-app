@@ -201,14 +201,14 @@ export default function AboutPage() {
           <div className="sm:col-span-2 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-base">🧭</span>
-              <span className="text-sm font-semibold text-[var(--ink)]">{L('منتجٌ تُبحر فيه، لا تتصفحه', 'A product you navigate, not browse')}</span>
+              <span className="text-sm font-semibold text-[var(--ink)]">{L('إبحارٌ من الطراز العالمي', 'World-class navigation')}</span>
             </div>
             <div className="grid md:grid-cols-2 gap-x-8 gap-y-4 mt-3">
               <div>
                 <p className="text-xs text-[var(--ink-2)] leading-relaxed mb-3">
                   {L(
-                    'مال مايند خريطة ذات بُعدين: أفقياً تسافر عبر الزمن (الماضي · اليوم · المستقبل)، وعمودياً تغوص في جبل الجليد — أربع طبقات من البساطة إلى الاحتراف. كل صفحة تعيد ترتيب نفسها حسب عمقك.',
-                    'MalMind is a two-dimensional map: horizontally you travel through time (past · today · future); vertically you dive the iceberg — four layers from simplicity to mastery. Every page restages itself to your depth.'
+                    'نظام قيادة بمستوى المنصات الاحترافية العالمية — من طراز بلومبيرغ وأرقى — لكن هادئ، إنساني، وبالعربية أولاً: خريطة ذات بُعدين تسافر فيها عبر الزمن أفقياً (الماضي · اليوم · المستقبل)، وتغوص عمودياً في جبل الجليد — أربع طبقات من البساطة إلى الاحتراف، وكل صفحة تعيد ترتيب نفسها حسب عمقك.',
+                    "A command system at the level of the world's pro terminals — Bloomberg-grade and beyond — but calm, human, and Arabic-first: a two-dimensional map where you travel time horizontally (past · today · future) and dive the iceberg vertically — four layers from simplicity to mastery, every page restaging itself to your depth."
                   )}
                 </p>
                 <ul className="text-[11px] text-[var(--muted)] leading-relaxed space-y-1.5">
@@ -238,6 +238,29 @@ export default function AboutPage() {
                 </div>
               </div>
             </div>
+            {/* a still of the command palette itself — the popup, in miniature */}
+            <div className="mt-5 flex flex-col items-center">
+              <div className="w-full max-w-sm rounded-2xl border border-[var(--border-default)] p-4 shadow-lg" style={{ background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)' }} dir="ltr">
+                <div className="text-center font-serif text-sm font-semibold text-[var(--ink)] mb-3">{L('وضع الأوامر', 'Command mode')}</div>
+                <div className="flex flex-col items-center gap-1 text-[10px] text-[var(--muted)]">
+                  <kbd className="text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-2 py-0.5 text-[var(--ink)]">↑</kbd>
+                  <span>🌊 {L('اصعد إلى «الأساس»', 'Surface to “The essentials”')}</span>
+                  <div className="flex items-center gap-2.5 my-1.5">
+                    <kbd className="text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-2 py-0.5 text-[var(--ink)]">←</kbd>
+                    <span>🕰 {L('الماضي', 'Past')}</span>
+                    <span className="rounded-full border border-[var(--gold)] bg-[var(--gold)]/10 text-[var(--gold-text-strong)] px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap">☀ {L('اليوم', 'Today')} · D2</span>
+                    <span>🔭 {L('المستقبل', 'The Future')}</span>
+                    <kbd className="text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-2 py-0.5 text-[var(--ink)]">→</kbd>
+                  </div>
+                  <span>🐬 {L('اغطس إلى «التحليل»', 'Dive to “The analysis”')}</span>
+                  <kbd className="text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-2 py-0.5 text-[var(--ink)]">↓</kbd>
+                </div>
+              </div>
+              <div className="text-[10px] text-[var(--muted)] mt-2">
+                {L('هكذا تظهر لوحة القيادة لحظة إمساك Shift — فوق أي صفحة، شفافةً بلون ما خلفها', 'This is the command palette the moment you hold Shift — over any page, tinted by what is behind it')}
+              </div>
+            </div>
+
             <Link href="/tour" className="inline-block text-xs font-medium text-[var(--green-dark)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-lg px-3.5 py-2 mt-4">
               {L('شاهدها حيّة في الجولة ←', 'See it live in the tour →')}
             </Link>
