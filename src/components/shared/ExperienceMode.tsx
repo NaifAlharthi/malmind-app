@@ -63,7 +63,9 @@ export function XModeProvider({ children }: { children: React.ReactNode }) {
     setModeState(m);
     storeXMode(m);
     // Hand-holding level drives the Brain guide's default posture…
-    setGuideMode(m === 'guided' ? 'auto' : m === 'growing' ? 'manual' : 'off');
+    // No mode forces auto-narration — the bubble opening itself on page
+    // arrival is an explicit opt-in from the Brain's own controls.
+    setGuideMode(m === 'pro' ? 'off' : 'manual');
     // …and resets the iceberg to the mode's natural depth.
     setDepthState(MODE_DEPTH[m]);
     storeDepth(MODE_DEPTH[m]);

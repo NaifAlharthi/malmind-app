@@ -102,7 +102,7 @@ export default function BrainCompanion() {
 
   // ── Guide state ──
   const guide = useMemo(() => getGuide(pathname), [pathname]);
-  const [mode, setMode] = useState<GuideMode>('auto');
+  const [mode, setMode] = useState<GuideMode>('manual');
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [pointing, setPointing] = useState<Pointing | null>(null);
   const pointingTimer = useRef<number | null>(null);

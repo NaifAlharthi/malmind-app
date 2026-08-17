@@ -7,6 +7,9 @@
 //
 // Modes (persisted): 'auto' — narrate on every page · 'manual' — only when
 // asked · 'off' — muted entirely (recoverable from the Brain's panel).
+// The DEFAULT is 'manual': the bubble never opens itself on page arrival
+// and never covers content — auto-narration is an explicit opt-in (founder
+// decree, 2026-08-17).
 
 export interface L10n { ar: string; en: string }
 
@@ -26,11 +29,11 @@ export type GuideMode = 'auto' | 'manual' | 'off';
 export const GUIDE_MODE_KEY = 'mm-brain-guide';
 
 export function getGuideMode(): GuideMode {
-  if (typeof window === 'undefined') return 'auto';
+  if (typeof window === 'undefined') return 'manual';
   try {
     const v = window.localStorage.getItem(GUIDE_MODE_KEY);
-    return v === 'manual' || v === 'off' ? v : 'auto';
-  } catch { return 'auto'; }
+    return v === 'auto' || v === 'off' ? v : 'manual';
+  } catch { return 'manual'; }
 }
 export function setGuideMode(m: GuideMode) {
   try { window.localStorage.setItem(GUIDE_MODE_KEY, m); } catch { /* ignore */ }
