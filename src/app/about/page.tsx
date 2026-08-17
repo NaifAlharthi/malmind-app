@@ -145,8 +145,19 @@ export default function AboutPage() {
 
                     {/* middle: MalMind, the AI thinking layer (brand green, gold glow) */}
                     {plate(cx, 196, 120, 56, 18, '#1D9E75', '#14735A', '#0E5A46', 'var(--gold)')}
+
+                    {/* …the line surfaces at the thinking layer's near vertex,
+                    climbs its face, and tucks under the decisions plate —
+                    visibly passing THROUGH the middle on its way up */}
+                    <line x1={cx} y1={155} x2={cx} y2={252} stroke="var(--gold)" strokeWidth="3" strokeLinecap="round" opacity="0.22" />
+                    <path className="mm-line-flow" d={`M ${cx} 252 L ${cx} 155`} fill="none" stroke="var(--gold)" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+
                     {/* top: the decisions (light teal) */}
                     {plate(cx, 96, 106, 50, 16, '#8FE7D6', '#4FBFAC', '#3AA694')}
+
+                    {/* …and lands on the decisions plate itself */}
+                    <line x1={cx} y1={108} x2={cx} y2={146} stroke="var(--gold)" strokeWidth="3" strokeLinecap="round" opacity="0.22" />
+                    <path className="mm-line-flow" d={`M ${cx} 146 L ${cx} 108`} fill="none" stroke="var(--gold)" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
                     {/* the Brain on its plate — same 3D grounding as the rest */}
                     <ellipse cx={cx - 48} cy={202} rx={14} ry={4} fill="#000" opacity="0.28" />
                     <text x={cx - 48} y={198} textAnchor="middle" fontSize="26" aria-hidden>🧠</text>

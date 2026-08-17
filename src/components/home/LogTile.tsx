@@ -36,6 +36,8 @@ export default function LogTile() {
   const [lines, setLines] = useState<Record<string, boolean>>({ nw: true, income: true, expenses: true });
   const [range, setRange] = useState<6 | 12 | 24 | 0>(12); // 0 = all
   const [gran, setGran] = useState<'m' | 'q' | 'y'>('m');
+  // a hand-picked window ('YYYY-MM' each end) overrides the presets
+  const [custom, setCustom] = useState<{ from: string; to: string }>({ from: '', to: '' });
 
   useEffect(() => {
     (async () => {
@@ -215,17 +217,17 @@ export default function LogTile() {
         return (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
             <div className="bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3.5 py-3">
+              <div className="text-lg font-bold text-[var(--ink)] leading-tight">{sinceLabel}</div>
+              <div className="text-[10px] text-[var(--muted)] mt-0.5">
+                ⏮ {L('إلى هنا يعود سِجلّك — بياناتك ملكك منذ ذلك الحين', 'how far back your data goes — yours since then')}
+              </div>
+            </div>
+            <div className="bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3.5 py-3">
               <div className="text-lg font-bold text-[var(--ink)] leading-tight">{dur}</div>
               <div className="text-[10px] text-[var(--muted)] mt-0.5">
                 🗓 {snaps.length === spanMonths
                   ? L('مدى سِجلّك — دون شهر مفقود', 'of record — no month missing')
                   : L(`مدى السِّجل — ${snaps.length} شهراً مسجلاً`, `of record — ${snaps.length} months logged`)}
-              </div>
-            </div>
-            <div className="bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3.5 py-3">
-              <div className="text-lg font-bold text-[var(--ink)] leading-tight">{sinceLabel}</div>
-              <div className="text-[10px] text-[var(--muted)] mt-0.5">
-                ⏮ {L('بياناتك ملكك منذ ذلك الحين', 'your data, yours since then')}
               </div>
             </div>
             {lifePct !== null && (
@@ -244,7 +246,7 @@ export default function LogTile() {
       })()}
 
       {/* the chart leads; the cells follow below */}
-      <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} ar={ar} />
+      <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} custom={custom} setCustom={setCustom} ar={ar} />
 
       <div className="overflow-x-auto rounded-lg border border-[var(--border-faint)]">
         <table className="w-full text-[11px] border-collapse min-w-[560px]" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -308,12 +310,14 @@ const SERIES: { key: string; nameAr: string; nameEn: string; color: string; kind
 ];
 
 function LogChart({
-  snaps, lines, setLines, range, setRange, gran, setGran, ar,
+  snaps, lines, setLines, range, setRange, gran, setGran, custom, setCustom, ar,
 }: {
   snaps: Snap[]; lines: Record<string, boolean>;
   setLines: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   range: 6 | 12 | 24 | 0; setRange: (r: 6 | 12 | 24 | 0) => void;
   gran: 'm' | 'q' | 'y'; setGran: (g: 'm' | 'q' | 'y') => void;
+  custom: { from: string; to: string };
+  setCustom: React.Dispatch<React.SetStateAction<{ from: string; to: string }>>;
   ar: boolean;
 }) {
   const L = (a: string, e: string) => (ar ? a : e);
@@ -326,8 +330,17 @@ function LogChart({
 
   // slice the period, then bucket by grain: balances take the bucket's last
   // value (a balance IS a point in time); flows sum across the bucket
+  // a set date range beats the preset window
+  const hasCustom = !!(custom.from || custom.to);
   const data = useMemo(() => {
-    const win = range === 0 ? snaps : snaps.slice(-range);
+    const mkey = (y: number, m: number) => y * 12 + m;
+    const parse = (v: string) => mkey(Number(v.slice(0, 4)), Number(v.slice(5, 7)));
+    const win = hasCustom
+      ? snaps.filter((s) => {
+          const k = mkey(s.year, s.month);
+          return (!custom.from || k >= parse(custom.from)) && (!custom.to || k <= parse(custom.to));
+        })
+      : range === 0 ? snaps : snaps.slice(-range);
     const bucketOf = (s: Snap) =>
       gran === 'm' ? `${s.year}-${String(s.month).padStart(2, '0')}`
       : gran === 'q' ? `${s.year}-Q${Math.ceil(s.month / 3)}`
@@ -351,7 +364,7 @@ function LogChart({
       }
       return point;
     });
-  }, [snaps, range, gran, ar]);
+  }, [snaps, range, gran, ar, hasCustom, custom.from, custom.to]);
 
   const seg = (active: boolean) =>
     `px-2.5 py-1 text-[10px] font-medium transition-colors ${active ? 'bg-[var(--ink)] text-[var(--surface-0)]' : 'bg-[var(--surface-card)] text-[var(--ink-2)] hover:text-[var(--ink)]'}`;
@@ -362,13 +375,36 @@ function LogChart({
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <div className="text-xs font-semibold text-[var(--ink)]">📈 {L('الأرقام عبر الزمن', 'The numbers across time')}</div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* period */}
+          {/* period — presets step aside while a custom range is set */}
           <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden" dir="ltr">
             {([6, 12, 24, 0] as const).map((r) => (
-              <button key={r} onClick={() => setRange(r)} className={seg(range === r)}>
+              <button key={r} onClick={() => { setCustom({ from: '', to: '' }); setRange(r); }} className={seg(!hasCustom && range === r)}>
                 {r === 0 ? L('الكل', 'All') : r === 6 ? L('٦ أشهر', '6m') : r === 12 ? L('سنة', '1y') : L('سنتان', '2y')}
               </button>
             ))}
+          </div>
+          {/* or a hand-picked window: from month → to month */}
+          <div className={`inline-flex items-center gap-1 border rounded-lg px-2 py-0.5 ${hasCustom ? 'border-[var(--green)]' : 'border-[var(--border-default)]'}`} dir="ltr">
+            <input
+              type="month"
+              value={custom.from}
+              onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))}
+              className="bg-transparent text-[10px] text-[var(--ink-2)] outline-none w-[92px] [color-scheme:dark]"
+              aria-label={L('من شهر', 'From month')}
+            />
+            <span className="text-[10px] text-[var(--muted)]">→</span>
+            <input
+              type="month"
+              value={custom.to}
+              onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))}
+              className="bg-transparent text-[10px] text-[var(--ink-2)] outline-none w-[92px] [color-scheme:dark]"
+              aria-label={L('إلى شهر', 'To month')}
+            />
+            {hasCustom && (
+              <button onClick={() => setCustom({ from: '', to: '' })} className="text-[10px] text-[var(--muted)] hover:text-[var(--ink)] px-0.5" aria-label={L('امسح المدى', 'Clear range')}>
+                ✕
+              </button>
+            )}
           </div>
           {/* grain */}
           <div className="inline-flex border border-[var(--border-default)] rounded-lg overflow-hidden" dir="ltr">
