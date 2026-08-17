@@ -67,8 +67,23 @@ export default function CommandMode() {
   const xActive = useRef(false);
   const xLongFired = useRef(false);
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const [launcherClosing, setLauncherClosing] = useState(false);
   const launcherRef = useRef(false);
+  const launcherClosingRef = useRef(false);
   const setLauncher = (v: boolean) => { launcherRef.current = v; setLauncherOpen(v); };
+  // the launcher leaves the way it arrived — with motion: keys release
+  // immediately, the card plays its exit, then unmounts
+  const closeLauncher = () => {
+    if (launcherClosingRef.current) return;
+    launcherClosingRef.current = true;
+    launcherRef.current = false;
+    setLauncherClosing(true);
+    window.setTimeout(() => {
+      setLauncherOpen(false);
+      setLauncherClosing(false);
+      launcherClosingRef.current = false;
+    }, 190);
+  };
   // ⇧M mode cycling (alt-tab style): each press advances the candidate,
   // idle or releasing Shift confirms it.
   const [modeSel, setModeSel] = useState<XMode | null>(null);
@@ -139,14 +154,14 @@ export default function CommandMode() {
       if (launcherRef.current) {
         if (e.key === 'Escape') {
           e.preventDefault();
-          setLauncher(false);
+          closeLauncher();
           return;
         }
         const hit = LAUNCHER_ITEMS.find((it) => e.code === `Key${it.letter}`);
         if (hit) {
           e.preventDefault();
           if ((hit.tool.depth ?? 1) <= maxDepthRef.current) {
-            setLauncher(false);
+            closeLauncher();
             act(() => router.push(hit.tool.href));
           }
         }
@@ -357,10 +372,27 @@ export default function CommandMode() {
   if (launcherOpen) {
     return (
       <div className="fixed inset-0 z-[95] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-        <div className="absolute inset-0 bg-black/50" onClick={() => setLauncher(false)} />
+        {/* the pop: a springy arrival, a swift bow out — the same living
+            motion as the mode stage */}
+        <style>{`
+          @keyframes mmLauncherIn { 0% { opacity: 0; transform: scale(0.86) translateY(12px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+          @keyframes mmLauncherOut { 0% { opacity: 1; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.9) translateY(8px); } }
+          @keyframes mmLauncherVeil { from { opacity: 0; } to { opacity: 1; } }
+          @media (prefers-reduced-motion: reduce) { .mm-launcher-card, .mm-launcher-veil { animation: none !important; } }
+        `}</style>
         <div
-          className="relative rounded-2xl border border-[var(--border-default)] backdrop-blur-md p-6 shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto"
-          style={{ background: 'color-mix(in srgb, var(--surface-card) 94%, transparent)' }}
+          className="mm-launcher-veil absolute inset-0 bg-black/50"
+          style={{ animation: launcherClosing ? 'mmLauncherVeil 190ms ease-in reverse forwards' : 'mmLauncherVeil 220ms ease-out forwards' }}
+          onClick={closeLauncher}
+        />
+        <div
+          className="mm-launcher-card relative rounded-2xl border border-[var(--border-default)] backdrop-blur-md p-6 shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto"
+          style={{
+            background: 'color-mix(in srgb, var(--surface-card) 94%, transparent)',
+            animation: launcherClosing
+              ? 'mmLauncherOut 190ms ease-in forwards'
+              : 'mmLauncherIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+          }}
           dir={ar ? 'rtl' : 'ltr'}
         >
           <div className="flex items-center justify-center gap-2 mb-5 text-[var(--ink)]">
@@ -381,7 +413,7 @@ export default function CommandMode() {
                     return (
                       <button
                         key={it.tool.href}
-                        onClick={() => { if (!locked) { setLauncher(false); router.push(it.tool.href); } }}
+                        onClick={() => { if (!locked) { closeLauncher(); router.push(it.tool.href); } }}
                         disabled={locked}
                         className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors ${
                           locked ? 'opacity-45 cursor-not-allowed' : 'hover:bg-[var(--surface-1)] cursor-pointer'
