@@ -10,11 +10,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useDepth, useXMode, useDrive } from '@/components/shared/ExperienceMode';
+import { useDepth, useXMode, useDrive, useTier } from '@/components/shared/ExperienceMode';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { depthMetaFor, type DepthLevel } from '@/lib/depth';
 import { XMODES, XMODE_META, type XMode } from '@/lib/experienceMode';
 import { DRIVES, DRIVE_META, type Drive } from '@/lib/drive';
+import { TOOLS, type ViewKey } from '@/lib/toolbox';
 
 const TIME_ROUTES = ['/past', '/today', '/future'];
 const TIME_LABEL: Record<string, { ar: string; en: string; icon: string }> = {
@@ -22,6 +23,14 @@ const TIME_LABEL: Record<string, { ar: string; en: string; icon: string }> = {
   '/today': { ar: 'اليوم', en: 'Today', icon: '☀' },
   '/future': { ar: 'المستقبل', en: 'The Future', icon: '🔭' },
 };
+
+// The tool launcher's roster: every tool, one letter each (X stays the
+// launcher's own key). Letters follow the matrix order, so the popup
+// reads exactly like the Toolbox wall.
+const LAUNCHER_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWYZ';
+const LAUNCHER_ITEMS = (['past', 'today', 'future'] as ViewKey[])
+  .flatMap((view) => TOOLS[view].map((tool) => ({ view, tool })))
+  .map((x, i) => ({ ...x, letter: LAUNCHER_LETTERS[i] ?? '·' }));
 
 function isTypingTarget(t: EventTarget | null): boolean {
   const el = t as HTMLElement | null;
@@ -34,9 +43,12 @@ export default function CommandMode() {
   const { depth, setDepth } = useDepth();
   const { mode, setMode } = useXMode();
   const { drive, setDrive } = useDrive();
-  const { locale } = useLocale();
+  const { t, locale } = useLocale();
   const ar = locale === 'ar';
   const L = useCallback((a: string, e: string) => (ar ? a : e), [ar]);
+  const { maxDepth } = useTier();
+  const maxDepthRef = useRef(maxDepth);
+  useEffect(() => { maxDepthRef.current = maxDepth; }, [maxDepth]);
 
   const [open, setOpen] = useState(false);
   // which key is lighting up right now (the choice flashes before executing)
@@ -49,6 +61,14 @@ export default function CommandMode() {
   const bTimer = useRef<number | undefined>(undefined);
   const bActive = useRef(false);
   const bLongFired = useRef(false);
+  // ⇧X press tracking: a tap opens the Toolbox page, a long press summons
+  // the TOOL LAUNCHER — every tool on a lettered key, one press to jump.
+  const xTimer = useRef<number | undefined>(undefined);
+  const xActive = useRef(false);
+  const xLongFired = useRef(false);
+  const [launcherOpen, setLauncherOpen] = useState(false);
+  const launcherRef = useRef(false);
+  const setLauncher = (v: boolean) => { launcherRef.current = v; setLauncherOpen(v); };
   // ⇧M mode cycling (alt-tab style): each press advances the candidate,
   // idle or releasing Shift confirms it.
   const [modeSel, setModeSel] = useState<XMode | null>(null);
@@ -113,6 +133,25 @@ export default function CommandMode() {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
+
+      // the tool launcher owns the keyboard while it is on stage:
+      // a tool's letter jumps to it, Escape bows out
+      if (launcherRef.current) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setLauncher(false);
+          return;
+        }
+        const hit = LAUNCHER_ITEMS.find((it) => e.code === `Key${it.letter}`);
+        if (hit) {
+          e.preventDefault();
+          if ((hit.tool.depth ?? 1) <= maxDepthRef.current) {
+            setLauncher(false);
+            act(() => router.push(hit.tool.href));
+          }
+        }
+        return;
+      }
 
       if (e.key === 'Shift') {
         // holding Shift auto-repeats this event — repeats must never fall
@@ -179,14 +218,21 @@ export default function CommandMode() {
         return;
       }
 
-      // ⇧X — open the Toolbox, the whole workshop on one page
-      // (physical key: layout-independent)
+      // ⇧X — tap: the Toolbox page · LONG PRESS: the tool launcher,
+      // every tool on a lettered key (physical key: layout-independent)
       if (e.code === 'KeyX' || e.key === 'X' || e.key === 'x') {
         if (suppressed.current) return;
         e.preventDefault();
-        if (e.repeat) return;
-        setOpen(false);
-        act(() => { if (pathRef.current !== '/toolbox') router.push('/toolbox'); });
+        if (e.repeat) return; // auto-repeat while held — the timer decides
+        xActive.current = true;
+        xLongFired.current = false;
+        window.clearTimeout(xTimer.current);
+        xTimer.current = window.setTimeout(() => {
+          xLongFired.current = true;
+          xActive.current = false;
+          setOpen(false);
+          setLauncher(true);
+        }, 550);
         return;
       }
 
@@ -258,6 +304,16 @@ export default function CommandMode() {
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'KeyX' || e.key === 'X' || e.key === 'x') {
+        window.clearTimeout(xTimer.current);
+        if (xActive.current && !xLongFired.current) {
+          // a tap — the Toolbox page itself
+          xActive.current = false;
+          setOpen(false);
+          act(() => { if (pathRef.current !== '/toolbox') router.push('/toolbox'); });
+        }
+        return;
+      }
       if (e.code === 'KeyB' || e.key === 'B' || e.key === 'b') {
         window.clearTimeout(bTimer.current);
         window.setTimeout(() => setActiveKey(null), 300);
@@ -273,6 +329,8 @@ export default function CommandMode() {
         window.clearTimeout(holdTimer.current);
         window.clearTimeout(bTimer.current);
         bActive.current = false;
+        window.clearTimeout(xTimer.current);
+        xActive.current = false;
         suppressed.current = false;
         confirmMode(); // releasing Shift confirms a pending mode, alt-tab style
         confirmDrive(); // …and a pending drive the same way
@@ -292,7 +350,64 @@ export default function CommandMode() {
     };
   }, [router, ar]);
 
-  if (!open && !modeSel && !driveSel) return null;
+  if (!open && !modeSel && !driveSel && !launcherOpen) return null;
+
+  // ── the ⇧X tool launcher: the whole Toolbox on lettered keys —
+  //    press a tool's letter and you are there ──
+  if (launcherOpen) {
+    return (
+      <div className="fixed inset-0 z-[95] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div className="absolute inset-0 bg-black/50" onClick={() => setLauncher(false)} />
+        <div
+          className="relative rounded-2xl border border-[var(--border-default)] backdrop-blur-md p-6 shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto"
+          style={{ background: 'color-mix(in srgb, var(--surface-card) 94%, transparent)' }}
+          dir={ar ? 'rtl' : 'ltr'}
+        >
+          <div className="flex items-center justify-center gap-2 mb-5 text-[var(--ink)]">
+            <span className="inline-flex items-center justify-center h-7 px-2.5 rounded-md border border-[var(--border-medium)] bg-[var(--surface-1)] text-sm font-bold">⇧ X</span>
+            <span className="text-xs font-semibold tracking-wide">🧰 {L('صندوق الأدوات — اضغط حرف الأداة', "The Toolbox — press a tool's letter")}</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-5 gap-y-4">
+            {(['past', 'today', 'future'] as ViewKey[]).map((view) => (
+              <div key={view}>
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--ink-2)] mb-2">
+                  <span>{TIME_LABEL[`/${view}`].icon}</span>
+                  <span>{ar ? TIME_LABEL[`/${view}`].ar : TIME_LABEL[`/${view}`].en}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {LAUNCHER_ITEMS.filter((it) => it.view === view).map((it) => {
+                    const locked = (it.tool.depth ?? 1) > maxDepth;
+                    return (
+                      <button
+                        key={it.tool.href}
+                        onClick={() => { if (!locked) { setLauncher(false); router.push(it.tool.href); } }}
+                        disabled={locked}
+                        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors ${
+                          locked ? 'opacity-45 cursor-not-allowed' : 'hover:bg-[var(--surface-1)] cursor-pointer'
+                        }`}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-[var(--border-medium)] bg-[var(--surface-1)] text-[10px] font-bold text-[var(--ink)] shrink-0" dir="ltr">
+                          {it.letter}
+                        </span>
+                        <span className="text-sm leading-none shrink-0">{it.tool.icon}</span>
+                        <span className="text-[11px] text-[var(--ink-2)] truncate">{t(it.tool.titleKey)}</span>
+                        {locked && <span className="ms-auto text-[9px]" aria-hidden>🔒</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center text-[10px] text-[var(--muted)] mt-5">
+            {L('اضغط الحرف للقفز · Esc للإغلاق', 'Press the letter to jump · Esc to close')}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── the ⇧D drive switcher: same stage, the drive's three shapes ──
   if (driveSel) {
@@ -492,7 +607,7 @@ export default function CommandMode() {
           </div>
           <div className="flex items-center gap-2">
             <Key label="X" />
-            <Hint text={`🧰 ${L('افتح صندوق الأدوات', 'Open the Toolbox')}`} />
+            <Hint text={`🧰 ${L('صندوق الأدوات · مطوّلاً: قافز الأدوات بالحروف', 'The Toolbox · hold: the lettered tool launcher')}`} />
           </div>
         </div>
       </div>
