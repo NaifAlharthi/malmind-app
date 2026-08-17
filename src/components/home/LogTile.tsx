@@ -29,6 +29,8 @@ export default function LogTile() {
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
   const [snaps, setSnaps] = useState<Snap[] | null>(null);
+  const [age, setAge] = useState<number | null>(null);
+  const [srcOpen, setSrcOpen] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({ assets: true, liab: true, flow: true });
   // chart controls: which lines are on, how far back, and at what grain
   const [lines, setLines] = useState<Record<string, boolean>>({ nw: true, income: true, expenses: true });
@@ -46,6 +48,9 @@ export default function LogTile() {
         .order('year', { ascending: true })
         .order('month', { ascending: true });
       setSnaps((data as Snap[]) ?? []);
+      // age powers the "share of your life on record" stat
+      const { data: prof } = await supabase.from('profiles').select('age').eq('id', user.id).single();
+      setAge((prof as { age: number | null } | null)?.age ?? null);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -118,9 +123,72 @@ export default function LogTile() {
     <div className="drv-num bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 sm:p-6 mb-8">
       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
         <div className="font-serif text-lg font-semibold text-[var(--ink)]">📒 {L('السِّجل', 'The Log')}</div>
-        <Link href="/financial-numbers" className="text-[11px] font-semibold text-[var(--green-dark)] hover:underline">
-          {L('حدّث أرقامك ←', 'Update your numbers →')}
-        </Link>
+        {/* every way numbers enter the Log lives under this one door —
+            manual, spreadsheet, banks, integrations */}
+        <div className="relative">
+          <button
+            onClick={() => setSrcOpen((v) => !v)}
+            className="text-[11px] font-semibold text-[var(--green-dark)] hover:underline cursor-pointer"
+            aria-expanded={srcOpen}
+          >
+            {L('عدّل وحدّث أرقامك', 'Edit and update your numbers')} {srcOpen ? '▴' : '▾'}
+          </button>
+          {srcOpen && (
+            <div className="absolute end-0 top-full mt-2 z-20 w-72 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-lg p-2 flex flex-col gap-1">
+              {([
+                {
+                  icon: '✍️', live: true, href: '/financial-numbers',
+                  name: L('إدخال يدوي', 'Manual entry'),
+                  sub: L('سجّل شهرك في دقائق', 'Log your month in minutes'),
+                },
+                {
+                  icon: '📄', live: true, href: '/financial-numbers',
+                  name: L('اسحب جدولك', 'Drop your spreadsheet'),
+                  sub: L('CSV/Excel يُحلَّل ويُقرأ بذكاء', 'CSV/Excel, smartly parsed'),
+                },
+                {
+                  icon: '🏦', live: false,
+                  name: L('واجهات البنوك', 'Bank APIs'),
+                  sub: L('ربط مباشر بحساباتك — قادم', 'Direct account linking — coming'),
+                },
+                {
+                  icon: '🔗', live: true, href: '/financial-numbers',
+                  name: L('Google و Microsoft', 'Google & Microsoft'),
+                  sub: L('Google Sheets الآن · Excel 365 قادم', 'Google Sheets now · Excel 365 coming'),
+                },
+              ] as { icon: string; live: boolean; href?: string; name: string; sub: string }[]).map((src) =>
+                src.live && src.href ? (
+                  <Link
+                    key={src.name}
+                    href={src.href}
+                    className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 hover:bg-[var(--surface-1)] transition-colors"
+                  >
+                    <span className="text-base leading-none">{src.icon}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[11px] font-semibold text-[var(--ink)] group-hover:text-[var(--green-dark)] transition-colors">{src.name}</span>
+                      <span className="block text-[9px] text-[var(--muted)]">{src.sub}</span>
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] shrink-0" title={L('متاح الآن', 'Available now')} />
+                  </Link>
+                ) : (
+                  <div
+                    key={src.name}
+                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 opacity-70"
+                  >
+                    <span className="text-base leading-none">{src.icon}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[11px] font-semibold text-[var(--ink-2)]">{src.name}</span>
+                      <span className="block text-[9px] text-[var(--muted)]">{src.sub}</span>
+                    </span>
+                    <span className="text-[8px] rounded-full border border-[var(--border-default)] text-[var(--muted)] px-1.5 py-0.5 shrink-0">
+                      {L('قريباً', 'Soon')}
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </div>
       </div>
       <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-4">
         {L(
@@ -129,61 +197,51 @@ export default function LogTile() {
         )}
       </p>
 
-      {/* ── where the Log's numbers can come from — the de-friction ladder,
-             shown as doors: manual is one of four, not the only way ── */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {([
-          {
-            icon: '✍️', live: true, href: '/financial-numbers',
-            name: L('إدخال يدوي', 'Manual entry'),
-            sub: L('سجّل شهرك في دقائق', 'Log your month in minutes'),
-          },
-          {
-            icon: '📄', live: true, href: '/financial-numbers',
-            name: L('اسحب جدولك', 'Drop your spreadsheet'),
-            sub: L('CSV/Excel يُحلَّل ويُقرأ بذكاء', 'CSV/Excel, smartly parsed'),
-          },
-          {
-            icon: '🏦', live: false,
-            name: L('واجهات البنوك', 'Bank APIs'),
-            sub: L('ربط مباشر بحساباتك — قادم', 'Direct account linking — coming'),
-          },
-          {
-            icon: '🔗', live: true, href: '/financial-numbers',
-            name: L('Google و Microsoft', 'Google & Microsoft'),
-            sub: L('Google Sheets الآن · Excel 365 قادم', 'Google Sheets now · Excel 365 coming'),
-          },
-        ] as { icon: string; live: boolean; href?: string; name: string; sub: string }[]).map((src) =>
-          src.live && src.href ? (
-            <Link
-              key={src.name}
-              href={src.href}
-              className="group flex items-center gap-2.5 bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3 py-2 hover:border-[var(--green)] transition-colors"
-            >
-              <span className="text-base leading-none">{src.icon}</span>
-              <span className="min-w-0">
-                <span className="block text-[11px] font-semibold text-[var(--ink)] group-hover:text-[var(--green-dark)] transition-colors">{src.name}</span>
-                <span className="block text-[9px] text-[var(--muted)]">{src.sub}</span>
-              </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] shrink-0" title={L('متاح الآن', 'Available now')} />
-            </Link>
-          ) : (
-            <div
-              key={src.name}
-              className="flex items-center gap-2.5 bg-[var(--surface-1)]/50 border border-dashed border-[var(--border-faint)] rounded-xl px-3 py-2 opacity-75"
-            >
-              <span className="text-base leading-none">{src.icon}</span>
-              <span className="min-w-0">
-                <span className="block text-[11px] font-semibold text-[var(--ink-2)]">{src.name}</span>
-                <span className="block text-[9px] text-[var(--muted)]">{src.sub}</span>
-              </span>
-              <span className="text-[8px] rounded-full border border-[var(--border-default)] text-[var(--muted)] px-1.5 py-0.5 shrink-0">
-                {L('قريباً', 'Soon')}
-              </span>
+      {/* ── the Log's vital signs: how much of your life this record
+             already holds. Span runs from the earliest month to the
+             latest; the life share needs the profile's age ── */}
+      {(() => {
+        const first = snaps[0];
+        const last = snaps[snaps.length - 1];
+        const spanMonths = (last.year * 12 + last.month) - (first.year * 12 + first.month) + 1;
+        const spanY = Math.floor(spanMonths / 12);
+        const spanM = spanMonths % 12;
+        const dur = ar
+          ? (spanY === 0 ? `${spanMonths} شهراً` : spanM === 0 ? `${spanY} ${spanY === 1 ? 'سنة' : 'سنوات'}` : `${spanY} ${spanY === 1 ? 'سنة' : 'سنوات'} و${spanM} ${spanM === 1 ? 'شهر' : 'أشهر'}`)
+          : (spanY === 0 ? `${spanMonths} months` : spanM === 0 ? `${spanY} ${spanY === 1 ? 'year' : 'years'}` : `${spanY}y ${spanM}m`);
+        const sinceLabel = `${ar ? MONTHS_AR[first.month - 1] : MONTHS_EN[first.month - 1]} ${first.year}`;
+        const lifePct = age && age > 0 ? Math.min(100, (spanMonths / (age * 12)) * 100) : null;
+        const lifePctLabel = lifePct === null ? null : lifePct < 10 ? lifePct.toFixed(1) : String(Math.round(lifePct));
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+            <div className="bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3.5 py-3">
+              <div className="text-lg font-bold text-[var(--ink)] leading-tight">{dur}</div>
+              <div className="text-[10px] text-[var(--muted)] mt-0.5">
+                🗓 {snaps.length === spanMonths
+                  ? L('مدى سِجلّك — دون شهر مفقود', 'of record — no month missing')
+                  : L(`مدى السِّجل — ${snaps.length} شهراً مسجلاً`, `of record — ${snaps.length} months logged`)}
+              </div>
             </div>
-          )
-        )}
-      </div>
+            <div className="bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3.5 py-3">
+              <div className="text-lg font-bold text-[var(--ink)] leading-tight">{sinceLabel}</div>
+              <div className="text-[10px] text-[var(--muted)] mt-0.5">
+                ⏮ {L('بياناتك ملكك منذ ذلك الحين', 'your data, yours since then')}
+              </div>
+            </div>
+            {lifePct !== null && (
+              <div className="bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3.5 py-3 col-span-2 sm:col-span-1">
+                <div className="text-lg font-bold text-[var(--green-dark)] leading-tight">{lifePctLabel}%</div>
+                <div className="text-[10px] text-[var(--muted)] mt-0.5">
+                  🧬 {L('من حياتك موثَّقة هنا — وتزيد كل شهر', 'of your life captured here — growing monthly')}
+                </div>
+                <div className="h-1 rounded-full bg-[var(--border-faint)] mt-2 overflow-hidden">
+                  <div className="h-full rounded-full bg-[var(--green)]" style={{ width: `${Math.max(2, lifePct)}%` }} />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* the chart leads; the cells follow below */}
       <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} ar={ar} />

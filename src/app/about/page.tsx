@@ -488,9 +488,9 @@ export default function AboutPage() {
                     <kbd className="mm-k-right text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-2 py-0.5 text-[var(--ink)]">→</kbd>
                   </div>
                   <kbd className="mm-k-down text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-2 py-0.5 text-[var(--ink)]">↓</kbd>
-                  {/* the held key — lights with EVERY arrow press */}
-                  <kbd className="mm-k-shift text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-4 py-0.5 text-[var(--ink)] mt-1.5">⇧ Shift</kbd>
                   <div className="text-[9px] text-[var(--muted)] mt-1.5 text-center max-w-[130px]">{L('يدٌ واحدة تضغط — والمحوران يستجيبان', 'one hand presses — both axes obey')}</div>
+                  {/* the held key — set apart below, lighting with EVERY arrow press */}
+                  <kbd className="mm-k-shift text-[10px] font-semibold bg-[var(--surface-1)] border border-[var(--border-default)] rounded px-4 py-0.5 text-[var(--ink)] mt-2">⇧ Shift</kbd>
                 </div>
 
               </div>
