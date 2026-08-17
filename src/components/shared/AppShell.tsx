@@ -11,7 +11,7 @@ import TimelineNav from './TimelineNav';
 import DepthRail from './DepthRail';
 import DepthStage from './DepthStage';
 import CommandMode from './CommandMode';
-import { XModeProvider, XModeSwitcher, DriveSwitcher, useXMode, useDrive } from './ExperienceMode';
+import { XModeProvider, useXMode, useDrive, useDepth } from './ExperienceMode';
 import { XMODE_META, type XMode } from '@/lib/experienceMode';
 import { DRIVES, DRIVE_META } from '@/lib/drive';
 import { useTheme } from './ThemeProvider';
@@ -58,44 +58,124 @@ const NAV_ITEMS = [
   { href: '/advisor', labelKey: 'nav.brain', icon: '🧠' },
 ];
 
-// The mode & drive dials for small screens, living in the ☰ menu (the top
-// bar sheds the pill switchers below sm). Tapping cycles to the next value —
-// the same dials as desktop, adapted to the space.
+// The mode & drive dials, living in the ☰ menu on every screen size —
+// the bar stays calm and the power dials wait behind the three lines.
+// Hovering (or tapping) a row unfolds ALL its choices with the current
+// one marked — pick directly, no blind cycling.
 function SmallScreenDials() {
   const { mode, setMode } = useXMode();
   const { drive, setDrive } = useDrive();
   const { locale } = useLocale();
   const ar = locale === 'ar';
+  const [openRow, setOpenRow] = useState<'mode' | 'drive' | null>(null);
   const MODES: XMode[] = ['guided', 'growing', 'pro'];
-  const m = XMODE_META[mode];
-  const d = DRIVE_META[drive];
   const row = 'w-full flex items-center gap-2.5 px-3.5 py-2 text-[var(--ink-2)] hover:bg-[var(--surface-1)] text-start';
+
+  const section = (
+    id: 'mode' | 'drive',
+    tag: string,
+    icon: string,
+    name: string,
+    options: { key: string; icon: string; name: string; active: boolean; pick: () => void }[],
+  ) => (
+    <div
+      key={id}
+      onMouseEnter={() => setOpenRow(id)}
+      onMouseLeave={() => setOpenRow((o) => (o === id ? null : o))}
+    >
+      <button
+        role="menuitem"
+        aria-expanded={openRow === id}
+        onClick={() => setOpenRow((o) => (o === id ? null : id))}
+        className={row}
+      >
+        <span>{icon}</span>
+        <span className="flex-1 whitespace-nowrap">{name}</span>
+        <span className="text-[10px] text-[var(--muted)] whitespace-nowrap ms-4">{tag} {openRow === id ? '▴' : '▾'}</span>
+      </button>
+      {openRow === id && (
+        <div className="pb-1">
+          {options.map((o) => (
+            <button
+              key={o.key}
+              role="menuitemradio"
+              aria-checked={o.active}
+              onClick={o.pick}
+              className={`w-full flex items-center gap-2.5 ps-8 pe-3.5 py-1.5 text-[13px] text-start transition-colors ${
+                o.active
+                  ? 'text-[var(--green-dark)] font-semibold bg-[var(--green-bg)]/50'
+                  : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
+              }`}
+            >
+              <span>{o.icon}</span>
+              <span className="flex-1 whitespace-nowrap">{o.name}</span>
+              {o.active && <span aria-hidden>✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
-      <button
-        role="menuitem"
-        onClick={() => setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length])}
-        className={row}
-      >
-        <span>{m.icon}</span>
-        <span className="flex-1">{ar ? m.label.ar : m.label.en}</span>
-        <span className="text-[10px] text-[var(--muted)]">{ar ? 'المستوى ↻' : 'level ↻'}</span>
-      </button>
-      <button
-        role="menuitem"
-        onClick={() => setDrive(DRIVES[(DRIVES.indexOf(drive) + 1) % DRIVES.length])}
-        className={row}
-      >
-        <span>{d.icon}</span>
-        <span className="flex-1">{ar ? d.label.ar : d.label.en}</span>
-        <span className="text-[10px] text-[var(--muted)]">{ar ? 'المحرّك ↻' : 'drive ↻'}</span>
-      </button>
+      {section(
+        'mode',
+        ar ? XMODE_META[mode].label.ar : XMODE_META[mode].label.en,
+        XMODE_META[mode].icon,
+        ar ? 'مستوى الإرشاد' : 'Instruction level',
+        MODES.map((k) => ({
+          key: k,
+          icon: XMODE_META[k].icon,
+          name: ar ? XMODE_META[k].label.ar : XMODE_META[k].label.en,
+          active: mode === k,
+          pick: () => setMode(k),
+        })),
+      )}
+      {section(
+        'drive',
+        ar ? DRIVE_META[drive].label.ar : DRIVE_META[drive].label.en,
+        DRIVE_META[drive].icon,
+        ar ? 'محرّكاتي' : 'My drivers',
+        DRIVES.map((k) => ({
+          key: k,
+          icon: DRIVE_META[k].icon,
+          name: ar ? DRIVE_META[k].label.ar : DRIVE_META[k].label.en,
+          active: drive === k,
+          pick: () => setDrive(k),
+        })),
+      )}
     </>
   );
 }
 
 
 const FULL_BLEED_PATHS = ['/', '/onboarding', '/login', '/signup'];
+
+// The Log's door in the top bar. The Log is a ROOM (home·D3), not a
+// route — so this pill sets the depth and walks home. It lives in its
+// own component because the depth context exists only inside
+// XModeProvider, below AppShell itself.
+function LogNavPill() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { locale } = useLocale();
+  const { depth, setDepth } = useDepth();
+  const active = pathname === '/home' && depth === 3;
+  const name = locale === 'ar' ? 'السِّجل' : 'Log';
+  return (
+    <button
+      onClick={() => { setDepth(3); if (pathname !== '/home') router.push('/home'); }}
+      title={name}
+      className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors shrink-0 cursor-pointer ${
+        active ? 'bg-[var(--ink)] text-[var(--surface-0)] font-medium' : 'text-[var(--ink-2)] hover:bg-[var(--surface-1)]'
+      }`}
+    >
+      <span>📒</span>
+      <span>{name}</span>
+    </button>
+  );
+}
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -267,11 +347,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* desktop nav: Home + the walking timeline + the Brain */}
             {/* the wordmark already goes home, so the pill can yield first when space runs out */}
             <TopNavLink href="/home" labelKey="nav.home" icon="⌂" className="hidden md:flex ms-2" compact />
+            {/* the Log rides beside Home — the database deserves a door */}
+            <LogNavPill />
             {/* Today is where the action happens — home is identity */}
             <TopNavLink href="/today" labelKey="nav.today" icon="☀" className="hidden sm:flex" compact />
             <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" compact />
-            {/* one pill, two doors: About MalMind ｜ Take a tour */}
-            <div className="hidden sm:flex items-center rounded-full border border-[var(--border-default)] overflow-hidden shrink-0">
+            {/* push everything else to the end (time travel floats at the bottom now) */}
+            <div className="flex-1" />
+
+            {/* one pill, two doors: About MalMind ｜ Take a tour — parked on
+                the far end, visually apart from the four core doors */}
+            <div className="hidden sm:flex items-center rounded-full border border-[var(--border-default)] overflow-hidden shrink-0 me-2">
               <Link
                 href="/about"
                 title={locale === 'ar' ? 'عن مال مايند' : 'About MalMind'}
@@ -295,17 +381,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             </div>
 
-            {/* push utilities to the end (time travel floats at the bottom now) */}
-            <div className="flex-1" />
-
             {/* utilities */}
             <div className="flex items-center gap-1 shrink-0">
-              {/* experience mode + drive: desktop power dials — the phone
-                  companion keeps its top bar to the essentials */}
-              <div className="hidden sm:flex items-center gap-1">
-                <XModeSwitcher />
-                <DriveSwitcher className="me-1" />
-              </div>
               {/* the circle button opens YOUR SPACE — account, reports,
                   integrations, help (moved off home·D3) */}
               <button
@@ -336,14 +413,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {moreOpen && (
                   <div
                     role="menu"
-                    className="absolute end-0 top-full mt-1.5 z-50 min-w-44 rounded-xl border border-[var(--border-default)] bg-[var(--surface-card)] shadow-lg py-1.5 text-sm"
+                    className="absolute end-0 top-full mt-1.5 z-50 min-w-64 w-max max-w-[90vw] rounded-xl border border-[var(--border-default)] bg-[var(--surface-card)] shadow-lg py-1.5 text-sm"
                   >
-                    {/* on small screens the top bar sheds the mode & drive
-                        pills — the same dials live here instead, tap to cycle */}
-                    <div className="sm:hidden">
-                      <SmallScreenDials />
-                      <div className="my-1.5 border-t border-[var(--border-default)]" />
-                    </div>
+                    {/* the mode & drive dials live here on every size now —
+                        the bar stays calm, ☰ holds the power dials */}
+                    <SmallScreenDials />
+                    <div className="my-1.5 border-t border-[var(--border-default)]" />
                     <button
                       role="menuitem"
                       onClick={() => { setLocale(locale === 'en' ? 'ar' : 'en'); setMoreOpen(false); }}
