@@ -7,7 +7,7 @@
 // glance = the whole machine.
 
 import { useEffect, useMemo, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, BarChart, Bar, Cell, ComposedChart, AreaChart, Area } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
@@ -39,6 +39,9 @@ export default function FinancialBoard() {
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
   const [snaps, setSnaps] = useState<Snap[] | null>(null);
+  // age anchors the doubling path; the expected ROI sets its rhythm
+  const [age, setAge] = useState<number | null>(null);
+  const [roi, setRoi] = useState<number>(7);
 
   useEffect(() => {
     (async () => {
@@ -51,6 +54,11 @@ export default function FinancialBoard() {
         .order('year', { ascending: true })
         .order('month', { ascending: true });
       setSnaps((data as Snap[]) ?? []);
+      const { data: prof } = await supabase.from('profiles').select('age').eq('id', user.id).single();
+      setAge((prof as { age: number | null } | null)?.age ?? null);
+      const { data: inv } = await supabase.from('investment_settings').select('expected_roi').eq('user_id', user.id).maybeSingle();
+      const r = Number((inv as { expected_roi: number | null } | null)?.expected_roi);
+      if (r > 0 && r < 100) setRoi(r);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -68,7 +76,35 @@ export default function FinancialBoard() {
       property: Number(s.real_estate) + Number(s.other_assets), liab: Number(s.liabilities),
       income: Number(s.income), expenses: Number(s.expenses),
     }));
-    return { latest, prev, avgIncome, avgExpenses, series };
+
+    // ── the gallery runs the FULL record: ratios month by month ──
+    const gallery = snaps.map((s, i) => {
+      const a = assetsOf(s);
+      const cashV = Number(s.cash);
+      const liabV = Number(s.liabilities);
+      const prevA = i > 0 ? assetsOf(snaps[i - 1]) : 0;
+      const trail = snaps.slice(Math.max(0, i - 5), i + 1);
+      const trailExp = trail.reduce((acc, t) => acc + Number(t.expenses), 0) / trail.length;
+      const trail12 = snaps.slice(Math.max(0, i - 11), i + 1);
+      const annualInc = trail12.reduce((acc, t) => acc + Number(t.income), 0) * (12 / trail12.length);
+      return {
+        label: `${(ar ? MONTHS_AR : MONTHS_EN)[s.month - 1]} ${String(s.year).slice(2)}`,
+        deltaAssets: prevA > 0 ? ((a - prevA) / prevA) * 100 : 0,
+        cash: cashV, invested: investedOf(s),
+        property: Number(s.real_estate), other: Number(s.other_assets),
+        liquidity: a > 0 ? (cashV / a) * 100 : 0,
+        dta: a > 0 ? (liabV / a) * 100 : 0,
+        safeMonths: trailExp > 0 ? cashV / trailExp : 0,
+        dtai: annualInc > 0 ? (liabV / annualInc) * 100 : 0,
+      };
+    });
+
+    // yearly aggregate income (partial years included as-is)
+    const byYear = new Map<number, number>();
+    for (const s of snaps) byYear.set(s.year, (byYear.get(s.year) ?? 0) + Number(s.income));
+    const yearly = [...byYear.entries()].map(([y, inc]) => ({ label: String(y), income: inc }));
+
+    return { latest, prev, avgIncome, avgExpenses, series, gallery, yearly };
   }, [snaps, ar]);
 
   if (snaps === null) {
@@ -86,7 +122,7 @@ export default function FinancialBoard() {
     );
   }
 
-  const { latest, prev, avgIncome, avgExpenses, series } = d;
+  const { latest, prev, avgIncome, avgExpenses, series, gallery, yearly } = d;
   const saved = avgIncome - avgExpenses;
   const savingsRate = avgIncome > 0 ? (saved / avgIncome) * 100 : 0;
   const assets = assetsOf(latest);
@@ -320,6 +356,166 @@ export default function FinancialBoard() {
           <div className="text-[10px] text-[var(--muted)]">{L('لا أصول مسجلة بعد.', 'No assets logged yet.')}</div>
         )}
       </div>
+
+      {/* ── the gallery: every indicator at full length, the founder's
+             spreadsheet walls rebuilt from the Log ── */}
+      {(() => {
+        const tipStyle = { background: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 11 };
+        const pct = (v: unknown) => `${Number(v).toFixed(1)}%`;
+        const nowYear = latest.year;
+        // 12 months forward: what cash becomes at your real pace vs a
+        // life where every riyal of income were saved
+        const projection = Array.from({ length: 13 }, (_, m) => {
+          const mi = (latest.month - 1 + m) % 12;
+          const yr = latest.year + Math.floor((latest.month - 1 + m) / 12);
+          return {
+            label: `${(ar ? MONTHS_AR : MONTHS_EN)[mi]} ${String(yr).slice(2)}`,
+            realistic: Math.round(cash + saved * m),
+            full: Math.round(cash + avgIncome * m),
+          };
+        });
+        // the doubling path: invested money doubling every 72/ROI years,
+        // with your age riding the line to 70
+        const doublingYears = 72 / roi;
+        const startVal = invested > 0 ? invested : cash;
+        const doubling = age && startVal > 0 ? (() => {
+          const rows: { label: string; amount: number; age: number }[] = [];
+          let v = startVal; let a = age;
+          while (a <= 70 && rows.length < 13) {
+            rows.push({ label: String(nowYear + Math.round(a - age)), amount: Math.round(v), age: Math.round(a) });
+            v *= 2; a += doublingYears;
+          }
+          return rows;
+        })() : null;
+        const card = (title: string, body: React.ReactNode) => (
+          <div key={title}>
+            <div className="text-[10px] font-semibold text-[var(--ink-2)] mb-1.5">{title}</div>
+            <div className="h-40" dir="ltr">{body}</div>
+          </div>
+        );
+        return (
+          <div className="mt-5 pt-4 border-t border-[var(--border-faint)]">
+            <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] font-semibold mb-3">
+              {L('المعرض — كل مؤشر بطوله الكامل', 'The gallery — every indicator, full length')}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-5">
+              {card(`📊 ${L('تغيّر الأصول شهرياً %', 'Delta assets, monthly %')}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={gallery} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTick} tickFormatter={(v) => `${v}%`} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={pct} />
+                    <ReferenceLine y={0} stroke="var(--border-medium)" />
+                    <Bar dataKey="deltaAssets" name={L('التغيّر', 'Delta')} isAnimationActive={false}>
+                      {gallery.map((p, i) => <Cell key={i} fill={p.deltaAssets >= 0 ? '#3B6FD4' : '#D64545'} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ))}
+              {card(`🏛 ${L('تكوين الأصول عبر الزمن', 'Asset composition over time')}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={gallery} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTick} tickFormatter={fmtCompact} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={(v) => fmtFull(Number(v))} />
+                    <Area type="monotone" dataKey="cash" name={L('النقد', 'Cash')} stackId="1" stroke="#3B6FD4" fill="#3B6FD4" fillOpacity={0.7} />
+                    <Area type="monotone" dataKey="invested" name={L('المستثمَر', 'Invested')} stackId="1" stroke="#17B8C9" fill="#17B8C9" fillOpacity={0.7} />
+                    <Area type="monotone" dataKey="property" name={L('العقار', 'Real estate')} stackId="1" stroke="#E0559E" fill="#E0559E" fillOpacity={0.7} />
+                    <Area type="monotone" dataKey="other" name={L('أخرى', 'Other')} stackId="1" stroke="#8AA097" fill="#8AA097" fillOpacity={0.7} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ))}
+              {card(`💧 ${L('السيولة عبر الزمن', 'Liquidity over time')}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={gallery} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTick} tickFormatter={(v) => `${v}%`} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={pct} />
+                    <ReferenceLine y={4} stroke="var(--gold)" strokeDasharray="5 4" label={{ value: L('عتبة الاستثمار ٤٪', 'Investment 4%'), fontSize: 9, fill: 'var(--gold)', position: 'insideTopLeft' }} />
+                    <Line type="monotone" dataKey="liquidity" name={L('السيولة', 'Liquidity')} stroke="#3B6FD4" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ))}
+              {card(`⚖️ ${L('الدين إلى الأصول', 'Debt-to-assets')}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={gallery} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTick} tickFormatter={(v) => `${v}%`} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={pct} />
+                    <ReferenceLine y={100} stroke="#D64545" strokeDasharray="5 4" label={{ value: L('نقطة التعادل', 'Breakeven'), fontSize: 9, fill: '#D64545', position: 'insideTopLeft' }} />
+                    <Line type="monotone" dataKey="dta" name={L('دين/أصول', 'Debt/assets')} stroke="#E0922A" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ))}
+              {card(`🛡 ${L('أشهر الأمان', 'Safe months')}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={gallery} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTick} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={(v) => Number(v).toFixed(1)} />
+                    <ReferenceLine y={6} stroke="#D64545" strokeDasharray="5 4" label={{ value: L('الحد الأدنى (٦)', 'Bare minimum (6)'), fontSize: 9, fill: '#D64545', position: 'insideTopLeft' }} />
+                    <ReferenceLine y={12} stroke="var(--green)" strokeDasharray="5 4" label={{ value: L('حاجة سنة (١٢)', 'Year need (12)'), fontSize: 9, fill: 'var(--green)', position: 'insideTopLeft' }} />
+                    <ReferenceLine y={24} stroke="var(--green)" strokeDasharray="2 4" label={{ value: L('حاجة سنتين', '2-year need'), fontSize: 9, fill: 'var(--green)', position: 'insideTopLeft' }} />
+                    <Line type="monotone" dataKey="safeMonths" name={L('أشهر الأمان', 'Safe months')} stroke="#3B6FD4" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ))}
+              {card(`🪙 ${L('الدين إلى الدخل السنوي', 'Debt-to-annual-income')}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={gallery} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTick} tickFormatter={(v) => `${v}%`} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={pct} />
+                    <Line type="monotone" dataKey="dtai" name={L('دين/دخل سنوي', 'Debt/annual income')} stroke="#7A5EA8" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ))}
+              {card(`💰 ${L('مجموع الدخل سنةً بسنة', 'Aggregate income by year')}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={yearly} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTick} tickFormatter={fmtCompact} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={(v) => fmtFull(Number(v))} />
+                    <Bar dataKey="income" name={L('الدخل', 'Income')} fill="#0E9F6E" isAnimationActive={false} radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ))}
+              {card(`🔮 ${L('إسقاط النقد ١٢ شهراً — واقعي مقابل ادخارٍ كامل', 'Cash projection, 12 months — realistic vs 100% saving')}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={projection} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTick} tickFormatter={fmtCompact} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={(v) => fmtFull(Number(v))} />
+                    <Line type="monotone" dataKey="full" name={L('ادخار ١٠٠٪', '100% saving')} stroke="#D64545" strokeWidth={2} dot={false} strokeDasharray="6 4" />
+                    <Line type="monotone" dataKey="realistic" name={L('الواقعي', 'Realistic')} stroke="#3B6FD4" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ))}
+              {doubling && card(`♻️ ${L(`مسار المضاعفة — كل ${doublingYears.toFixed(1)} سنة عند ${roi}٪`, `The doubling path — every ${doublingYears.toFixed(1)}y at ${roi}%`)}`, (
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={doubling} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border-faint)" />
+                    <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" reversed={ar} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="amt" tick={axisTick} tickFormatter={fmtCompact} width={44} orientation={ar ? 'right' : 'left'} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="age" tick={axisTick} width={30} orientation={ar ? 'left' : 'right'} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tipStyle} formatter={(v, name) => (name === L('العمر حينها', 'Age then') ? v : fmtFull(Number(v)))} />
+                    <Bar yAxisId="amt" dataKey="amount" name={L('المبلغ', 'Amount')} fill="#17B8C9" isAnimationActive={false} radius={[3, 3, 0, 0]} />
+                    <Line yAxisId="age" type="monotone" dataKey="age" name={L('العمر حينها', 'Age then')} stroke="#5DCAA5" strokeWidth={2} dot={{ r: 2.5 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

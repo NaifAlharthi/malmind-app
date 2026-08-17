@@ -166,9 +166,11 @@ export default function FoundationChecklist() {
         <div className="h-full rounded-full bg-[var(--green)] transition-all duration-700" style={{ width: `${(haveCount / items.length) * 100}%` }} />
       </div>
 
-      {/* ── the house: every piece of the checklist drawn as a part of
-             one home. What you have stands solid; what's missing is a
-             dashed ghost. Tap a part — its row lights up below. ── */}
+      {/* ── the house, drawn the way the About stack is drawn: an
+             isometric scene with depth, shadows and breath. Every piece
+             of the checklist is a real object standing on the record's
+             plate. What you have stands solid; what's missing waits as
+             a breathing dashed ghost. Tap a part — its row lights up. ── */}
       {(() => {
         const have = (k: string) => items.find((i) => i.key === k)?.have ?? false;
         const q = (k: string) => items.find((i) => i.key === k)?.q ?? '';
@@ -176,64 +178,102 @@ export default function FoundationChecklist() {
           setFocus(k);
           document.getElementById(`fnd-${k}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
-        const sty = (k: string, color: string) =>
-          have(k)
-            ? { fill: color, stroke: focus === k ? 'var(--gold)' : 'rgba(0,0,0,0.25)', strokeWidth: focus === k ? 2.5 : 0.75 }
-            : { fill: 'var(--surface-1)', stroke: focus === k ? 'var(--gold)' : 'var(--border-strong)', strokeDasharray: '4 3', strokeWidth: focus === k ? 2.5 : 1.5 };
+        // one style per face: solid parts get subtle dark edges, ghosts
+        // get dashed outlines; the focused part is ringed in gold
+        const face = (k: string, color: string) => ({
+          fill: have(k) ? color : 'var(--surface-1)',
+          stroke: focus === k ? 'var(--gold)' : have(k) ? 'rgba(0,0,0,0.28)' : 'var(--border-strong)',
+          strokeWidth: focus === k ? 2 : have(k) ? 0.6 : 1.3,
+          strokeDasharray: have(k) ? undefined : '4 3',
+          strokeLinejoin: 'round' as const,
+        });
         const g = (k: string, children: React.ReactNode) => (
-          <g onClick={() => pick(k)} className="cursor-pointer" role="button" aria-label={q(k)}>
+          <g onClick={() => pick(k)} role="button" aria-label={q(k)}
+            className={`cursor-pointer ${focus === k ? 'mm-house-pulse' : ''} ${!have(k) ? 'mm-ghost-breath' : ''}`}>
             <title>{q(k)}</title>
             {children}
           </g>
         );
         return (
           <figure className="mb-1.5" dir="ltr">
-            <svg viewBox="0 0 340 200" className="w-full max-w-md mx-auto block" role="img"
+            <style>{`
+              @keyframes mmHousePulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+              .mm-house-pulse { animation: mmHousePulse 2.4s ease-in-out infinite; }
+              @keyframes mmGhostBreath { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.95; } }
+              .mm-ghost-breath { animation: mmGhostBreath 2.8s ease-in-out infinite; }
+              @media (prefers-reduced-motion: reduce) { .mm-house-pulse, .mm-ghost-breath { animation: none; } }
+            `}</style>
+            <svg viewBox="0 0 360 262" className="w-full max-w-md mx-auto block" role="img"
               aria-label={L('بيتك المالي: كل جزء منه بند في القائمة أدناه', 'Your financial house: every part is a row in the list below')}>
-              {/* the goal flies highest — the flag */}
-              {g('goal', <>
-                <line x1={140} y1={48} x2={140} y2={22} stroke={have('goal') ? '#8A6F3B' : 'var(--border-strong)'} strokeWidth={2} strokeDasharray={have('goal') ? undefined : '4 3'} />
-                <polygon points="140,22 168,29 140,37" {...sty('goal', '#D64545')} />
+              {/* the record — the isometric plate the whole life stands on */}
+              {g('record', <>
+                <polygon points="46,196 178,240 178,254 46,210" fill={have('record') ? '#5D4685' : 'var(--surface-1)'} stroke={focus === 'record' ? 'var(--gold)' : have('record') ? 'rgba(0,0,0,0.28)' : 'var(--border-strong)'} strokeWidth={focus === 'record' ? 2 : 0.8} strokeDasharray={have('record') ? undefined : '4 3'} />
+                <polygon points="310,196 178,240 178,254 310,210" fill={have('record') ? '#4A3769' : 'var(--surface-1)'} stroke={focus === 'record' ? 'var(--gold)' : have('record') ? 'rgba(0,0,0,0.28)' : 'var(--border-strong)'} strokeWidth={focus === 'record' ? 2 : 0.8} strokeDasharray={have('record') ? undefined : '4 3'} />
+                <polygon points="178,152 310,196 178,240 46,196" {...face('record', '#8A6FC0')} />
               </>)}
-              {/* the roof shelters everything — the emergency fund */}
-              {g('shield', <polygon points="72,94 140,46 208,94" {...sty('shield', 'var(--gold)')} />)}
-              {/* the walls stand on income */}
-              {g('income', <>
-                <rect x={85} y={94} width={110} height={62} {...sty('income', '#147C5F')} />
-                <rect x={162} y={120} width={16} height={36} rx={2} fill={have('income') ? 'rgba(0,0,0,0.3)' : 'transparent'} stroke="none" />
-              </>)}
-              {/* the vault inside */}
-              {g('vault', <>
-                <rect x={98} y={116} width={26} height={26} rx={3} {...sty('vault', '#3B6FD4')} />
-                <circle cx={111} cy={129} r={4} fill="none" stroke={have('vault') ? '#fff' : 'var(--border-strong)'} strokeWidth={1.5} />
-              </>)}
-              {/* the window where money works — growth looking out */}
-              {g('invest', <>
-                <rect x={138} y={102} width={30} height={24} rx={3} {...sty('invest', '#17B8C9')} />
-                <polyline points="143,120 150,113 154,116 162,107" fill="none" stroke={have('invest') ? '#fff' : 'var(--border-strong)'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-              </>)}
-              {/* the slab everything is built on — the record */}
-              {g('record', <rect x={58} y={156} width={164} height={16} rx={3} {...sty('record', '#8A6FC0')} />)}
-              {/* the land and trees beside — assets */}
-              {g('assets', <>
-                <ellipse cx={268} cy={166} rx={38} ry={5} {...sty('assets', '#3E7D68')} />
-                <rect x={250} y={132} width={6} height={26} {...sty('assets', '#6B4A2E')} />
-                <circle cx={253} cy={122} r={14} {...sty('assets', '#4C9F87')} />
-                <rect x={281} y={142} width={4} height={16} {...sty('assets', '#6B4A2E')} />
-                <circle cx={283} cy={134} r={9} {...sty('assets', '#4C9F87')} />
-              </>)}
-              {/* the chain at the base, measured and known — debts */}
+
+              {/* the chain, lying measured on the plate — debts */}
               {g('debts', <>
-                {[26, 38, 50].map((x) => (
-                  <circle key={x} cx={x} cy={164} r={6} fill="none"
-                    stroke={focus === 'debts' ? 'var(--gold)' : have('debts') ? '#E0922A' : 'var(--border-strong)'}
-                    strokeWidth={focus === 'debts' ? 3 : 2.5}
-                    strokeDasharray={have('debts') ? undefined : '3 2.5'} />
+                {[[84, 206], [99, 211], [114, 216]].map(([x, y]) => (
+                  <g key={x}>
+                    <ellipse cx={x} cy={y + 7} rx={7.5} ry={2.2} fill="#000" opacity={have('debts') ? 0.22 : 0.08} />
+                    <circle cx={x} cy={y} r={6} fill="none"
+                      stroke={focus === 'debts' ? 'var(--gold)' : have('debts') ? '#E0922A' : 'var(--border-strong)'}
+                      strokeWidth={focus === 'debts' ? 3 : 2.6}
+                      strokeDasharray={have('debts') ? undefined : '3 2.5'} />
+                  </g>
                 ))}
+              </>)}
+
+              {/* the vault — a small iso safe standing before the house */}
+              {g('vault', <>
+                <ellipse cx={120} cy={220} rx={15} ry={3.5} fill="#000" opacity={have('vault') ? 0.25 : 0.08} />
+                <polygon points="108,202 108,216 120,221 120,207" {...face('vault', '#2E5FB8')} />
+                <polygon points="120,207 120,221 132,216 132,202" {...face('vault', '#3B6FD4')} />
+                <polygon points="108,202 120,197 132,202 120,207" {...face('vault', '#5B8AE0')} />
+                <circle cx={126} cy={209} r={2.8} fill="none" stroke={have('vault') ? '#fff' : 'var(--border-strong)'} strokeWidth={1.4} />
+              </>)}
+
+              {/* the trees rooted beside the house — assets, with the same
+                  grounded shadows the About icons carry */}
+              {g('assets', <>
+                <ellipse cx={272} cy={200} rx={15} ry={3.5} fill="#000" opacity={have('assets') ? 0.25 : 0.08} />
+                <rect x={269} y={178} width={6} height={22} {...face('assets', '#6B4A2E')} />
+                <circle cx={272} cy={168} r={13} {...face('assets', '#4C9F87')} />
+                <ellipse cx={300} cy={206} rx={9} ry={2.8} fill="#000" opacity={have('assets') ? 0.22 : 0.08} />
+                <rect x={298} y={194} width={4} height={12} {...face('assets', '#6B4A2E')} />
+                <circle cx={300} cy={186} r={8.5} {...face('assets', '#3E7D68')} />
+              </>)}
+
+              {/* the walls stand on income — two faces, light meets shade */}
+              {g('income', <>
+                <polygon points="120,176 178,198 178,148 120,126" {...face('income', '#0F5C46')} />
+                <polygon points="178,198 236,176 236,126 178,148" {...face('income', '#178266')} />
+                <polygon points="194.2,191.8 211.6,185.2 211.6,159.2 194.2,165.8" fill={have('income') ? 'rgba(0,0,0,0.32)' : 'transparent'} stroke="none" />
+              </>)}
+
+              {/* the window where money works, growth looking out — investments */}
+              {g('invest', <>
+                <polygon points="216.3,167.5 232.5,161.3 232.5,139.3 216.3,145.5" {...face('invest', '#17B8C9')} />
+                <polyline points="219,160 224,152 227,155 230,146" fill="none" stroke={have('invest') ? '#fff' : 'var(--border-strong)'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+              </>)}
+
+              {/* the roof shelters everything beneath it — the emergency fund */}
+              {g('shield', <>
+                <polygon points="112,128 178,152 178,94 145,82" {...face('shield', '#C9A84C')} />
+                <polygon points="178,152 244,128 211,82 178,94" {...face('shield', 'var(--gold)')} />
+                <polygon points="112,128 145,82 211,82 244,128 211,116 145,116" fill="none" stroke="none" />
+              </>)}
+
+              {/* the goal flies from the ridge — the flag */}
+              {g('goal', <>
+                <line x1={178} y1={90} x2={178} y2={58} stroke={have('goal') ? '#8A6F3B' : 'var(--border-strong)'} strokeWidth={2.2} strokeDasharray={have('goal') ? undefined : '4 3'} />
+                <polygon points="178,58 208,66 178,74" {...face('goal', '#D64545')} />
+                <ellipse cx={178} cy={93} rx={4} ry={1.6} fill="#000" opacity={have('goal') ? 0.25 : 0.08} />
               </>)}
             </svg>
             <figcaption className="text-[9px] text-[var(--muted)] text-center">
-              {L('اضغط جزءاً من البيت — يُضيء بنده في القائمة. المتقطّع لم يوجد بعد.', "Tap a part of the house — its piece lights up in the list. Dashed means it doesn't exist yet.")}
+              {L('اضغط جزءاً من المشهد — يُضيء بنده في القائمة. المتقطّع يتنفّس منتظراً أن يوجد.', "Tap a part of the scene — its piece lights up in the list. The dashed parts breathe, waiting to exist.")}
             </figcaption>
           </figure>
         );
