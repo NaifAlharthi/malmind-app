@@ -100,13 +100,21 @@ export default function AboutPage() {
           {/* the thinking layer, drawn as it is: an isometric stack — your
               scattered data at the base, MalMind's AI layer between, your
               decisions on top. Annotations alternate sides, reference-style. */}
+          {/* the stack breathes where it matters: the thinking layer pulses */}
+          <style>{`
+            @keyframes mmThinkPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
+            @keyframes mmThinkGlow { 0%, 100% { opacity: 0.2; stroke-width: 2; } 50% { opacity: 1; stroke-width: 3.5; } }
+            .mm-think-pulse { animation: mmThinkPulse 3.2s ease-in-out infinite; }
+            .mm-think-glow { animation: mmThinkGlow 3.2s ease-in-out infinite; }
+            @media (prefers-reduced-motion: reduce) { .mm-think-pulse, .mm-think-glow { animation: none; } }
+          `}</style>
           <figure className="mt-5 max-w-2xl overflow-x-auto" dir="ltr">
             <svg viewBox="0 0 760 400" role="img" className="w-full min-w-[560px]"
               aria-label={L('ثلاث طبقات: بياناتك المبعثرة في الأسفل، مال مايند طبقة التفكير بالذكاء الاصطناعي في الوسط، وقراراتك في الأعلى', 'Three layers: your scattered data at the base, MalMind the AI thinking layer between, your decisions on top')}>
               {(() => {
                 const plate = (cx: number, cy: number, w: number, h: number, d: number, top: string, sideL: string, sideR: string, glow?: string) => (
-                  <g>
-                    {glow && <polygon points={`${cx},${cy - h - 3} ${cx + w + 4},${cy} ${cx},${cy + h + 3} ${cx - w - 4},${cy}`} fill="none" stroke={glow} strokeWidth="2" opacity="0.55" />}
+                  <g className={glow ? 'mm-think-pulse' : undefined}>
+                    {glow && <polygon className="mm-think-glow" points={`${cx},${cy - h - 3} ${cx + w + 4},${cy} ${cx},${cy + h + 3} ${cx - w - 4},${cy}`} fill="none" stroke={glow} strokeWidth="2" opacity="0.55" />}
                     <polygon points={`${cx - w},${cy} ${cx},${cy + h} ${cx},${cy + h + d} ${cx - w},${cy + d}`} fill={sideL} />
                     <polygon points={`${cx + w},${cy} ${cx},${cy + h} ${cx},${cy + h + d} ${cx + w},${cy + d}`} fill={sideR} />
                     <polygon points={`${cx},${cy - h} ${cx + w},${cy} ${cx},${cy + h} ${cx - w},${cy}`} fill={top} />
@@ -121,7 +129,27 @@ export default function AboutPage() {
                     {plate(cx, 196, 120, 56, 18, '#1D9E75', '#14735A', '#0E5A46', 'var(--gold)')}
                     {/* top: the decisions (light teal) */}
                     {plate(cx, 96, 106, 50, 16, '#8FE7D6', '#4FBFAC', '#3AA694')}
-                    <text x={cx} y={200} textAnchor="middle" fontSize="20" aria-hidden>🧠</text>
+
+                    {/* the Brain on its plate — same 3D grounding as the rest */}
+                    <ellipse cx={cx} cy={202} rx={14} ry={4} fill="#000" opacity="0.28" />
+                    <text x={cx} y={198} textAnchor="middle" fontSize="26" aria-hidden>🧠</text>
+
+                    {/* the life things standing on the decisions plate */}
+                    {([[-66, 8, '🚗'], [-33, -9, '🏠'], [0, 13, '🏫'], [33, -5, '⌚'], [66, 6, '👛']] as [number, number, string][]).map(([dx, dy, e]) => (
+                      <g key={e}>
+                        <ellipse cx={cx + dx} cy={96 + dy + 4} rx={11} ry={3.2} fill="#000" opacity="0.24" />
+                        <text x={cx + dx} y={96 + dy} textAnchor="middle" fontSize="21" aria-hidden>{e}</text>
+                      </g>
+                    ))}
+
+                    {/* the data apps standing on the base plate — app-icon tiles */}
+                    {([[-76, 6, '🏦', '#0B4F8A'], [-26, -10, '📈', '#233247'], [26, 12, '💵', '#1F5C3D'], [76, -2, '📊', '#1D6F42']] as [number, number, string, string][]).map(([dx, dy, e, bg]) => (
+                      <g key={e}>
+                        <ellipse cx={cx + dx} cy={300 + dy + 16} rx={14} ry={3.6} fill="#000" opacity="0.28" />
+                        <rect x={cx + dx - 13} y={300 + dy - 13} width={26} height={26} rx={6.5} fill={bg} stroke="rgba(255,255,255,0.35)" strokeWidth="0.75" />
+                        <text x={cx + dx} y={300 + dy + 6} textAnchor="middle" fontSize="15" aria-hidden>{e}</text>
+                      </g>
+                    ))}
 
                     {/* ── annotations, alternating sides ── */}
                     {/* top → right */}
@@ -192,22 +220,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* ── the numbers that describe us — standalone tiles ── */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
-          <div className="font-serif text-3xl font-bold text-[var(--green-dark)] leading-none mb-1.5">19</div>
-          <div className="text-[11px] text-[var(--muted)]">{L('أداة مترابطة', 'connected tools')}</div>
-        </div>
-        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
-          <div className="font-serif text-3xl font-bold text-[var(--green-dark)] leading-none mb-1.5">3</div>
-          <div className="text-[11px] text-[var(--muted)]">{L('نظرات زمنية', 'time views')}</div>
-        </div>
-        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
-          <SaudiEmblem />
-          <div className="text-[11px] text-[var(--muted)] mt-1.5">{L('مصمَّم للسعودية', 'made for Saudi')}</div>
-        </div>
-      </div>
-
       {/* ── why we exist: problem → answer ── */}
       <div className="mb-8">
         <SectionHeading
@@ -245,6 +257,22 @@ export default function AboutPage() {
           <ViewCard href="/past" icon="🕰" title={t('home.card.past.title')} desc={t('home.card.past.desc')} />
           <ViewCard href="/today" icon="☀" title={t('home.card.today.title')} desc={t('home.card.today.desc')} />
           <ViewCard href="/future" icon="🔭" title={t('home.card.future.title')} desc={t('home.card.future.desc')} />
+        </div>
+      </div>
+
+      {/* ── the numbers that describe us — standalone tiles ── */}
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+          <div className="font-serif text-3xl font-bold text-[var(--green-dark)] leading-none mb-1.5">19</div>
+          <div className="text-[11px] text-[var(--muted)]">{L('أداة مترابطة', 'connected tools')}</div>
+        </div>
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+          <div className="font-serif text-3xl font-bold text-[var(--green-dark)] leading-none mb-1.5">3</div>
+          <div className="text-[11px] text-[var(--muted)]">{L('نظرات زمنية', 'time views')}</div>
+        </div>
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+          <SaudiEmblem />
+          <div className="text-[11px] text-[var(--muted)] mt-1.5">{L('مصمَّم للسعودية', 'made for Saudi')}</div>
         </div>
       </div>
 

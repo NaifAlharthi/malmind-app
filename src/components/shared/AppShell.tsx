@@ -423,8 +423,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <DepthRail />
       <CommandMode />
       {/* the Brain's floating perch overlaps content on small screens —
-          phones reach the Brain through its bottom tab instead */}
-      {!isPhone && <BrainCompanion />}
+          phones reach the Brain through its bottom tab instead; the About
+          page tells the story without the figure */}
+      {!isPhone && pathname !== '/about' && <BrainCompanion />}
       <EphemeralSessionGuard />
       </div>
     </ProfileContext.Provider>
