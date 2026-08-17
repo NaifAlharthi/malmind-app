@@ -17,6 +17,7 @@ import { demoAr } from '@/lib/demoI18n';
 import FoundationChecklist from '@/components/home/FoundationChecklist';
 import MonthlyPulse from '@/components/home/MonthlyPulse';
 import FinancialBoard from '@/components/home/FinancialBoard';
+import FullToolMatrix from '@/components/toolbox/FullToolMatrix';
 import HajisOpener from '@/components/home/HajisOpener';
 import PersonaAvatar from '@/app/signup/PersonaAvatar';
 
@@ -380,56 +381,4 @@ export default function HomePage() {
   );
 }
 
-// and walks anywhere in one tap.
-function FullToolMatrix() {
-  const { t, locale } = useLocale();
-  const ar = locale === 'ar';
-  const L = (a: string, e: string) => (ar ? a : e);
-  const VIEW_META: { key: ViewKey; icon: string; label: string }[] = [
-    { key: 'past', icon: '🕰', label: t('nav.past') },
-    { key: 'today', icon: '☀', label: t('nav.today') },
-    { key: 'future', icon: '🔭', label: t('nav.future') },
-  ];
-  return (
-    <div className="mb-8">
-      <SectionHeading
-        eyebrow={L('المصفوفة كاملة', 'The full matrix')}
-        title={L('كل أداة، عبر الأزمنة الثلاثة', 'Every tool, across the three times')}
-      />
-      <div className="grid sm:grid-cols-3 gap-3">
-        {VIEW_META.map((view) => (
-          <div key={view.key} className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-base leading-none">{view.icon}</span>
-              <span className="text-sm font-semibold text-[var(--ink)]">{view.label}</span>
-              <span className="ms-auto text-[10px] text-[var(--muted)]">{TOOLS[view.key].length}</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              {TOOLS[view.key].map((tool) => (
-                <Link
-                  key={tool.href}
-                  href={tool.href}
-                  className="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--surface-1)] transition-colors"
-                >
-                  <span className="text-sm leading-none">{tool.icon}</span>
-                  <span className="text-xs text-[var(--ink-2)] group-hover:text-[var(--ink)] transition-colors">{t(tool.titleKey)}</span>
-                  <span className="ms-auto text-[9px] text-[var(--muted)]" dir="ltr">D{tool.depth ?? 1}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SectionHeading({ eyebrow, title }: { eyebrow: string; title?: string }) {
-  return (
-    <div className="mb-3">
-      <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--gold)] font-semibold mb-1">{eyebrow}</div>
-      {title && <div className="font-serif text-lg font-semibold text-[var(--ink)]">{title}</div>}
-    </div>
-  );
-}
 

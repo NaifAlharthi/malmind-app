@@ -13,6 +13,10 @@
 export type DepthLevel = 1 | 2 | 3 | 4;
 export const DEPTH_LEVELS: DepthLevel[] = [1, 2, 3, 4];
 
+// Identity/directory pages that carry no depth at all: no iceberg rail,
+// no depth stage, no floating timeline. One list, read everywhere.
+export const DEPTHLESS_PATHS = ['/about', '/log', '/toolbox', '/advisor'];
+
 export const DEPTH_KEY = 'mm-depth';
 
 // Visual + narrative meta for the iceberg: level 1 is the tip above the

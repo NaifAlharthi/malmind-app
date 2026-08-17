@@ -192,6 +192,7 @@ const en: Dict = {
   'nav.today': 'Today',
   'nav.future': 'The Future',
   'nav.log': 'Log',
+  'nav.toolbox': 'Toolbox',
 
   'hub.eyebrow': 'Time view',
   'hub.past.title': 'The Past',
@@ -237,6 +238,8 @@ const en: Dict = {
   'hub.card.luxury.desc': 'Weigh any object of desire on your wealth’s scale — buy joy from yield, not principal.',
   'hub.card.credit.title': 'Credit Standing',
   'hub.card.credit.desc': 'Your SIMAH score, good vs bad debt, and credit access.',
+  'hub.card.markets.title': 'Markets & Indices',
+  'hub.card.markets.desc': 'Global indices, commodities and crypto live — with you measured on the same ruler.',
   'hub.card.whatIf.title': 'What If',
   'hub.card.whatIf.desc': 'Sandbox any decision before you live it.',
   'hub.card.compare.title': 'Compare & Decide',
@@ -596,6 +599,7 @@ const ar: Dict = {
   'nav.today': 'اليوم',
   'nav.future': 'المستقبل',
   'nav.log': 'السِّجل',
+  'nav.toolbox': 'صندوق الأدوات',
 
   'hub.eyebrow': 'منظور زمني',
   'hub.past.title': 'الماضي',
@@ -641,6 +645,8 @@ const ar: Dict = {
   'hub.card.luxury.desc': 'زِن ما تشتهيه بميزان ثروتك — واشترِ الفرح من الريع لا من رأس المال.',
   'hub.card.credit.title': 'الوضع الائتماني',
   'hub.card.credit.desc': 'درجة سِمة، والدَّين الجيّد مقابل المُثقِل، والوصول إلى الائتمان.',
+  'hub.card.markets.title': 'الأسواق والمؤشرات',
+  'hub.card.markets.desc': 'المؤشرات العالمية والسلع والعملات الرقمية مباشرة — وأنت مُقاساً على المسطرة نفسها.',
   'hub.card.whatIf.title': 'ماذا لو',
   'hub.card.whatIf.desc': 'جرّب أي قرار قبل أن تعيشه.',
   'hub.card.compare.title': 'قارن وقرّر',

@@ -168,6 +168,28 @@ export default function CommandMode() {
         return;
       }
 
+      // ⇧T — straight to Today, where the action lives
+      // (physical key: layout-independent)
+      if (e.code === 'KeyT' || e.key === 'T' || e.key === 't') {
+        if (suppressed.current) return;
+        e.preventDefault();
+        if (e.repeat) return;
+        setOpen(false);
+        act(() => { if (pathRef.current !== '/today') router.push('/today'); });
+        return;
+      }
+
+      // ⇧X — open the Toolbox, the whole workshop on one page
+      // (physical key: layout-independent)
+      if (e.code === 'KeyX' || e.key === 'X' || e.key === 'x') {
+        if (suppressed.current) return;
+        e.preventDefault();
+        if (e.repeat) return;
+        setOpen(false);
+        act(() => { if (pathRef.current !== '/toolbox') router.push('/toolbox'); });
+        return;
+      }
+
       // ⇧M — cycle the experience modes alt-tab style; idle or releasing
       // Shift confirms the highlighted one (physical key: layout-independent)
       if (e.code === 'KeyM' || e.key === 'M' || e.key === 'm') {
@@ -463,6 +485,14 @@ export default function CommandMode() {
           <div className="flex items-center gap-2">
             <Key label="L" />
             <Hint text={`📒 ${L('اقفز إلى السِّجل مباشرة', 'Jump straight to the Log')}`} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Key label="T" />
+            <Hint text={`☀ ${L('اذهب إلى «اليوم» مباشرة', 'Go straight to Today')}`} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Key label="X" />
+            <Hint text={`🧰 ${L('افتح صندوق الأدوات', 'Open the Toolbox')}`} />
           </div>
         </div>
       </div>

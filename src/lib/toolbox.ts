@@ -44,6 +44,7 @@ export const TOOLS: Record<ViewKey, HubTool[]> = {
     { href: '/ratios', icon: '🩺', titleKey: 'home.card.ratios.title', descKey: 'home.card.ratios.desc', depth: 3 },
     { href: '/velocity', icon: '⏱', titleKey: 'home.card.velocity.title', descKey: 'home.card.velocity.desc', depth: 3 },
     { href: '/credit', icon: '📇', titleKey: 'hub.card.credit.title', descKey: 'hub.card.credit.desc', depth: 4 },
+    { href: '/markets', icon: '🌐', titleKey: 'hub.card.markets.title', descKey: 'hub.card.markets.desc', depth: 3 },
   ],
   future: [
     { href: '/freedom', icon: '🕊', titleKey: 'hub.card.freedom.title', descKey: 'hub.card.freedom.desc' },

@@ -14,7 +14,7 @@ import { useCallback, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useDepth } from '@/components/shared/ExperienceMode';
-import { DEPTH_LEVELS, depthMetaFor, type DepthLevel } from '@/lib/depth';
+import { DEPTH_LEVELS, DEPTHLESS_PATHS, depthMetaFor, type DepthLevel } from '@/lib/depth';
 
 export default function DepthRail() {
   const { locale } = useLocale();
@@ -28,7 +28,7 @@ export default function DepthRail() {
   // Home is on the grid too — and pages with named ROOMS (see
   // DEPTH_NAME_OVERRIDES) get their own level names in the flyouts.
   // Depthless identity pages don't carry the dial at all.
-  if (pathname === '/about' || pathname === '/log') return null;
+  if (DEPTHLESS_PATHS.includes(pathname)) return null;
 
   return (
     <div

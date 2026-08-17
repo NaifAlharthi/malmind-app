@@ -12,6 +12,7 @@ import DepthRail from './DepthRail';
 import DepthStage from './DepthStage';
 import CommandMode from './CommandMode';
 import { XModeProvider, useXMode, useDrive } from './ExperienceMode';
+import { DEPTHLESS_PATHS } from '@/lib/depth';
 import { XMODE_META, type XMode } from '@/lib/experienceMode';
 import { DRIVES, DRIVE_META } from '@/lib/drive';
 import { useTheme } from './ThemeProvider';
@@ -329,6 +330,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* Today is where the action happens — home is identity */}
             <TopNavLink href="/today" labelKey="nav.today" icon="☀" className="hidden sm:flex" compact />
             <TopNavLink href="/advisor" labelKey="nav.brain" icon="🧠" className="hidden sm:flex" compact />
+            {/* the whole workshop, one tap away */}
+            <TopNavLink href="/toolbox" labelKey="nav.toolbox" icon="🧰" className="hidden sm:flex" compact />
             {/* push everything else to the end (time travel floats at the bottom now) */}
             <div className="flex-1" />
 
@@ -396,6 +399,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         the bar stays calm, ☰ holds the power dials */}
                     <SmallScreenDials />
                     <div className="my-1.5 border-t border-[var(--border-default)]" />
+                    {/* phones reach the Toolbox here — the bar pill is sm+ */}
+                    <Link
+                      href="/toolbox"
+                      role="menuitem"
+                      onClick={() => setMoreOpen(false)}
+                      className="sm:hidden w-full flex items-center gap-2.5 px-3.5 py-2 text-[var(--ink-2)] hover:bg-[var(--surface-1)] text-start"
+                    >
+                      <span>🧰</span>
+                      <span>{t('nav.toolbox')}</span>
+                    </Link>
+                    <div className="sm:hidden my-1.5 border-t border-[var(--border-default)]" />
                     <button
                       role="menuitem"
                       onClick={() => { setLocale(locale === 'en' ? 'ar' : 'en'); setMoreOpen(false); }}
@@ -438,7 +452,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                hovering just below the top bar, facing the iceberg's vertical axis ── */}
         {/* home and about are identity pages, the timeline is action — the
             pill shows only once you've stepped onto the time axis */}
-        {!['/home', '/about', '/log'].includes(pathname) && (
+        {!['/home', ...DEPTHLESS_PATHS].includes(pathname) && (
         <div
           className={`hidden sm:block fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-30 w-[360px] max-w-[70vw] bg-[var(--surface-card)]/92 backdrop-blur border border-[var(--border-default)] rounded-full px-6 shadow-lg transition-opacity duration-300 ${
             scrolling ? 'opacity-[0.15] pointer-events-none' : 'opacity-100'
@@ -477,7 +491,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* the Brain's floating perch overlaps content on small screens —
           phones reach the Brain through its bottom tab instead; the About
           page tells the story without the figure */}
-      {!isPhone && pathname !== '/about' && <BrainCompanion />}
+      {/* no floating figure on About (story page) or the Brain's own page */}
+      {!isPhone && pathname !== '/about' && pathname !== '/advisor' && <BrainCompanion />}
       <EphemeralSessionGuard />
       </div>
     </ProfileContext.Provider>
