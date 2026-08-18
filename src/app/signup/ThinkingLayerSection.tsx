@@ -33,11 +33,8 @@ export default function ThinkingLayerSection() {
 
       <div className="relative max-w-5xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] uppercase text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-full px-4 py-1.5 mb-5">
-            {L('إذاً ما الذي نبنيه؟', 'So what are we building?')}
-          </div>
           <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-5">
-            {L('طبقة تفكيرٍ لمالك.', 'A thinking layer for your money.')}
+            {L('طبقة تفكير لحياتك المالية', 'A thinking layer for your financial life')}
           </h2>
           <p className="text-base sm:text-lg text-white/70 leading-relaxed max-w-3xl mx-auto">
             {L(

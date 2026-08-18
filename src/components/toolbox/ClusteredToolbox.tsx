@@ -17,7 +17,7 @@ import { TOOLS, type ViewKey, type HubTool } from '@/lib/toolbox';
 import { useTier } from '@/components/shared/ExperienceMode';
 import { TIER_META, tierForDepth } from '@/lib/tier';
 
-type LensKey = 'time' | 'depth' | 'purpose' | 'area' | 'indices';
+type LensKey = 'time' | 'depth' | 'purpose' | 'area' | 'indices' | 'phase';
 type Entry = { id: string; view: ViewKey; tool: HubTool };
 
 const ENTRIES: Entry[] = (['past', 'today', 'future'] as ViewKey[])
@@ -55,6 +55,20 @@ const AREA_OF: Record<string, string> = {
 const INDICES_OF: Record<string, string> = {
   '/markets': 'world',
   '/salaries': 'you', '/class': 'you', '/positioning': 'you', '/ratios': 'you', '/credit': 'you', '/poverty': 'you',
+};
+
+// which LIFE PHASE each tool serves first — a tool can matter in many
+// phases; this is where it matters MOST. Phase-agnostic tools fall to
+// the strip.
+const PHASE_OF: Record<string, string> = {
+  '/daily-stack': 'college', '/subscriptions': 'college', '/budgeting': 'college', '/salaries': 'college',
+  '/financial-numbers': 'entry', '/story': 'entry', '/goal-fund': 'entry', '/auto-loan': 'entry',
+  '/credit-cards': 'entry', '/positioning': 'entry', '/commitments': 'entry',
+  '/mortgage': 'family', '/insurance': 'family', '/risks': 'family', '/class': 'family', '/compare': 'family',
+  '/standard-of-living?mode=plan': 'family', '/standard-of-living?mode=track': 'family',
+  '/holdings': 'mid', '/what-if': 'mid', '/velocity': 'mid', '/doubling-path': 'mid', '/business': 'mid',
+  '/markets': 'mid', '/ratios': 'mid', '/credit': 'mid', '/waterfall': 'mid', '/year-plan': 'mid',
+  '/retirement': 'retire', '/lifetime-income': 'retire', '/freedom': 'retire', '/luxury': 'retire',
 };
 
 const LENSES: Record<LensKey, {
@@ -116,6 +130,18 @@ const LENSES: Record<LensKey, {
       { key: 'you', icon: '🧭', ar: 'أنت على المساطر', en: 'You on the rulers' },
     ],
     groupOf: (e) => INDICES_OF[e.tool.href] ?? null,
+  },
+  phase: {
+    icon: '🎢',
+    name: { ar: 'مرحلة الحياة', en: 'Life phase' },
+    groups: [
+      { key: 'college', icon: '🎓', ar: 'الجامعة وبداية الطريق', en: 'College & starting out' },
+      { key: 'entry', icon: '🚪', ar: 'بداية المسيرة', en: 'Career entry' },
+      { key: 'family', icon: '👨‍👩‍👧', ar: 'تكوين الأسرة', en: 'Family building' },
+      { key: 'mid', icon: '⛰', ar: 'منتصف المسيرة', en: 'Mid-career' },
+      { key: 'retire', icon: '🌅', ar: 'التقاعد وما بعده', en: 'Retirement & beyond' },
+    ],
+    groupOf: (e) => PHASE_OF[e.tool.href] ?? null,
   },
 };
 
@@ -195,7 +221,7 @@ export default function ClusteredToolbox() {
       </div>
 
       {/* the wall — same chips, new homes */}
-      <div className={`grid gap-3 ${cols === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+      <div className={`grid gap-3 ${cols === 3 ? 'sm:grid-cols-3' : cols === 5 ? 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
         {active.groups.map((g) => {
           const members = ENTRIES.filter((e) => active.groupOf(e) === g.key);
           return (
