@@ -15,7 +15,7 @@ export default function ThinkingLayerSection() {
 
   return (
     <section
-      className="relative px-8 py-16 overflow-hidden"
+      className="relative px-8 py-20 sm:py-24 overflow-hidden"
       style={{
         background: 'linear-gradient(180deg, #041F17 0%, #073626 55%, #0A3A29 100%)',
         ['--ink' as never]: '#FFFFFF',
@@ -31,15 +31,15 @@ export default function ThinkingLayerSection() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full blur-[130px] opacity-20 pointer-events-none"
         style={{ background: 'radial-gradient(circle, #C9A84C 0%, transparent 70%)' }} aria-hidden />
 
-      <div className="relative max-w-4xl mx-auto">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] uppercase text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-full px-3 py-1 mb-4">
+      <div className="relative max-w-5xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] uppercase text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-full px-4 py-1.5 mb-5">
             {L('إذاً ما الذي نبنيه؟', 'So what are we building?')}
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white leading-tight mb-3">
+          <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-5">
             {L('طبقة تفكيرٍ لمالك.', 'A thinking layer for your money.')}
           </h2>
-          <p className="text-sm sm:text-base text-white/65 leading-relaxed max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-white/70 leading-relaxed max-w-3xl mx-auto">
             {L(
               'كل تطبيق يمسك شريحةً من حياتك المالية — ولا أحد يعرف ماذا تعني الشرائح مجتمعة. مال مايند طبقة تفكيرٍ تعمل بالذكاء الاصطناعي تجلس بين بياناتك وقراراتك: تقرأ كل شيء، وتجيب من أرقامك أنت.',
               'Every app holds one slice of your financial life — and none knows what the slices mean together. MalMind is an AI-powered thinking layer between your data and your decisions: it reads everything, and answers from YOUR numbers.'
@@ -48,13 +48,13 @@ export default function ThinkingLayerSection() {
         </div>
 
         <div className="flex justify-center">
-          <ThinkingLayerStack />
+          <ThinkingLayerStack className="max-w-4xl w-full" />
         </div>
 
-        <div className="text-center mt-6">
+        <div className="text-center mt-8">
           <button
             onClick={() => document.getElementById('signup-form')?.scrollIntoView({ behavior: 'smooth' })}
-            className="text-sm font-semibold text-white rounded-xl px-6 py-3 transition-transform hover:-translate-y-0.5"
+            className="text-base font-semibold text-white rounded-xl px-8 py-3.5 transition-transform hover:-translate-y-0.5"
             style={{ background: 'linear-gradient(120deg, #1D9E75 0%, #17B8C9 100%)', boxShadow: '0 12px 34px -8px rgba(23,184,201,0.55)' }}
           >
             {L('ابنِ طبقتك أنت ↓', 'Build your own layer ↓')}

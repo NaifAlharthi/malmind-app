@@ -10,7 +10,7 @@
 
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
-export default function ThinkingLayerStack() {
+export default function ThinkingLayerStack({ className = 'max-w-2xl' }: { className?: string }) {
   const { locale } = useLocale();
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
@@ -26,7 +26,7 @@ export default function ThinkingLayerStack() {
         .mm-line-flow { stroke-dasharray: 10 14; animation: mmLineFlow 5s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) { .mm-think-pulse, .mm-think-glow, .mm-line-flow { animation: none; } }
       `}</style>
-      <figure className="max-w-2xl overflow-x-auto" dir="ltr">
+      <figure className={`${className} overflow-x-auto`} dir="ltr">
         <svg viewBox="0 0 760 400" role="img" className="w-full min-w-[560px]"
           aria-label={L('ثلاث طبقات: بياناتك المبعثرة في الأسفل، مال مايند طبقة التفكير بالذكاء الاصطناعي في الوسط، وقراراتك في الأعلى', 'Three layers: your scattered data at the base, MalMind the AI thinking layer between, your decisions on top')}>
           {(() => {

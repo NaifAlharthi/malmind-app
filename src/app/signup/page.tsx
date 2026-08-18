@@ -95,9 +95,9 @@ export default function SignupPage() {
   return (
     <div>
       <LanguageToggle className="fixed top-4 right-4 z-50 shadow-md" />
-      <Splash />
-      {/* what MalMind IS, in one picture — the About stack for visitors */}
+      {/* what MalMind IS, in one picture — the first thing a visitor sees */}
       <ThinkingLayerSection />
+      <Splash />
       <PersonaPicker />
       <div id="signup-form" className="relative min-h-screen bg-[var(--surface-0)] flex items-center justify-center px-6 py-16 overflow-hidden">
       {/* soft brand glow tying the form to the splash above */}
