@@ -157,7 +157,10 @@ export default function RetirementPage() {
                 ? L(`يغطي حياة بـ${fmt(targetIncome)}/شهرياً (٨٠٪ من مصروفك اليوم) ✓`, `Covers a ${fmt(targetIncome)}/mo life (80% of today's spending) ✓`)
                 : L(`تنقصك ${fmt(targetIncome - d.totalRetIncome)}/شهرياً عن حياة بـ${fmt(targetIncome)} — الفجوة تُسدّ بادخار أعلى أو تقاعد أبعد.`, `You're ${fmt(targetIncome - d.totalRetIncome)}/mo short of a ${fmt(targetIncome)} life — closed by saving more or retiring later.`)}
             </p>
-            <p className="text-[9px] text-[var(--muted)] mt-2">{L(`تقدير التأمينات تقريبي (~٢٫٥٪ عن كل سنة اشتراك × ${d.gosiYears} سنة) — الرقم الرسمي من حسابك في التأمينات الاجتماعية.`, `The GOSI estimate is approximate (~2.5% per contribution year × ${d.gosiYears} years) — the official number lives in your GOSI account.`)}</p>
+            <p className="text-[9px] text-[var(--muted)] mt-2">
+              {L(`تقدير التأمينات تقريبي (~٢٫٥٪ عن كل سنة اشتراك × ${d.gosiYears} سنة) — `, `The GOSI estimate is approximate (~2.5% per contribution year × ${d.gosiYears} years) — `)}
+              <Link href="/gosi" className="text-[var(--green-dark)] font-semibold hover:underline">{L('فكّك هذه الطبقة في أداة التأمينات ←', 'unpack this layer in the GOSI tool →')}</Link>
+            </p>
           </div>
           </ToolStage>
 

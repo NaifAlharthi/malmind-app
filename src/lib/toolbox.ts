@@ -68,6 +68,8 @@ export const TOOLS: Record<ViewKey, HubTool[]> = {
     { href: '/mortgage', icon: '🏠', titleKey: 'hub.card.mortgage.title', descKey: 'hub.card.mortgage.desc', depth: 3 },
     { href: '/auto-loan', icon: '🚙', titleKey: 'hub.card.autoLoan.title', descKey: 'hub.card.autoLoan.desc', depth: 2 },
     { href: '/retirement', icon: '🌅', titleKey: 'hub.card.retirement.title', descKey: 'hub.card.retirement.desc', depth: 2 },
+    { href: '/gosi', icon: '🏛', titleKey: 'hub.card.gosi.title', descKey: 'hub.card.gosi.desc', depth: 2 },
+    { href: '/family', icon: '👨‍👩‍👧', titleKey: 'hub.card.family.title', descKey: 'hub.card.family.desc', depth: 2 },
   ],
 };
 

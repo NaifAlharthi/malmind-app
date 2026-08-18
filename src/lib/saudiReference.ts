@@ -64,8 +64,29 @@ export const HOUSEHOLD = {
   globalStandardPct: 10, // the recognized global minimum standard
 };
 
+// ── [GOSI] the social-insurance machine, from the organization's own
+//    reports (Statistical Report 2022 EN; Annual Report 2024 for the
+//    new-law retirement-age transition) ──
+export const GOSI = {
+  annuities: { totalPct: 18, employeePct: 9, employerPct: 9 },
+  hazardsPct: 2, // occupational hazards — employer pays it all
+  saned: {
+    totalPct: 1.5, employeePct: 0.75, employerPct: 0.75,
+    firstMonthsPct: 60, firstMonthsCap: 9000, // first three months
+    afterPct: 50, afterCap: 7500, // every month after
+  },
+  minPension: 1983.75, // SAR/month, minimum periodic benefit
+  retirementAge: 60, // Hijri, under the prior law
+  newLawRetirementAge: 65, // gradual transition per the 2024 annual report
+  accrualPerYearPct: 2.5, // Social Insurance Law: per contribution year, of the average contributory wage
+  minMonths: 120, // minimum contribution months for a pension
+  earlyRetirementMonths: 300, // early-retirement eligibility
+  // contributory wage = basic salary + housing allowance
+};
+
 export const REF_SOURCES = {
   jisr: { ar: 'دليل الرواتب في السعودية ٢٠٢٤–٢٠٢٥ (جسر)', en: 'Jisr Saudi Salary Guide 2024–25' },
   grc: { ar: 'دراسة الطبقة الوسطى السعودية (مركز الخليج للأبحاث)', en: 'GRC — The Saudi Middle Class (Alnuaim)' },
   kpmg: { ar: 'تحليل مدخرات الأسر في السعودية (KPMG / الهيئة العامة للإحصاء)', en: 'KPMG — Household Savings in Saudi Arabia (GaStat)' },
+  gosi: { ar: 'تقارير المؤسسة العامة للتأمينات الاجتماعية (الإحصائي ٢٠٢٢ والسنوي ٢٠٢٤)', en: 'GOSI Statistical Report 2022 & Annual Report 2024' },
 };
