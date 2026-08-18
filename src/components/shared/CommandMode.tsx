@@ -27,7 +27,7 @@ const TIME_LABEL: Record<string, { ar: string; en: string; icon: string }> = {
 // The tool launcher's roster: every tool, one letter each (X stays the
 // launcher's own key). Letters follow the matrix order, so the popup
 // reads exactly like the Toolbox wall.
-const LAUNCHER_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWYZ';
+const LAUNCHER_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWYZ123456789';
 const LAUNCHER_ITEMS = (['past', 'today', 'future'] as ViewKey[])
   .flatMap((view) => TOOLS[view].map((tool) => ({ view, tool })))
   .map((x, i) => ({ ...x, letter: LAUNCHER_LETTERS[i] ?? '·' }));
@@ -157,7 +157,7 @@ export default function CommandMode() {
           closeLauncher();
           return;
         }
-        const hit = LAUNCHER_ITEMS.find((it) => e.code === `Key${it.letter}`);
+        const hit = LAUNCHER_ITEMS.find((it) => e.code === `Key${it.letter}` || e.code === `Digit${it.letter}`);
         if (hit) {
           e.preventDefault();
           if ((hit.tool.depth ?? 1) <= maxDepthRef.current) {

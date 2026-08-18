@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { fetchQuotes, quoteMap, type QuoteResult } from '@/lib/quotes';
 import { buildBenchmarkCurves, BENCHMARK_START_AGE } from '@/lib/positioningBenchmarks';
+import { HOUSEHOLD, REF_SOURCES } from '@/lib/saudiReference';
 
 interface Snap {
   year: number; month: number;
@@ -207,6 +208,35 @@ export default function MarketsPage() {
           <Link href="/log" className="text-[var(--green-dark)] font-semibold hover:underline">{L('افتح السِّجل ←', 'Open the Log →')}</Link>
         </div>
       )}
+
+      {/* ── the Saudi household index — the national survey beside you ── */}
+      {(() => {
+        const recent = (snaps ?? []).slice(-6);
+        const myIncome = recent.length ? recent.reduce((a, s) => a + Number(s.income), 0) / recent.length : null;
+        const myExp = recent.length ? recent.reduce((a, s) => a + Number(s.expenses), 0) / recent.length : null;
+        const myRate = myIncome && myIncome > 0 && myExp !== null ? ((myIncome - myExp) / myIncome) * 100 : null;
+        return (
+          <>
+            <div className="text-[10px] tracking-[0.08em] uppercase text-[var(--gold)] font-semibold mb-2 mt-6">
+              {L('مؤشر الأسرة السعودية', 'The Saudi household index')}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+              {([
+                [L('دخل الأسرة الشهري (المسح الوطني)', 'Household monthly income (national survey)'), fmt(HOUSEHOLD.avgMonthlyIncome), myIncome !== null ? `${L('أنت', 'you')}: ${fmt(myIncome)}` : null],
+                [L('استهلاك الأسرة الشهري', 'Household monthly consumption'), fmt(HOUSEHOLD.avgMonthlyConsumption), myExp !== null ? `${L('أنت', 'you')}: ${fmt(myExp)}` : null],
+                [L('معدل ادخار الأسر', 'Household savings rate'), `${HOUSEHOLD.savingsRatePct}% → ${L('المستهدف', 'target')} ${HOUSEHOLD.visionTargetPct}% · ${L('العالمي', 'global')} ${HOUSEHOLD.globalStandardPct}%`, myRate !== null ? `${L('أنت', 'you')}: ${myRate.toFixed(1)}%` : null],
+              ] as [string, string, string | null][]).map(([name, val, mine]) => (
+                <div key={name} className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl px-3.5 py-3">
+                  <div className="text-[9px] text-[var(--muted)] mb-0.5">{name}</div>
+                  <div className="text-sm font-bold text-[var(--ink)]" dir="ltr">{val}</div>
+                  {mine && <div className="text-[10px] font-semibold text-[var(--green-dark)] mt-0.5" dir="ltr">{mine}</div>}
+                </div>
+              ))}
+            </div>
+            <p className="text-[9px] text-[var(--muted)]">{L(`المصدر: ${REF_SOURCES.kpmg.ar}.`, `Source: ${REF_SOURCES.kpmg.en}.`)}</p>
+          </>
+        );
+      })()}
     </div>
   );
 }

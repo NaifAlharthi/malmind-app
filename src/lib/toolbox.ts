@@ -45,6 +45,12 @@ export const TOOLS: Record<ViewKey, HubTool[]> = {
     { href: '/velocity', icon: '⏱', titleKey: 'home.card.velocity.title', descKey: 'home.card.velocity.desc', depth: 3 },
     { href: '/credit', icon: '📇', titleKey: 'hub.card.credit.title', descKey: 'hub.card.credit.desc', depth: 4 },
     { href: '/markets', icon: '🌐', titleKey: 'hub.card.markets.title', descKey: 'hub.card.markets.desc', depth: 3 },
+    { href: '/subscriptions', icon: '📅', titleKey: 'hub.card.subs.title', descKey: 'hub.card.subs.desc', depth: 2 },
+    { href: '/credit-cards', icon: '💳', titleKey: 'hub.card.cards.title', descKey: 'hub.card.cards.desc', depth: 2 },
+    { href: '/class', icon: '🎖', titleKey: 'hub.card.class.title', descKey: 'hub.card.class.desc', depth: 3 },
+    { href: '/salaries', icon: '🪙', titleKey: 'hub.card.salaries.title', descKey: 'hub.card.salaries.desc', depth: 2 },
+    { href: '/insurance', icon: '☂️', titleKey: 'hub.card.insurance.title', descKey: 'hub.card.insurance.desc', depth: 2 },
+    { href: '/poverty', icon: '🛟', titleKey: 'hub.card.poverty.title', descKey: 'hub.card.poverty.desc', depth: 3 },
   ],
   future: [
     { href: '/freedom', icon: '🕊', titleKey: 'hub.card.freedom.title', descKey: 'hub.card.freedom.desc' },
@@ -59,6 +65,9 @@ export const TOOLS: Record<ViewKey, HubTool[]> = {
     { href: '/waterfall', icon: '💧', titleKey: 'home.card.waterfall.title', descKey: 'home.card.waterfall.desc', depth: 4 },
     { href: '/luxury', icon: '👑', titleKey: 'hub.card.luxury.title', descKey: 'hub.card.luxury.desc', depth: 4 },
     { href: '/business', icon: '🚀', titleKey: 'hub.card.business.title', descKey: 'hub.card.business.desc', depth: 2 },
+    { href: '/mortgage', icon: '🏠', titleKey: 'hub.card.mortgage.title', descKey: 'hub.card.mortgage.desc', depth: 3 },
+    { href: '/auto-loan', icon: '🚙', titleKey: 'hub.card.autoLoan.title', descKey: 'hub.card.autoLoan.desc', depth: 2 },
+    { href: '/retirement', icon: '🌅', titleKey: 'hub.card.retirement.title', descKey: 'hub.card.retirement.desc', depth: 2 },
   ],
 };
 

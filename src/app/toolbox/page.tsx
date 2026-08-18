@@ -4,7 +4,7 @@
 // product, arranged across the three times, one tap from anywhere via
 // the top bar or ⇧X. Depthless: a directory has no rooms.
 
-import FullToolMatrix from '@/components/toolbox/FullToolMatrix';
+import ClusteredToolbox from '@/components/toolbox/ClusteredToolbox';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export default function ToolboxPage() {
@@ -19,7 +19,7 @@ export default function ToolboxPage() {
           {L('الورشة كاملة — كل أداة في المنتج، مصفوفةً عبر الأزمنة الثلاثة وبعمق كلٍّ منها.', 'The whole workshop — every tool in the product, arranged across the three times, each at its depth.')}
         </p>
       </div>
-      <FullToolMatrix />
+      <ClusteredToolbox />
     </div>
   );
 }
