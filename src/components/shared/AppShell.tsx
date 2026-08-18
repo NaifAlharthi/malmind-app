@@ -11,6 +11,7 @@ import TimelineNav from './TimelineNav';
 import DepthRail from './DepthRail';
 import DepthStage from './DepthStage';
 import CommandMode from './CommandMode';
+import BrainSpotlight from './BrainSpotlight';
 import { XModeProvider, useXMode, useDrive } from './ExperienceMode';
 import { DEPTHLESS_PATHS } from '@/lib/depth';
 import { XMODE_META, type XMode } from '@/lib/experienceMode';
@@ -488,6 +489,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <DemoTour />
       <DepthRail />
       <CommandMode />
+      {/* the Brain's pointing finger — ?spot=<id> rings a data-spot tile */}
+      <BrainSpotlight />
       {/* the Brain's floating perch overlaps content on small screens —
           phones reach the Brain through its bottom tab instead; the About
           page tells the story without the figure */}

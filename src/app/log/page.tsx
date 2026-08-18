@@ -34,32 +34,34 @@ export default function LogPage() {
   const { locale } = useLocale();
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
+  // Every tile carries a data-spot id so the Brain's pointing finger
+  // (?spot=<id>) can ring it — see BrainSpotlight.
   return (
     <div>
       {/* the inlets first — how numbers reach the record at all */}
-      <IntegrationsTile />
+      <div data-spot="integrations"><IntegrationsTile /></div>
       <FlowLink label={L('الروافد تصبّ في السِّجل', 'the inlets pour into the record')} />
       {/* the record itself — everything below reads from or reconciles to it */}
-      <LogTile />
+      <div data-spot="log"><LogTile /></div>
       <FlowLink label={L('ومن السِّجل ينبع النهر', 'and from the record, the river')} />
       {/* the flow: in… */}
-      <IncomeTile />
+      <div data-spot="income"><IncomeTile /></div>
       <FlowLink label={L('الدخل يمرّ بالمصروف', 'income passes through spending')} />
       {/* …out (its fixed share loops to the debt book below) */}
-      <SpendingTile />
+      <div data-spot="spending"><SpendingTile /></div>
       <FlowLink label={L('ما ينجو يستقر في الميزانية', 'what survives settles into the balance sheet')} />
       {/* the balance sheet: what grows in the public market… */}
-      <PortfolioTile />
+      <div data-spot="portfolio"><PortfolioTile /></div>
       {/* …what you own in the private one… */}
-      <OwnershipTile />
+      <div data-spot="ownership"><OwnershipTile /></div>
       {/* …what you own beyond markets altogether… */}
-      <OtherAssetsTile />
+      <div data-spot="other-assets"><OtherAssetsTile /></div>
       <FlowLink label={L('وما يُطرح منها', 'and what subtracts from it')} />
       {/* …and what subtracts */}
-      <LiabilitiesTile />
+      <div data-spot="liabilities"><LiabilitiesTile /></div>
       <FlowLink label={L('والسوق يشهد على الدفتر', 'and the market testifies to the book')} />
       {/* the market's testimony: the credit score */}
-      <CreditScoreTile />
+      <div data-spot="credit-score"><CreditScoreTile /></div>
     </div>
   );
 }
