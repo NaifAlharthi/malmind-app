@@ -14,6 +14,7 @@ import { DEMO_PERSONAS } from '@/lib/demoWorld';
 import PersonaAvatar from '@/app/signup/PersonaAvatar';
 import ContactModal from '@/components/shared/ContactModal';
 import ThinkingLayerStack from '@/components/shared/ThinkingLayerStack';
+import { TIER_META, TIER_ORDER } from '@/lib/tier';
 
 export default function AboutPage() {
   const router = useRouter();
@@ -196,6 +197,61 @@ export default function AboutPage() {
         <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col items-center justify-center text-center">
           <SaudiEmblem />
           <div className="text-[11px] text-[var(--muted)] mt-1.5">{L('مصمَّم للسعودية', 'made for Saudi')}</div>
+        </div>
+      </div>
+
+      {/* ── how you subscribe: the plans, told the iceberg way ── */}
+      <div className="mb-8">
+        <SectionHeading
+          eyebrow={L('كيف تشترك', 'How you subscribe')}
+          title={L('ابدأ من السطح — وغص حين تحتاج أكثر', 'Start at the surface — dive when you need more')}
+        />
+        <div className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6">
+          <p className="text-xs text-[var(--ink-2)] leading-relaxed max-w-2xl mb-4">
+            {L(
+              'الباقة عندنا ليست قائمة مزايا — إنها سقف على مقياس العمق نفسه: الماضي واليوم والمستقبل موجودة في كل باقة، والذي يتغيّر هو قوة السؤال الذي تستطيع الإجابة عنه. صورتك المالية الكاملة مجانية دائماً، وكل حساب جديد يجرّب «الأعماق» سبعة أيام دون بطاقة.',
+              "A plan here isn't a feature list — it's a ceiling on the depth dial itself: Past, Today and Future exist in every plan; what changes is the power of the question you can answer. Your complete financial picture is free forever, and every new account tries The Depths for seven days, no card."
+            )}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3">
+            {TIER_ORDER.map((k) => {
+              const meta = TIER_META[k];
+              return (
+                <div key={k} className={`rounded-xl border p-4 ${k === 'pro' ? 'border-[var(--gold)] bg-[var(--gold)]/5' : 'border-[var(--border-faint)] bg-[var(--surface-1)]'}`}>
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <div className="text-sm font-bold text-[var(--ink)]">{meta.icon} {ar ? meta.name.ar : meta.name.en}</div>
+                    <span className="text-[9px] font-semibold text-[var(--muted)] uppercase tracking-wide">{meta.brand}</span>
+                  </div>
+                  <div className="text-xs font-bold text-[var(--green-dark)] mb-1">
+                    {meta.priceMonthly === 0
+                      ? L('مجاناً — دائماً', 'Free — forever')
+                      : L(`${meta.priceMonthly} ر.س/شهرياً`, `SAR ${meta.priceMonthly}/mo`)}
+                    {meta.priceYearly !== null && (
+                      <span className="text-[9px] font-medium text-[var(--muted)] ms-1.5">
+                        {L(`أو ${meta.priceYearly} سنوياً — شهران مجاناً`, `or ${meta.priceYearly}/yr — two months free`)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[9px] font-semibold text-[var(--muted)] mb-1.5" dir="ltr">{meta.maxDepth === 1 ? 'D1' : `D1–D${meta.maxDepth}`}</div>
+                  <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-1.5">{ar ? meta.blurb.ar : meta.blurb.en}</p>
+                  <div className="text-[10px] text-[var(--muted)]">🧠 {ar ? meta.brain.ar : meta.brain.en}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-[var(--muted)] pt-3 border-t border-[var(--border-faint)]">
+            <span>👨‍👩‍👧 {L('العائلة: حتى ٤ ملفات بعمق باقتك — ٢٤ ر.س/شهرياً · قريباً', "Family: up to 4 profiles at your plan's depth — SAR 24/mo · soon")}</span>
+            <span>💼 {L('للمستشارين: مساحة عملاء مستقلة بموافقاتهم — ٣٩٩ ر.س/شهرياً · برنامج تجريبي', 'For advisors: a separate, consented client workspace — SAR 399/mo · pilot')}</span>
+            <span>🛡 {L('الأسعار تشمل الضريبة، وبياناتك تبقى محفوظة إن عدت إلى السطح.', 'Prices include VAT, and your data stays kept if you return to the surface.')}</span>
+            <a
+              href="https://malmind-bundles.netlify.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--green-dark)] hover:underline"
+            >
+              {L('الباقات والأسعار كاملة ↗', 'Full plans & pricing ↗')}
+            </a>
+          </div>
         </div>
       </div>
 
