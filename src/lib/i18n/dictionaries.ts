@@ -119,9 +119,9 @@ const en: Dict = {
   'advisor.empty': 'Say hello, or tap a suggestion below to get started.',
   'advisor.placeholder': 'Ask your advisor anything...',
   'advisor.error': 'Something went wrong reaching the advisor. Please try again.',
-  'advisor.suggest.1': 'What should I prioritize this year?',
-  'advisor.suggest.2': 'Am I on track for my age and income?',
-  'advisor.suggest.3': 'What does my story tell you about my habits?',
+  'advisor.suggest.1': 'How is my spending these months?',
+  'advisor.suggest.2': 'Is my saving enough compared to other Saudis?',
+  'advisor.suggest.3': 'When can I retire, and what would my pension be?',
 
   // ── Home page ───────────────────────────────────────────────────────
   'home.greeting': 'Good to see you, {name}',
@@ -550,9 +550,9 @@ const ar: Dict = {
   'advisor.empty': 'ألقِ التحية، أو اضغط اقتراحاً بالأسفل لتبدأ.',
   'advisor.placeholder': 'اسأل مستشارك عن أي شيء...',
   'advisor.error': 'حدث خطأ أثناء الوصول إلى المستشار. حاول مرة أخرى.',
-  'advisor.suggest.1': 'ما الذي ينبغي أن أُعطيه الأولوية هذا العام؟',
-  'advisor.suggest.2': 'هل أنا على المسار الصحيح بالنسبة لعمري ودخلي؟',
-  'advisor.suggest.3': 'ماذا تقول لك قصتي عن عاداتي؟',
+  'advisor.suggest.1': 'كيف مصروفي هذه الأشهر؟',
+  'advisor.suggest.2': 'هل ادخاري كافٍ مقارنة بالسعوديين؟',
+  'advisor.suggest.3': 'متى أستطيع التقاعد وكم سيكون معاشي؟',
 
   // ── Home page ───────────────────────────────────────────────────────
   'home.greeting': 'سعداء برؤيتك يا {name}',

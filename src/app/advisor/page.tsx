@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { localizedFirstName } from '@/lib/name';
 import { useLocale, useT } from '@/lib/i18n/LocaleProvider';
 import BrainMessage from '@/components/advisor/BrainMessage';
+import { loadBrainContext, composeLocalReply, composeBriefing, isDemoMode, type BrainContext } from '@/lib/brainLocal';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -24,6 +25,14 @@ export default function AdvisorPage() {
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
+  // The local thinking layer's context — the Log, loaded once and cached.
+  // undefined = not fetched yet; null = fetched but empty (no months logged).
+  const brainCtx = useRef<BrainContext | null | undefined>(undefined);
+
+  async function ensureCtx(): Promise<BrainContext | null> {
+    if (brainCtx.current === undefined) brainCtx.current = await loadBrainContext();
+    return brainCtx.current;
+  }
 
   const loadHistory = useCallback(async () => {
     const {
@@ -73,6 +82,21 @@ export default function AdvisorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingHistory]);
 
+  // The Brain speaks first: with no history, it opens with a reading of
+  // the Log — real numbers, a drawn line, pointing chips — composed by
+  // the local thinking layer (no model call needed).
+  const briefed = useRef(false);
+  useEffect(() => {
+    if (loadingHistory || briefed.current) return;
+    briefed.current = true;
+    if (messages.length > 0) return;
+    (async () => {
+      const ctx = await ensureCtx();
+      if (ctx) setMessages((prev) => (prev.some((m) => m.role === 'assistant') ? prev : [{ role: 'assistant', content: composeBriefing(ctx, ar) }, ...prev]));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingHistory]);
+
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
     const userMessage: Message = { role: 'user', content: text };
@@ -80,25 +104,33 @@ export default function AdvisorPage() {
     setInput('');
     setLoading(true);
 
-    try {
-      const res = await fetch('/api/advisor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMessage] }),
-      });
-      const data = await res.json();
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: t('advisor.error'),
-        },
-      ]);
-    } finally {
-      setLoading(false);
+    // Live model first (signed-in users with a connected key); the local
+    // thinking layer answers whenever the model can't — demo mode, missing
+    // key, network failure — through the same rich-message pipeline.
+    let reply: string | null = null;
+    if (!isDemoMode()) {
+      try {
+        const res = await fetch('/api/advisor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: [...messages, userMessage] }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.reply && !String(data.reply).includes('ANTHROPIC_API_KEY')) reply = data.reply;
+        }
+      } catch { /* fall through to the local layer */ }
     }
+    if (!reply) {
+      const ctx = await ensureCtx();
+      if (ctx) {
+        // a breath before answering, so the thinking dots read naturally
+        await new Promise((r) => setTimeout(r, 500));
+        reply = composeLocalReply(text, ctx, ar);
+      }
+    }
+    setMessages((prev) => [...prev, { role: 'assistant', content: reply ?? t('advisor.error') }]);
+    setLoading(false);
   }
 
   const suggestions = [
@@ -166,7 +198,7 @@ export default function AdvisorPage() {
           <div ref={endRef} />
         </div>
 
-        {messages.length === 0 && (
+        {messages.length <= 1 && (
           <div className="px-5 pb-3 flex gap-2 flex-wrap">
             {suggestions.map((s) => (
               <button
