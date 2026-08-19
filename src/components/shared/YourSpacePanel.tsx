@@ -201,11 +201,11 @@ export default function YourSpacePanel({
           <SpaceTile icon="🎫" title={L('باقتك', 'Your plan')} className="sm:col-span-2">
             <p className="text-[10px] text-[var(--muted)] leading-relaxed mb-2.5">
               {L(
-                'باقتك تحدد أقصى عمق يفتحه المنتج لك — في المِسبار وداخل كل أداة.',
-                "Your plan sets the deepest level the product opens for you — on the dial and inside every tool."
+                'باقتك تحدد أقصى عمق يفتحه المنتج لك — في المِسبار وداخل كل أداة. الأسعار تشمل ضريبة القيمة المضافة، والسنوي بشهرين مجاناً.',
+                "Your plan sets the deepest level the product opens for you — on the dial and inside every tool. Prices include VAT; yearly gets two months free."
               )}
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {TIER_ORDER.map((k) => {
                 const meta = TIER_META[k];
                 const active = tier === k;
@@ -220,15 +220,37 @@ export default function YourSpacePanel({
                         : 'border-[var(--border-faint)] bg-[var(--surface-1)] hover:border-[var(--green)]'
                     }`}
                   >
-                    <div className="text-[12px] font-bold text-[var(--ink)]">
-                      {meta.icon} {ar ? meta.name.ar : meta.name.en}
-                      {active && <span className="ms-1 text-[var(--green-dark)]">✓</span>}
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="text-[12px] font-bold text-[var(--ink)]">
+                        {meta.icon} {ar ? meta.name.ar : meta.name.en}
+                        {active && <span className="ms-1 text-[var(--green-dark)]">✓</span>}
+                      </div>
+                      <span className="text-[9px] font-semibold text-[var(--muted)] uppercase tracking-wide">{meta.brand}</span>
                     </div>
-                    <div className="text-[9px] font-semibold text-[var(--muted)] mb-0.5" dir="ltr">D1–D{meta.maxDepth}</div>
+                    <div className="text-[10px] font-bold text-[var(--green-dark)] mt-0.5">
+                      {meta.priceMonthly === 0
+                        ? L('مجاناً — دائماً', 'Free — forever')
+                        : L(`${meta.priceMonthly} ر.س/شهرياً`, `SAR ${meta.priceMonthly}/mo`)}
+                    </div>
+                    <div className="text-[9px] font-semibold text-[var(--muted)] mb-0.5" dir="ltr">{meta.maxDepth === 1 ? 'D1' : `D1–D${meta.maxDepth}`}</div>
                     <div className="text-[9px] text-[var(--muted)] leading-relaxed">{ar ? meta.blurb.ar : meta.blurb.en}</div>
+                    <div className="text-[9px] text-[var(--ink-2)] mt-1">🧠 {ar ? meta.brain.ar : meta.brain.en}</div>
                   </button>
                 );
               })}
+            </div>
+            {/* what rides alongside the plans — teased, not sold yet */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-[9px] text-[var(--muted)]">
+              <span>👨‍👩‍👧 {L('العائلة: حتى ٤ ملفات بعمق باقتك — ٢٤ ر.س/شهرياً · قريباً', 'Family: up to 4 profiles at your plan\'s depth — SAR 24/mo · soon')}</span>
+              <span>💼 {L('للمستشارين: مساحة عملاء مستقلة — ٣٩٩ ر.س/شهرياً · برنامج تجريبي', 'For advisors: a separate client workspace — SAR 399/mo · pilot')}</span>
+              <a
+                href="https://malmind-bundles.netlify.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[var(--green-dark)] hover:underline"
+              >
+                {L('الباقات والأسعار كاملة ↗', 'Full plans & pricing ↗')}
+              </a>
             </div>
           </SpaceTile>
 

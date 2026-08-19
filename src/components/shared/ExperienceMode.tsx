@@ -29,7 +29,7 @@ const XModeContext = createContext<{
   setDepth: () => {},
   drive: 'both',
   setDrive: () => {},
-  tier: 'mastery',
+  tier: 'pro',
   setTier: () => {},
 });
 
@@ -65,7 +65,7 @@ export function XModeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<XMode>('guided');
   const [depth, setDepthState] = useState<DepthLevel>(1);
   const [drive, setDriveState] = useState<Drive>('both');
-  const [tier, setTierState] = useState<TierKey>('mastery');
+  const [tier, setTierState] = useState<TierKey>('pro');
 
   useEffect(() => {
     const t = getStoredTier();
