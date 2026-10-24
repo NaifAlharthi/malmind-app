@@ -5,6 +5,7 @@ import './globals.css';
 import AppShell from '@/components/shared/AppShell';
 import ThemeProvider from '@/components/shared/ThemeProvider';
 import LocaleProvider from '@/lib/i18n/LocaleProvider';
+import { Analytics } from '@vercel/analytics/next';
 
 // RB — the licensed Saudi Arabic face. Exposed as a CSS variable; the
 // [lang="ar"] font stacks in globals.css put it first, so Arabic text
@@ -70,6 +71,7 @@ export default function RootLayout({
             <AppShell>{children}</AppShell>
           </LocaleProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
