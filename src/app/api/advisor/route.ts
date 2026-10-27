@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
     '/budgeting — capped budgets · /year-plan — the year master plan · /waterfall — riyal priority waterfall',
     '/freedom — financial freedom date · /goal-fund — saving toward a goal · /what-if — scenario play',
     '/ratios — health ratios · /risks — exposure · /credit — SIMAH standing · /positioning — them vs peers',
+    '/volatility — personal volatility: calm score, financial seismograph, storm buffer and volatility drag',
     '/velocity — wealth speed · /doubling-path — compounding path · /lifetime-income — income across life',
     '/standard-of-living?mode=track — living-standard ladder · /compare — big-decision comparisons',
     '/story — their financial story chapters · /daily-stack — daily money stack',

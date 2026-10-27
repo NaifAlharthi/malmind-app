@@ -34,7 +34,7 @@ const PURPOSE_OF: Record<string, string> = {
   '/freedom': 'grow', '/goal-fund': 'grow', '/velocity': 'grow', '/doubling-path': 'grow',
   '/subscriptions': 'steady', '/credit-cards': 'steady', '/class': 'capture', '/mortgage': 'decide',
   '/salaries': 'capture', '/insurance': 'steady', '/poverty': 'steady', '/auto-loan': 'decide', '/retirement': 'grow',
-  '/gosi': 'grow', '/family': 'decide',
+  '/gosi': 'grow', '/family': 'decide', '/volatility': 'steady',
 };
 
 // which MONEY AREA each tool steers
@@ -49,7 +49,7 @@ const AREA_OF: Record<string, string> = {
   '/ratios': 'shield',
   '/subscriptions': 'flow', '/credit-cards': 'debt', '/class': 'wealth', '/mortgage': 'debt',
   '/salaries': 'flow', '/insurance': 'shield', '/poverty': 'shield', '/auto-loan': 'debt', '/retirement': 'wealth',
-  '/gosi': 'wealth', '/family': 'flow',
+  '/gosi': 'wealth', '/family': 'flow', '/volatility': 'shield',
 };
 
 // which tools ARE index-like — everything else falls to the strip
@@ -57,6 +57,7 @@ const AREA_OF: Record<string, string> = {
 const INDICES_OF: Record<string, string> = {
   '/markets': 'world',
   '/salaries': 'you', '/class': 'you', '/positioning': 'you', '/ratios': 'you', '/credit': 'you', '/poverty': 'you',
+  '/volatility': 'you',
 };
 
 // which LIFE PHASE each tool serves first — a tool can matter in many
@@ -71,7 +72,7 @@ const PHASE_OF: Record<string, string> = {
   '/holdings': 'mid', '/what-if': 'mid', '/velocity': 'mid', '/doubling-path': 'mid', '/business': 'mid',
   '/markets': 'mid', '/ratios': 'mid', '/credit': 'mid', '/waterfall': 'mid', '/year-plan': 'mid',
   '/retirement': 'retire', '/lifetime-income': 'retire', '/freedom': 'retire', '/luxury': 'retire',
-  '/gosi': 'retire', '/family': 'family',
+  '/gosi': 'retire', '/family': 'family', '/volatility': 'mid',
 };
 
 const LENSES: Record<LensKey, {

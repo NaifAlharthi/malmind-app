@@ -12,6 +12,7 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { SALARY_CITIES, SALARY_TREND, CLASS_BANDS, HOUSEHOLD, GOSI, REF_SOURCES } from '@/lib/saudiReference';
+import { computeVolatility, BAND_META, DIM_META } from '@/lib/volatility';
 
 interface Snap {
   year: number; month: number;
@@ -226,6 +227,20 @@ function freedomReply(ctx: BrainContext, ar: boolean): string {
     : `Financial freedom ≈ 25× your annual spending: ${fmt(pot)}. You're at ${progress}% of it today. The projected date and its levers are in [Freedom](/freedom); the compounding path in [Doubling path](/doubling-path).`;
 }
 
+function volatilityReply(ctx: BrainContext, ar: boolean): string {
+  const r = computeVolatility(ctx.snaps);
+  if (!r) {
+    return ar
+      ? 'قياس التقلّب يحتاج أربعة أشهر مسجّلة على الأقل — أكمل شهورك في [السِّجل](/log) ثم اسألني من جديد.'
+      : 'Measuring volatility needs at least four logged months — fill your months in [the Log](/log) and ask me again.';
+  }
+  const band = BAND_META[r.band];
+  const noisy = DIM_META[r.noisiest.key];
+  return ar
+    ? `درجة هدوء بحرك المالي «${r.calmScore}/100» — ${band.icon} ${band.ar}. ${band.arLine} أعلى مصادر الموج عندك: ${noisy.icon} ${noisy.ar}، وشهرٌ سيّئ بمقدار موجتين (2σ) يحتاج حاجزاً قدره «${fmt(r.stormBuffer)}». الرسّام الزلزالي والبحار الخمسة وعتلة التهدئة في [التقلّب](/volatility).`
+    : `Your financial sea's calm score is ${r.calmScore}/100 — ${band.icon} ${band.en}. ${band.enLine} Your biggest wave source: ${noisy.icon} ${noisy.en}, and a two-wave (2σ) bad month needs a ${fmt(r.stormBuffer)} buffer. The seismograph, the five seas and the calming lever live in [Volatility](/volatility).`;
+}
+
 function helpReply(ar: boolean): string {
   return ar
     ? `أقرأ سِجلّك وأجيب بأرقامك عن: المصروف، الدخل، الادخار، صافي الثروة، الديون، التقاعد والتأمينات، طبقتك الاجتماعية، درع الطوارئ، البيت، السيارة، المشروع، الأسرة، والأسواق. وكل أداة من أدوات المنتج الـ٣٦ خلف باب واحد: [صندوق الأدوات](/toolbox).`
@@ -248,6 +263,7 @@ const INTENTS: { keys: string[]; make: (ctx: BrainContext, ar: boolean) => strin
   { keys: ['زواج', 'أسرة', 'عائلة', 'أطفال', 'طفل', 'عيال', 'marr', 'family', 'child', 'kid', 'wedding'], make: familyReply },
   { keys: ['سوق', 'تاسي', 'سهم', 'أسهم', 'مؤشر', 'ذهب', 'market', 'tasi', 'stock', 'index', 'gold'], make: marketReply },
   { keys: ['حرية', 'استقلال', 'freedom', 'independen'], make: freedomReply },
+  { keys: ['تقلب', 'تقلّب', 'تذبذب', 'اهتزاز', 'استقرار', 'ثبات', 'volatil', 'fluctuat', 'stable', 'stability', 'swing'], make: volatilityReply },
   { keys: ['أدوات', 'تساعد', 'تقدر', 'وش تسوي', 'help', 'what can', 'tools', 'how do you'], make: (_c, ar) => helpReply(ar) },
 ];
 

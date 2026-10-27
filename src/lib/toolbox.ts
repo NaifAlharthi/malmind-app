@@ -51,6 +51,7 @@ export const TOOLS: Record<ViewKey, HubTool[]> = {
     { href: '/salaries', icon: '🪙', titleKey: 'hub.card.salaries.title', descKey: 'hub.card.salaries.desc', depth: 2 },
     { href: '/insurance', icon: '☂️', titleKey: 'hub.card.insurance.title', descKey: 'hub.card.insurance.desc', depth: 2 },
     { href: '/poverty', icon: '🛟', titleKey: 'hub.card.poverty.title', descKey: 'hub.card.poverty.desc', depth: 3 },
+    { href: '/volatility', icon: '🌊', titleKey: 'hub.card.volatility.title', descKey: 'hub.card.volatility.desc', depth: 3 },
   ],
   future: [
     { href: '/freedom', icon: '🕊', titleKey: 'hub.card.freedom.title', descKey: 'hub.card.freedom.desc' },
