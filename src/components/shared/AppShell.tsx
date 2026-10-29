@@ -153,7 +153,7 @@ function SmallScreenDials() {
 }
 
 
-const FULL_BLEED_PATHS = ['/', '/onboarding', '/login', '/signup'];
+const FULL_BLEED_PATHS = ['/', '/onboarding', '/login', '/signup', '/welcome'];
 
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -243,6 +243,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         .eq('id', user.id)
         .single();
       if (data?.name) setInitials(data.name.charAt(0).toUpperCase());
+      // The welcome program's last mile: a REAL signed-in user carrying an
+      // invite code from /welcome gets their invitation marked "joined".
+      try {
+        const code = window.localStorage.getItem('mm-invite');
+        if (code && window.localStorage.getItem('mm-demo') !== '1') {
+          await supabase.rpc('mark_invite', { invite_id: code, event: 'joined' });
+          window.localStorage.removeItem('mm-invite');
+        }
+      } catch { /* never let the invite marker disturb the shell */ }
     })();
   }, [pathname, supabase, profileVersion]);
 
