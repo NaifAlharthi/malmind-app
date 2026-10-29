@@ -35,9 +35,10 @@ export default function LogPage() {
   const ar = locale === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
   // Every tile carries a data-spot id so the Brain's pointing finger
-  // (?spot=<id>) can ring it — see BrainSpotlight.
+  // (?spot=<id>) can ring it — see BrainSpotlight. drv-exempt: the Log
+  // is the database itself — the story drive must never blank it.
   return (
-    <div>
+    <div className="drv-exempt">
       {/* the inlets first — how numbers reach the record at all */}
       <div data-spot="integrations"><IntegrationsTile /></div>
       <FlowLink label={L('الروافد تصبّ في السِّجل', 'the inlets pour into the record')} />

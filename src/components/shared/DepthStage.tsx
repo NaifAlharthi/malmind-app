@@ -187,7 +187,10 @@ export default function DepthStage({ children }: { children: React.ReactNode }) 
       {/* data-drive lets .drv-story / .drv-num elements adapt to the drive:
           story-driven hides the numeric displays, numbers-driven hides the
           narrative, and "both" shows the full-fledged product */}
-      <style>{`[data-drive='story'] .drv-num{display:none !important}[data-drive='numbers'] .drv-story{display:none !important}`}</style>
+      {/* .drv-exempt subtrees opt out of drive reshaping — pages with no
+          alternate rendering (the Log is the database itself) must never
+          be blanked by a drive choice */}
+      <style>{`[data-drive='story'] .drv-num:not(.drv-exempt *){display:none !important}[data-drive='numbers'] .drv-story:not(.drv-exempt *){display:none !important}`}</style>
       <div
         className={shift ? `mm-depth-shift-${shift}` : pageShift ? `mm-page-shift-${pageShift}` : ''}
         data-drive={drive}
