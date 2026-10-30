@@ -4,9 +4,11 @@
 // Months run across; line items run down, grouped into sections (assets,
 // liabilities, flow) that collapse into their aggregate rows. This is the
 // clearest possible answer to "where are ALL my numbers?": one grid, no
-// interpretation — reading is here, editing stays in My Financial Numbers.
+// interpretation. Editing happens IN the grid: edit mode turns every cell
+// into an input, totals and net worth recalculate live, any month can be
+// opened or added, and one Save upserts every touched month.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
@@ -22,6 +24,11 @@ interface Snap {
 const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 const SHOWN = 12; // the latest year of months on the grid
+
+type Field = 'cash' | 'stocks' | 'equity' | 'real_estate' | 'other_assets' | 'liabilities' | 'income' | 'expenses';
+const FIELDS: Field[] = ['cash', 'stocks', 'equity', 'real_estate', 'other_assets', 'liabilities', 'income', 'expenses'];
+const mkey = (s: { year: number; month: number }) => `${s.year}-${s.month}`;
+const parseNum = (v: string) => Number(v.replace(/[^\d.-]/g, '')) || 0;
 
 export default function LogTile() {
   const supabase = createClient();
@@ -40,6 +47,14 @@ export default function LogTile() {
   const [gran, setGran] = useState<'m' | 'q' | 'y'>('m');
   // a hand-picked window ('YYYY-MM' each end) overrides the presets
   const [custom, setCustom] = useState<{ from: string; to: string }>({ from: '', to: '' });
+  // in-place editing: typed values per month, months opened beyond the
+  // grid (new ones, or older ones pulled in), and the save state
+  const [editing, setEditing] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, Partial<Record<Field, string>>>>({});
+  const [extra, setExtra] = useState<Snap[]>([]);
+  const [pickMonth, setPickMonth] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [flash, setFlash] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -62,8 +77,17 @@ export default function LogTile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Latest months first — the freshest column sits beside the labels.
-  const cols = useMemo(() => (snaps ?? []).slice(-SHOWN).reverse(), [snaps]);
+  // Chronological — time flows in the reading direction, oldest first, so
+  // the freshest month sits at the far end (left→right in English,
+  // right→left in Arabic, like the chart above it).
+  const cols = useMemo(() => (snaps ?? []).slice(-SHOWN), [snaps]);
+
+  // the grid opens scrolled to its freshest month
+  const gridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = gridRef.current;
+    if (el) el.scrollLeft = ar ? -el.scrollWidth : el.scrollWidth;
+  }, [snaps, editing, ar]);
 
   // A backfilled year lands straight into local state too, so the life
   // bar and every chart tick up the moment a row saves.
@@ -103,31 +127,130 @@ export default function LogTile() {
     );
   }
 
+  // ── in-place editing ──
+  const exists = (s: { year: number; month: number }) => snaps.some((x) => mkey(x) === mkey(s));
+  const extraOnly = extra.filter((e) => !cols.some((c) => mkey(c) === mkey(e)));
+  const shownCols = editing
+    ? [...extraOnly, ...cols].sort((a, b) => a.year - b.year || a.month - b.month)
+    : cols;
+  // typed drafts laid over the stored values — totals read these, live
+  const merged = (s: Snap): Snap => {
+    const d = drafts[mkey(s)];
+    if (!d) return s;
+    const out = { ...s };
+    for (const f of FIELDS) if (d[f] !== undefined) out[f] = parseNum(d[f]!);
+    return out;
+  };
+  const viewCols = shownCols.map(merged);
+  const dirtyKeys = new Set<string>([
+    ...Object.keys(drafts),
+    ...extra.filter((e) => !exists(e)).map(mkey),
+  ]);
+
+  const setCell = (s: Snap, f: Field, v: string) => {
+    setFlash(null);
+    setDrafts((p) => ({ ...p, [mkey(s)]: { ...p[mkey(s)], [f]: v } }));
+  };
+
+  // open any month: an existing older month is pulled onto the grid; a new
+  // month starts as a copy of the latest one, so you only type what changed
+  const addMonth = () => {
+    if (!/^\d{4}-\d{2}$/.test(pickMonth)) return;
+    const y = Number(pickMonth.slice(0, 4));
+    const m = Number(pickMonth.slice(5, 7));
+    const found = snaps.find((s) => s.year === y && s.month === m);
+    const latest = snaps[snaps.length - 1];
+    const col: Snap = found ?? { ...latest, year: y, month: m };
+    if (!extra.some((e) => mkey(e) === mkey(col))) setExtra((p) => [...p, col]);
+    setPickMonth('');
+  };
+
+  const dropMonth = async (s: Snap) => {
+    if (!exists(s)) {
+      setExtra((p) => p.filter((e) => mkey(e) !== mkey(s)));
+      setDrafts((p) => { const n = { ...p }; delete n[mkey(s)]; return n; });
+      return;
+    }
+    const name = label(s);
+    if (!window.confirm(L(`حذف شهر ${name} من السِّجل نهائياً؟`, `Delete ${name} from the Log permanently?`))) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from('financial_snapshots').delete()
+      .eq('user_id', user.id).eq('year', s.year).eq('month', s.month);
+    if (error) { setFlash({ ok: false, text: L('تعذّر الحذف — حاول مجدداً.', 'Could not delete — try again.') }); return; }
+    setSnaps((p) => (p ?? []).filter((x) => mkey(x) !== mkey(s)));
+    setExtra((p) => p.filter((e) => mkey(e) !== mkey(s)));
+    setDrafts((p) => { const n = { ...p }; delete n[mkey(s)]; return n; });
+    setFlash({ ok: true, text: L(`حُذف ${name}.`, `${name} deleted.`) });
+  };
+
+  const save = async () => {
+    if (dirtyKeys.size === 0) { setEditing(false); return; }
+    setSaving(true);
+    setFlash(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const all = [...snaps, ...extra];
+      const rows = [...dirtyKeys]
+        .map((k) => all.find((s) => mkey(s) === k))
+        .filter((s): s is Snap => !!s)
+        .map(merged);
+      const { error } = await supabase.from('financial_snapshots').upsert(
+        rows.map((s) => ({
+          user_id: user.id, year: s.year, month: s.month,
+          cash: s.cash, stocks: s.stocks, equity: s.equity, real_estate: s.real_estate,
+          other_assets: s.other_assets, liabilities: s.liabilities, income: s.income, expenses: s.expenses,
+        })),
+        { onConflict: 'user_id,year,month' },
+      );
+      if (error) {
+        setFlash({ ok: false, text: L('تعذّر الحفظ — لم يُفقد شيء، حاول مجدداً.', 'Could not save — nothing was lost, try again.') });
+        return;
+      }
+      rows.forEach(addSnap);
+      setDrafts({});
+      setExtra([]);
+      setEditing(false);
+      setFlash({ ok: true, text: L(`✓ حُفظ ${rows.length} ${rows.length === 1 ? 'شهر' : 'أشهر'}.`, `✓ Saved ${rows.length} ${rows.length === 1 ? 'month' : 'months'}.`) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancel = () => {
+    if (dirtyKeys.size > 0 && !window.confirm(L('تجاهل التعديلات غير المحفوظة؟', 'Discard unsaved changes?'))) return;
+    setDrafts({});
+    setExtra([]);
+    setEditing(false);
+    setFlash(null);
+  };
+
   // ── the grid rows, by section ──
-  type Row = { key: string; name: string; get: (s: Snap) => number; sub?: boolean };
+  type Row = { key: string; name: string; get: (s: Snap) => number; field: Field };
   const SECTIONS: { key: string; icon: string; name: string; rows: Row[]; total: { name: string; get: (s: Snap) => number }; accent?: string }[] = [
     {
       key: 'assets', icon: '🏛', name: L('الأصول', 'Assets'),
       rows: [
-        { key: 'cash', name: L('النقد', 'Cash'), get: (s) => Number(s.cash) },
-        { key: 'stocks', name: L('الأسهم', 'Stocks'), get: (s) => Number(s.stocks) },
-        { key: 'equity', name: L('حصص وملكيات', 'Equity stakes'), get: (s) => Number(s.equity) },
-        { key: 're', name: L('العقار', 'Real estate'), get: (s) => Number(s.real_estate) },
-        { key: 'other', name: L('أصول أخرى', 'Other assets'), get: (s) => Number(s.other_assets) },
+        { key: 'cash', field: 'cash', name: L('النقد', 'Cash'), get: (s) => Number(s.cash) },
+        { key: 'stocks', field: 'stocks', name: L('الأسهم', 'Stocks'), get: (s) => Number(s.stocks) },
+        { key: 'equity', field: 'equity', name: L('حصص وملكيات', 'Equity stakes'), get: (s) => Number(s.equity) },
+        { key: 're', field: 'real_estate', name: L('العقار', 'Real estate'), get: (s) => Number(s.real_estate) },
+        { key: 'other', field: 'other_assets', name: L('أصول أخرى', 'Other assets'), get: (s) => Number(s.other_assets) },
       ],
       total: { name: L('إجمالي الأصول', 'Total assets'), get: assetsOf },
     },
     {
       key: 'liab', icon: '⛓', name: L('الالتزامات', 'Liabilities'),
-      rows: [{ key: 'liab', name: L('إجمالي الديون', 'Total debts'), get: (s) => Number(s.liabilities) }],
+      rows: [{ key: 'liab', field: 'liabilities', name: L('إجمالي الديون', 'Total debts'), get: (s) => Number(s.liabilities) }],
       total: { name: L('إجمالي الالتزامات', 'Total liabilities'), get: (s) => Number(s.liabilities) },
       accent: 'var(--red-2)',
     },
     {
       key: 'flow', icon: '🔄', name: L('التدفق الشهري', 'Monthly flow'),
       rows: [
-        { key: 'inc', name: L('الدخل', 'Income'), get: (s) => Number(s.income) },
-        { key: 'exp', name: L('المصروف', 'Spending'), get: (s) => Number(s.expenses) },
+        { key: 'inc', field: 'income', name: L('الدخل', 'Income'), get: (s) => Number(s.income) },
+        { key: 'exp', field: 'expenses', name: L('المصروف', 'Spending'), get: (s) => Number(s.expenses) },
       ],
       total: { name: L('المدَّخر', 'Saved'), get: (s) => Number(s.income) - Number(s.expenses) },
     },
@@ -140,24 +263,27 @@ export default function LogTile() {
     <div className="drv-num bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 sm:p-6 mb-8">
       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
         <div className="font-serif text-lg font-semibold text-[var(--ink)]">📒 {L('السِّجل', 'The Log')}</div>
-        {/* every way numbers enter the Log lives under this one door —
-            manual, spreadsheet, banks, integrations */}
-        <div className="relative">
+        {/* editing happens right here in the grid; bulk imports and
+            connections sit behind the secondary menu */}
+        <div className="relative flex items-center gap-2">
+          {!editing && (
+            <button
+              onClick={() => { setEditing(true); setSrcOpen(false); setFlash(null); }}
+              className="text-[11px] font-semibold text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5 cursor-pointer"
+            >
+              ✏️ {L('عدّل الأرقام هنا', 'Edit numbers here')}
+            </button>
+          )}
           <button
             onClick={() => setSrcOpen((v) => !v)}
-            className="text-[11px] font-semibold text-[var(--green-dark)] hover:underline cursor-pointer"
+            className="text-[11px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] cursor-pointer"
             aria-expanded={srcOpen}
           >
-            {L('عدّل وحدّث أرقامك', 'Edit and update your numbers')} {srcOpen ? '▴' : '▾'}
+            {L('استيراد وربط', 'Import & connect')} {srcOpen ? '▴' : '▾'}
           </button>
           {srcOpen && (
             <div className="absolute end-0 top-full mt-2 z-20 w-72 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-lg p-2 flex flex-col gap-1">
               {([
-                {
-                  icon: '✍️', live: true, href: '/financial-numbers',
-                  name: L('إدخال يدوي', 'Manual entry'),
-                  sub: L('سجّل شهرك في دقائق', 'Log your month in minutes'),
-                },
                 {
                   icon: '📄', live: true, href: '/financial-numbers',
                   name: L('اسحب جدولك', 'Drop your spreadsheet'),
@@ -172,6 +298,11 @@ export default function LogTile() {
                   icon: '🔗', live: true, href: '/financial-numbers',
                   name: L('Google و Microsoft', 'Google & Microsoft'),
                   sub: L('Google Sheets الآن · Excel 365 قادم', 'Google Sheets now · Excel 365 coming'),
+                },
+                {
+                  icon: '🗂', live: true, href: '/financial-numbers',
+                  name: L('المحرّر الكامل', 'The full editor'),
+                  sub: L('كل الأشهر والتفاصيل في صفحة «أرقامي المالية»', 'Every month and detail, in My Financial Numbers'),
                 },
               ] as { icon: string; live: boolean; href?: string; name: string; sub: string }[]).map((src) =>
                 src.live && src.href ? (
@@ -209,8 +340,8 @@ export default function LogTile() {
       </div>
       <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-4">
         {L(
-          `كل أرقامك في جدول واحد — أحدث ${Math.min(SHOWN, snaps.length)} شهراً، والأحدث أولاً. اضغط رأس القسم لطيّه إلى مجموعه.`,
-          `All your numbers on one grid — the latest ${Math.min(SHOWN, snaps.length)} months, freshest first. Click a section header to fold it into its total.`
+          `كل أرقامك في جدول واحد — آخر ${Math.min(SHOWN, snaps.length)} شهراً بترتيبها الزمني، والأحدث في الطرف. اضغط رأس القسم لطيّه إلى مجموعه.`,
+          `All your numbers on one grid — the last ${Math.min(SHOWN, snaps.length)} months in time order, freshest at the far end. Click a section header to fold it into its total.`
         )}
       </p>
 
@@ -232,7 +363,11 @@ export default function LogTile() {
         return (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
             <div className="bg-[var(--surface-1)] border border-[var(--border-faint)] rounded-xl px-3.5 py-3">
-              <div className="text-lg font-bold text-[var(--ink)] leading-tight">{sinceLabel}</div>
+              {/* a span, not a point: from the first logged month up to now */}
+              <div className="text-lg font-bold text-[var(--ink)] leading-tight">
+                {sinceLabel}
+                <span className="text-sm font-semibold text-[var(--muted)]"> — {L('حتى اليوم', 'to today')}</span>
+              </div>
               <div className="text-[10px] text-[var(--muted)] mt-0.5">
                 ⏮ {L('إلى هنا يعود سِجلّك — بياناتك ملكك منذ ذلك الحين', 'how far back your data goes — yours since then')}
               </div>
@@ -275,13 +410,67 @@ export default function LogTile() {
       {/* the chart leads; the cells follow below */}
       <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} custom={custom} setCustom={setCustom} ar={ar} />
 
-      <div className="overflow-x-auto rounded-lg border border-[var(--border-faint)]">
+      {/* ── the edit bar: open/add any month, then save once ── */}
+      {editing && (
+        <div className="flex flex-wrap items-center gap-2 mb-2 rounded-xl border border-[var(--gold)] bg-[var(--gold)]/5 px-3 py-2">
+          <span className="text-[11px] text-[var(--ink-2)] flex-1 min-w-[200px]">
+            ✏️ {L('اكتب فوق أي رقم — المجاميع وصافي الثروة تتحدّث فوراً.', 'Type over any number — totals and net worth update as you go.')}
+          </span>
+          <div className="inline-flex items-center gap-1.5 border border-[var(--border-default)] rounded-lg ps-2 pe-1 py-0.5" dir="ltr">
+            <input
+              type="month"
+              value={pickMonth}
+              onChange={(e) => setPickMonth(e.target.value)}
+              className="bg-transparent text-[10px] text-[var(--ink-2)] outline-none w-[104px] [color-scheme:dark]"
+              aria-label={L('اختر شهراً', 'Pick a month')}
+            />
+            <button
+              onClick={addMonth}
+              disabled={!pickMonth}
+              className="text-[10px] font-semibold text-[var(--green-dark)] rounded-md px-2 py-1 hover:bg-[var(--green-bg)] disabled:opacity-40 cursor-pointer"
+            >
+              {L('＋ افتح الشهر', '＋ Open month')}
+            </button>
+          </div>
+          <button onClick={cancel} className="text-[11px] font-medium text-[var(--ink-2)] border border-[var(--border-default)] rounded-lg px-3 py-1.5 cursor-pointer">
+            {L('إلغاء', 'Cancel')}
+          </button>
+          <button onClick={save} disabled={saving} className="text-[11px] font-semibold text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5 disabled:opacity-50 cursor-pointer">
+            {saving
+              ? L('يحفظ…', 'Saving…')
+              : dirtyKeys.size > 0
+                ? L(`احفظ (${dirtyKeys.size} ${dirtyKeys.size === 1 ? 'شهر' : 'أشهر'})`, `Save (${dirtyKeys.size} ${dirtyKeys.size === 1 ? 'month' : 'months'})`)
+                : L('تم', 'Done')}
+          </button>
+        </div>
+      )}
+      {flash && (
+        <p className={`text-[11px] font-semibold mb-2 ${flash.ok ? 'text-[var(--green-dark)]' : 'text-[var(--red-2)]'}`}>{flash.text}</p>
+      )}
+
+      <div ref={gridRef} className={`overflow-x-auto rounded-lg border ${editing ? 'border-[var(--gold)]' : 'border-[var(--border-faint)]'}`}>
         <table className="w-full text-[11px] border-collapse min-w-[560px]" style={{ fontVariantNumeric: 'tabular-nums' }}>
           <thead>
             <tr className="border-b-2 border-[var(--border-default)]">
               <th className={`${th} ${stickyCol} min-w-[130px]`}>{L('البند', 'Line item')}</th>
-              {cols.map((s) => (
-                <th key={`${s.year}-${s.month}`} className={`${th} text-end`} dir="ltr">{label(s)}</th>
+              {viewCols.map((s) => (
+                <th key={mkey(s)} className="p-2 text-[10px] text-[var(--muted)] font-semibold whitespace-nowrap text-end">
+                  <span className="inline-flex items-center gap-1" dir="ltr">
+                    {label(s)}
+                    {editing && !exists(s) && (
+                      <span className="text-[8px] font-bold text-[var(--gold)] border border-[var(--gold)] rounded px-1">{L('جديد', 'new')}</span>
+                    )}
+                    {editing && (
+                      <button
+                        onClick={() => dropMonth(s)}
+                        title={exists(s) ? L('احذف هذا الشهر', 'Delete this month') : L('أزِل', 'Remove')}
+                        className="text-[10px] text-[var(--muted)] hover:text-[var(--red-2)] px-0.5 cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </span>
+                </th>
               ))}
             </tr>
           </thead>
@@ -290,11 +479,14 @@ export default function LogTile() {
               <SectionRows
                 key={sec.key}
                 sec={sec}
-                cols={cols}
-                open={open[sec.key]}
-                onToggle={() => setOpen((o) => ({ ...o, [sec.key]: !o[sec.key] }))}
+                cols={viewCols}
+                open={editing || open[sec.key]}
+                onToggle={() => { if (!editing) setOpen((o) => ({ ...o, [sec.key]: !o[sec.key] })); }}
                 fmt={fmt}
                 stickyCol={stickyCol}
+                editing={editing}
+                draftOf={(s, f) => drafts[mkey(s)]?.[f]}
+                onCell={setCell}
               />
             ))}
             {/* ── net worth — the line everything above adds up to ── */}
@@ -302,7 +494,7 @@ export default function LogTile() {
               <td className={`p-2 font-bold text-[var(--green-dark)] ${stickyCol} !bg-transparent`}>
                 💠 {L('صافي الثروة', 'Net worth')}
               </td>
-              {cols.map((s) => {
+              {viewCols.map((s) => {
                 const nw = assetsOf(s) - Number(s.liabilities);
                 return (
                   <td key={`${s.year}-${s.month}`} className="p-2 text-end font-bold" style={{ color: nw >= 0 ? 'var(--green-dark)' : 'var(--red-2)' }}>
@@ -629,10 +821,13 @@ function LogChart({
 }
 
 function SectionRows({
-  sec, cols, open, onToggle, fmt, stickyCol,
+  sec, cols, open, onToggle, fmt, stickyCol, editing, draftOf, onCell,
 }: {
-  sec: { key: string; icon: string; name: string; rows: { key: string; name: string; get: (s: never) => number }[]; total: { name: string; get: (s: never) => number }; accent?: string };
+  sec: { key: string; icon: string; name: string; rows: { key: string; name: string; field: Field; get: (s: never) => number }[]; total: { name: string; get: (s: never) => number }; accent?: string };
   cols: Snap[]; open: boolean; onToggle: () => void; fmt: (n: number) => string; stickyCol: string;
+  editing: boolean;
+  draftOf: (s: Snap, f: Field) => string | undefined;
+  onCell: (s: Snap, f: Field, v: string) => void;
 }) {
   const totalColor = sec.accent ?? 'var(--ink)';
   return (
@@ -659,9 +854,25 @@ function SectionRows({
       {open && sec.rows.map((row) => (
         <tr key={row.key} className="border-t border-[var(--border-faint)]">
           <td className={`p-2 ps-7 text-[var(--ink-2)] ${stickyCol}`}>{row.name}</td>
-          {cols.map((s) => (
-            <td key={`${s.year}-${s.month}`} className="p-2 text-end text-[var(--ink-2)]">{fmt(row.get(s as never))}</td>
-          ))}
+          {cols.map((s) => {
+            if (!editing) {
+              return <td key={`${s.year}-${s.month}`} className="p-2 text-end text-[var(--ink-2)]">{fmt(row.get(s as never))}</td>;
+            }
+            const draft = draftOf(s, row.field);
+            return (
+              <td key={`${s.year}-${s.month}`} className="px-1.5 py-1 text-end">
+                <input
+                  value={draft ?? String(Math.round(row.get(s as never)))}
+                  onChange={(e) => onCell(s, row.field, e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  inputMode="decimal"
+                  dir="ltr"
+                  aria-label={`${row.name} ${s.month}/${s.year}`}
+                  className={`w-[92px] bg-[var(--surface-0)] border rounded-md px-1.5 py-1 text-[11px] text-end text-[var(--ink)] outline-none focus:border-[var(--green)] ${draft !== undefined ? 'border-[var(--gold)]' : 'border-[var(--border-faint)]'}`}
+                />
+              </td>
+            );
+          })}
         </tr>
       ))}
     </>
