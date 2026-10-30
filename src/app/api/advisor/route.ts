@@ -125,7 +125,7 @@ ${toolCatalog}
 Example: "سجّل شهرك في [السِّجل](/log)" or "check your [ratios](/ratios)". Use 1-3 links max per reply, only paths from the catalog.
 
 3. POINTING. You can point AT a specific tile, not just at a page: append ?spot=<id> to a link and when the user arrives, that tile is ringed in gold with everything else dimmed. Tiles you can point at on /log:
-integrations · log · income · spending · portfolio · ownership · other-assets · liabilities · credit-score
+integrations · summary (vital signs + chart) · log (the full table) · income · spending · portfolio · ownership · other-assets · liabilities · credit-score (each ledger opens from the drawer when pointed at)
 Example: "مصروفك ارتفع الشهرين الأخيرين — [انظر بند المصروف](/log?spot=spending)" or "your liabilities line drives this — [look at it](/log?spot=liabilities)". Point when you are discussing ONE line of their record; link the plain page when discussing it whole.
 
 Guidelines:

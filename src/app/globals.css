@@ -365,6 +365,26 @@ body {
   left: 1.25rem;
 }
 
+/* ── the ledger drawer (LogDrawer): the chosen ledger drops open, and the
+   tile inside sheds its own card frame so it reads as the drawer's
+   contents, not a card nested in a card ── */
+@keyframes mmDrawerIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: none; }
+}
+.mm-drawer-panel { animation: mmDrawerIn 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.mm-drawer-panel > div {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin-bottom: 0 !important;
+  box-shadow: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm-drawer-panel { animation: none; }
+}
+
 /* ── the Brain's pointing finger (BrainSpotlight) ──
    the ring lands with a small settle, then its gold border breathes;
    the dim shadow stays put on the ring div's inline style */

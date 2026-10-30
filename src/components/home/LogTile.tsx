@@ -30,7 +30,13 @@ const FIELDS: Field[] = ['cash', 'stocks', 'equity', 'real_estate', 'other_asset
 const mkey = (s: { year: number; month: number }) => `${s.year}-${s.month}`;
 const parseNum = (v: string) => Number(v.replace(/[^\d.-]/g, '')) || 0;
 
-export default function LogTile() {
+// Two tiles from one record, so an edit in the Log redraws the Summary:
+//   Summary — the vital signs, the backfill room, and the chart
+//   The Log — why the record matters, the full table (hidden until
+//             asked for, editable in place), and the ledgers drawer
+// `between` renders between the two (the page's flow connector);
+// `drawer` closes the Log tile.
+export default function LogTile({ between, drawer }: { between?: React.ReactNode; drawer?: React.ReactNode }) {
   const supabase = createClient();
   const { locale } = useLocale();
   const ar = locale === 'ar';
@@ -38,10 +44,11 @@ export default function LogTile() {
   const [snaps, setSnaps] = useState<Snap[] | null>(null);
   const [age, setAge] = useState<number | null>(null);
   const [careerStart, setCareerStart] = useState<number | null>(null);
-  const [srcOpen, setSrcOpen] = useState(false);
   const [backfillOpen, setBackfillOpen] = useState(false);
-  // the grid opens folded to its totals — calm first, detail on request
-  const [open, setOpen] = useState<Record<string, boolean>>({ assets: false, liab: false, flow: false });
+  // the table (tableShown, declared with the grid ref below) stays hidden
+  // until asked for — calm first, detail on request; once revealed, every
+  // section opens (each can still fold)
+  const [open, setOpen] = useState<Record<string, boolean>>({ assets: true, liab: true, flow: true });
   // chart controls: which lines are on, how far back, and at what grain
   const [lines, setLines] = useState<Record<string, boolean>>({ nw: true, income: true, expenses: true });
   const [range, setRange] = useState<6 | 12 | 24 | 0>(12); // 0 = all
@@ -85,10 +92,11 @@ export default function LogTile() {
 
   // the grid opens scrolled to its freshest month
   const gridRef = useRef<HTMLDivElement>(null);
+  const [tableShown, setTableShown] = useState(false);
   useEffect(() => {
     const el = gridRef.current;
     if (el) el.scrollLeft = ar ? -el.scrollWidth : el.scrollWidth;
-  }, [snaps, editing, ar]);
+  }, [snaps, editing, ar, tableShown]);
 
   // A backfilled year lands straight into local state too, so the life
   // bar and every chart tick up the moment a row saves.
@@ -114,9 +122,11 @@ export default function LogTile() {
     );
   }
 
+  // no months yet: no summary to draw — the Log tile invites the first
+  // month, and the ledgers drawer still works below it
   if (snaps.length === 0) {
     return (
-      <div className="drv-num bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-8">
+      <div data-spot="log" className="drv-num bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-6 mb-8">
         <div className="font-serif text-lg font-semibold text-[var(--ink)] mb-1">📒 {L('السِّجل', 'The Log')}</div>
         <p className="text-xs text-[var(--muted)] leading-relaxed mb-3">
           {L('سيظهر هنا جدول أرقامك كاملاً — شهراً بجانب شهر — بعد أول تسجيل.', 'Your full table of numbers — month beside month — appears here after your first log.')}
@@ -124,6 +134,7 @@ export default function LogTile() {
         <Link href="/financial-numbers" className="text-xs font-semibold text-white bg-[var(--green-dark)] rounded-lg px-4 py-2 inline-block">
           {L('سجّل شهرك الأول ←', 'Log your first month →')}
         </Link>
+        {drawer}
       </div>
     );
   }
@@ -261,89 +272,12 @@ export default function LogTile() {
   const stickyCol = 'sticky start-0 bg-[var(--surface-card)] text-start whitespace-nowrap';
 
   return (
-    <div className="drv-num bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 sm:p-6 mb-8">
-      <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-        <div className="font-serif text-lg font-semibold text-[var(--ink)]">📒 {L('السِّجل', 'The Log')}</div>
-        {/* editing happens right here in the grid; bulk imports and
-            connections sit behind the secondary menu */}
-        <div className="relative flex items-center gap-2">
-          {!editing && (
-            <button
-              onClick={() => { setEditing(true); setSrcOpen(false); setFlash(null); }}
-              className="text-[11px] font-semibold text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5 cursor-pointer"
-            >
-              ✏️ {L('عدّل الأرقام هنا', 'Edit numbers here')}
-            </button>
-          )}
-          <button
-            onClick={() => setSrcOpen((v) => !v)}
-            className="text-[11px] font-semibold text-[var(--green-dark)] border border-[var(--green-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--green-bg)] cursor-pointer"
-            aria-expanded={srcOpen}
-          >
-            {L('استيراد وربط', 'Import & connect')} {srcOpen ? '▴' : '▾'}
-          </button>
-          {srcOpen && (
-            <div className="absolute end-0 top-full mt-2 z-20 w-72 bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-lg p-2 flex flex-col gap-1">
-              {([
-                {
-                  icon: '📄', live: true, href: '/financial-numbers',
-                  name: L('اسحب جدولك', 'Drop your spreadsheet'),
-                  sub: L('CSV/Excel يُحلَّل ويُقرأ بذكاء', 'CSV/Excel, smartly parsed'),
-                },
-                {
-                  icon: '🏦', live: false,
-                  name: L('واجهات البنوك', 'Bank APIs'),
-                  sub: L('ربط مباشر بحساباتك — قادم', 'Direct account linking — coming'),
-                },
-                {
-                  icon: '🔗', live: true, href: '/financial-numbers',
-                  name: L('Google و Microsoft', 'Google & Microsoft'),
-                  sub: L('Google Sheets الآن · Excel 365 قادم', 'Google Sheets now · Excel 365 coming'),
-                },
-                {
-                  icon: '🗂', live: true, href: '/financial-numbers',
-                  name: L('المحرّر الكامل', 'The full editor'),
-                  sub: L('كل الأشهر والتفاصيل في صفحة «أرقامي المالية»', 'Every month and detail, in My Financial Numbers'),
-                },
-              ] as { icon: string; live: boolean; href?: string; name: string; sub: string }[]).map((src) =>
-                src.live && src.href ? (
-                  <Link
-                    key={src.name}
-                    href={src.href}
-                    className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 hover:bg-[var(--surface-1)] transition-colors"
-                  >
-                    <span className="text-base leading-none">{src.icon}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[11px] font-semibold text-[var(--ink)] group-hover:text-[var(--green-dark)] transition-colors">{src.name}</span>
-                      <span className="block text-[9px] text-[var(--muted)]">{src.sub}</span>
-                    </span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] shrink-0" title={L('متاح الآن', 'Available now')} />
-                  </Link>
-                ) : (
-                  <div
-                    key={src.name}
-                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 opacity-70"
-                  >
-                    <span className="text-base leading-none">{src.icon}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[11px] font-semibold text-[var(--ink-2)]">{src.name}</span>
-                      <span className="block text-[9px] text-[var(--muted)]">{src.sub}</span>
-                    </span>
-                    <span className="text-[8px] rounded-full border border-[var(--border-default)] text-[var(--muted)] px-1.5 py-0.5 shrink-0">
-                      {L('قريباً', 'Soon')}
-                    </span>
-                  </div>
-                )
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+    <>
+    {/* ══ tile ② — the Summary: how far the record reaches, and the chart ══ */}
+    <div data-spot="summary" className="drv-num bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 sm:p-6 mb-8">
+      <div className="font-serif text-lg font-semibold text-[var(--ink)] mb-1">📊 {L('الملخّص', 'Summary')}</div>
       <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-4">
-        {L(
-          `كل أرقامك في جدول واحد — آخر ${Math.min(SHOWN, snaps.length)} شهراً بترتيبها الزمني، والأحدث في الطرف. يبدأ مطوياً إلى مجاميعه؛ اضغط أي قسم لفتح تفاصيله.`,
-          `All your numbers on one grid — the last ${Math.min(SHOWN, snaps.length)} months in time order, freshest at the far end. It rests folded to its totals; click any section to open its detail.`
-        )}
+        {L('إلى أين يمتدّ سِجلّك، وكيف تتحرّك أرقامك عبر الزمن.', 'How far your record reaches, and how your numbers move across time.')}
       </p>
 
       {/* ── the Log's vital signs: how much of your life this record
@@ -409,7 +343,76 @@ export default function LogTile() {
       )}
 
       {/* the chart leads; the cells follow below */}
-      <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} custom={custom} setCustom={setCustom} ar={ar} />
+      {/* the chart closes the Summary — no divider under it */}
+      <div className="[&>div]:mb-0 [&>div]:pb-0 [&>div]:border-b-0">
+        <LogChart snaps={snaps} lines={lines} setLines={setLines} range={range} setRange={setRange} gran={gran} setGran={setGran} custom={custom} setCustom={setCustom} ar={ar} />
+      </div>
+    </div>
+
+    {between}
+
+    {/* ══ tile ③ — the Log: the record itself, then every ledger ══ */}
+    <div data-spot="log" className="drv-num bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 sm:p-6 mb-8">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+        <div className="font-serif text-lg font-semibold text-[var(--ink)]">📒 {L('السِّجل', 'The Log')}</div>
+        {!editing && (
+          <button
+            onClick={() => { setEditing(true); setTableShown(true); setFlash(null); }}
+            className="text-[11px] font-semibold text-white bg-[var(--green-dark)] rounded-lg px-3 py-1.5 cursor-pointer"
+          >
+            ✏️ {L('عدّل الأرقام هنا', 'Edit numbers here')}
+          </button>
+        )}
+      </div>
+      <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-4">
+        {L(
+          `كل أرقامك في جدول واحد — آخر ${Math.min(SHOWN, snaps.length)} شهراً بترتيبها الزمني، والأحدث في الطرف — وتحته دفتر لكل جانب من حياتك المالية.`,
+          `All your numbers on one grid — the last ${Math.min(SHOWN, snaps.length)} months in time order, freshest at the far end — and beneath it, a ledger for every corner of your financial life.`
+        )}
+      </p>
+
+      {/* ── why this record matters — and the door to the full table,
+             which stays hidden until asked for ── */}
+      {!editing && (
+        <div className="rounded-xl border border-[var(--green-border)] bg-[var(--green-bg)]/40 p-4 mb-3">
+          <div className="text-[13px] font-semibold text-[var(--ink)] mb-1">
+            {L('حياتك المالية كلها — في سِجلّ واحد', 'Your whole financial life — in one record')}
+          </div>
+          <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-3">
+            {L(
+              'ما يملكه بنكك ووسيطك وتطبيق أقساطك وجداولك، مجموعاً هنا شهراً بجانب شهر. الجدول الكامل محفوظ تحت يدك، يظهر متى احتجته.',
+              'What your bank, your broker, your installment app and your spreadsheets each hold — gathered here, month beside month. The full table is kept at hand, and appears whenever you need it.'
+            )}
+          </p>
+          {!tableShown && (
+            <div className="grid sm:grid-cols-3 gap-2 mb-3">
+              {([
+                ['🧭', L('مكانٌ واحد', 'One place'), L('لا تبحث في خمسة تطبيقات لتعرف أين تقف.', 'No more five apps to learn where you stand.')],
+                ['🔗', L('يُدخَل مرة، وتقرؤه كل أداة', 'Entered once, read everywhere'), L('كل رقم هنا يغذّي الأدوات الـ٣٧ والعقل تلقائياً.', 'Every number here feeds all 37 tools and the Brain automatically.')],
+                ['📈', L('تاريخك يتراكم لك', 'A history that compounds'), L('كل شهر تسجّله يجعل قراءات المنتج أدق.', 'Every month you log makes every reading sharper.')],
+              ] as [string, string, string][]).map(([icon, title, sub]) => (
+                <div key={title} className="rounded-lg bg-[var(--surface-card)] border border-[var(--border-faint)] px-3 py-2.5">
+                  <div className="text-[11px] font-semibold text-[var(--ink)]">{icon} {title}</div>
+                  <div className="text-[10px] text-[var(--muted)] leading-relaxed mt-0.5">{sub}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => setTableShown((v) => !v)}
+            aria-expanded={tableShown}
+            className={`w-full text-[11px] font-semibold rounded-lg py-2 cursor-pointer ${
+              tableShown
+                ? 'text-[var(--green-dark)] border border-dashed border-[var(--green-border)] hover:bg-[var(--green-bg)]/50'
+                : 'text-white bg-[var(--green-dark)]'
+            }`}
+          >
+            {tableShown
+              ? L('▴ أخفِ الجدول', '▴ Hide the table')
+              : L(`▾ اعرض الجدول الكامل — ${Math.min(SHOWN, snaps.length)} شهراً، كل بند`, `▾ Show the full table — ${Math.min(SHOWN, snaps.length)} months, every line`)}
+          </button>
+        </div>
+      )}
 
       {/* ── the edit bar: open/add any month, then save once ── */}
       {editing && (
@@ -449,7 +452,8 @@ export default function LogTile() {
         <p className={`text-[11px] font-semibold mb-2 ${flash.ok ? 'text-[var(--green-dark)]' : 'text-[var(--red-2)]'}`}>{flash.text}</p>
       )}
 
-      <div ref={gridRef} className={`overflow-x-auto rounded-lg border ${editing ? 'border-[var(--gold)]' : 'border-[var(--border-faint)]'}`}>
+      {tableShown && (<>
+      <div ref={gridRef} className={`mm-drawer-panel overflow-x-auto rounded-lg border ${editing ? 'border-[var(--gold)]' : 'border-[var(--border-faint)]'}`}>
         <table className="w-full text-[11px] border-collapse min-w-[560px]" style={{ fontVariantNumeric: 'tabular-nums' }}>
           <thead>
             <tr className="border-b-2 border-[var(--border-default)]">
@@ -507,58 +511,13 @@ export default function LogTile() {
           </tbody>
         </table>
       </div>
-      {/* the grid rests at its totals — and while it's folded, it says
-          why this one record is worth keeping, then invites the unfold */}
-      {!editing && (() => {
-        const anyOpen = Object.values(open).some(Boolean);
-        const hidden = SECTIONS.filter((s) => !open[s.key]).reduce((a, s) => a + s.rows.length, 0);
-        const toggle = () => setOpen(anyOpen ? { assets: false, liab: false, flow: false } : { assets: true, liab: true, flow: true });
-        if (anyOpen) {
-          return (
-            <button
-              onClick={toggle}
-              className="w-full mt-2 text-[11px] font-semibold text-[var(--green-dark)] border border-dashed border-[var(--green-border)] rounded-lg py-2 hover:bg-[var(--green-bg)]/50 transition-colors cursor-pointer"
-            >
-              {L('▴ اطوِ الجدول إلى مجاميعه', '▴ Fold back to the totals')}
-            </button>
-          );
-        }
-        return (
-          <div className="mt-3 rounded-xl border border-[var(--green-border)] bg-[var(--green-bg)]/40 p-4">
-            <div className="text-[13px] font-semibold text-[var(--ink)] mb-1">
-              {L('حياتك المالية كلها — في سِجلّ واحد', 'Your whole financial life — in one record')}
-            </div>
-            <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-3">
-              {L(
-                'ما يملكه بنكك ووسيطك وتطبيق أقساطك وجداولك، مجموعاً هنا شهراً بجانب شهر. نطويه لك إلى ما يهم، والتفاصيل كاملة تحت يدك متى احتجتها.',
-                'What your bank, your broker, your installment app and your spreadsheets each hold — gathered here, month beside month. We fold it to what matters; every detail is one tap away when you need it.'
-              )}
-            </p>
-            <div className="grid sm:grid-cols-3 gap-2 mb-3">
-              {([
-                ['🧭', L('مكانٌ واحد', 'One place'), L('لا تبحث في خمسة تطبيقات لتعرف أين تقف.', 'No more five apps to learn where you stand.')],
-                ['🔗', L('يُدخَل مرة، وتقرؤه كل أداة', 'Entered once, read everywhere'), L('كل رقم هنا يغذّي الأدوات الـ٣٧ والعقل تلقائياً.', 'Every number here feeds all 37 tools and the Brain automatically.')],
-                ['📈', L('تاريخك يتراكم لك', 'A history that compounds'), L('كل شهر تسجّله يجعل قراءات المنتج أدق.', 'Every month you log makes every reading sharper.')],
-              ] as [string, string, string][]).map(([icon, title, sub]) => (
-                <div key={title} className="rounded-lg bg-[var(--surface-card)] border border-[var(--border-faint)] px-3 py-2.5">
-                  <div className="text-[11px] font-semibold text-[var(--ink)]">{icon} {title}</div>
-                  <div className="text-[10px] text-[var(--muted)] leading-relaxed mt-0.5">{sub}</div>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={toggle}
-              className="w-full text-[11px] font-semibold text-white bg-[var(--green-dark)] rounded-lg py-2 cursor-pointer"
-            >
-              {L(`▾ افتح التفاصيل خلف هذه المجاميع — ${hidden} بنود`, `▾ Open the detail behind these totals — ${hidden} more lines`)}
-            </button>
-          </div>
-        );
-      })()}
       <p className="text-[10px] text-[var(--muted)] mt-2">
         {L('القيم بالريال السعودي. تفاصيل الأصول المفردة في المحفظة، وتفاصيل كل دين في الالتزامات.', 'Values in SAR. Individual asset detail lives in Holdings; per-debt detail in Commitments.')}
       </p>
+      </>)}
+      {drawer}
     </div>
+    </>
   );
 }
 
