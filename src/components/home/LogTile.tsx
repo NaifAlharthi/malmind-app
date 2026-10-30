@@ -40,7 +40,8 @@ export default function LogTile() {
   const [careerStart, setCareerStart] = useState<number | null>(null);
   const [srcOpen, setSrcOpen] = useState(false);
   const [backfillOpen, setBackfillOpen] = useState(false);
-  const [open, setOpen] = useState<Record<string, boolean>>({ assets: true, liab: true, flow: true });
+  // the grid opens folded to its totals — calm first, detail on request
+  const [open, setOpen] = useState<Record<string, boolean>>({ assets: false, liab: false, flow: false });
   // chart controls: which lines are on, how far back, and at what grain
   const [lines, setLines] = useState<Record<string, boolean>>({ nw: true, income: true, expenses: true });
   const [range, setRange] = useState<6 | 12 | 24 | 0>(12); // 0 = all
@@ -340,8 +341,8 @@ export default function LogTile() {
       </div>
       <p className="text-[11px] text-[var(--muted)] leading-relaxed mb-4">
         {L(
-          `كل أرقامك في جدول واحد — آخر ${Math.min(SHOWN, snaps.length)} شهراً بترتيبها الزمني، والأحدث في الطرف. اضغط رأس القسم لطيّه إلى مجموعه.`,
-          `All your numbers on one grid — the last ${Math.min(SHOWN, snaps.length)} months in time order, freshest at the far end. Click a section header to fold it into its total.`
+          `كل أرقامك في جدول واحد — آخر ${Math.min(SHOWN, snaps.length)} شهراً بترتيبها الزمني، والأحدث في الطرف. يبدأ مطوياً إلى مجاميعه؛ اضغط أي قسم لفتح تفاصيله.`,
+          `All your numbers on one grid — the last ${Math.min(SHOWN, snaps.length)} months in time order, freshest at the far end. It rests folded to its totals; click any section to open its detail.`
         )}
       </p>
 
@@ -506,6 +507,54 @@ export default function LogTile() {
           </tbody>
         </table>
       </div>
+      {/* the grid rests at its totals — and while it's folded, it says
+          why this one record is worth keeping, then invites the unfold */}
+      {!editing && (() => {
+        const anyOpen = Object.values(open).some(Boolean);
+        const hidden = SECTIONS.filter((s) => !open[s.key]).reduce((a, s) => a + s.rows.length, 0);
+        const toggle = () => setOpen(anyOpen ? { assets: false, liab: false, flow: false } : { assets: true, liab: true, flow: true });
+        if (anyOpen) {
+          return (
+            <button
+              onClick={toggle}
+              className="w-full mt-2 text-[11px] font-semibold text-[var(--green-dark)] border border-dashed border-[var(--green-border)] rounded-lg py-2 hover:bg-[var(--green-bg)]/50 transition-colors cursor-pointer"
+            >
+              {L('▴ اطوِ الجدول إلى مجاميعه', '▴ Fold back to the totals')}
+            </button>
+          );
+        }
+        return (
+          <div className="mt-3 rounded-xl border border-[var(--green-border)] bg-[var(--green-bg)]/40 p-4">
+            <div className="text-[13px] font-semibold text-[var(--ink)] mb-1">
+              {L('حياتك المالية كلها — في سِجلّ واحد', 'Your whole financial life — in one record')}
+            </div>
+            <p className="text-[11px] text-[var(--ink-2)] leading-relaxed mb-3">
+              {L(
+                'ما يملكه بنكك ووسيطك وتطبيق أقساطك وجداولك، مجموعاً هنا شهراً بجانب شهر. نطويه لك إلى ما يهم، والتفاصيل كاملة تحت يدك متى احتجتها.',
+                'What your bank, your broker, your installment app and your spreadsheets each hold — gathered here, month beside month. We fold it to what matters; every detail is one tap away when you need it.'
+              )}
+            </p>
+            <div className="grid sm:grid-cols-3 gap-2 mb-3">
+              {([
+                ['🧭', L('مكانٌ واحد', 'One place'), L('لا تبحث في خمسة تطبيقات لتعرف أين تقف.', 'No more five apps to learn where you stand.')],
+                ['🔗', L('يُدخَل مرة، وتقرؤه كل أداة', 'Entered once, read everywhere'), L('كل رقم هنا يغذّي الأدوات الـ٣٧ والعقل تلقائياً.', 'Every number here feeds all 37 tools and the Brain automatically.')],
+                ['📈', L('تاريخك يتراكم لك', 'A history that compounds'), L('كل شهر تسجّله يجعل قراءات المنتج أدق.', 'Every month you log makes every reading sharper.')],
+              ] as [string, string, string][]).map(([icon, title, sub]) => (
+                <div key={title} className="rounded-lg bg-[var(--surface-card)] border border-[var(--border-faint)] px-3 py-2.5">
+                  <div className="text-[11px] font-semibold text-[var(--ink)]">{icon} {title}</div>
+                  <div className="text-[10px] text-[var(--muted)] leading-relaxed mt-0.5">{sub}</div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={toggle}
+              className="w-full text-[11px] font-semibold text-white bg-[var(--green-dark)] rounded-lg py-2 cursor-pointer"
+            >
+              {L(`▾ افتح التفاصيل خلف هذه المجاميع — ${hidden} بنود`, `▾ Open the detail behind these totals — ${hidden} more lines`)}
+            </button>
+          </div>
+        );
+      })()}
       <p className="text-[10px] text-[var(--muted)] mt-2">
         {L('القيم بالريال السعودي. تفاصيل الأصول المفردة في المحفظة، وتفاصيل كل دين في الالتزامات.', 'Values in SAR. Individual asset detail lives in Holdings; per-debt detail in Commitments.')}
       </p>
