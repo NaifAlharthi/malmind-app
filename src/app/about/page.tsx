@@ -141,6 +141,14 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* analytics disclosure (PDPL: users are told what is measured) */}
+          <p className="text-[10px] text-[var(--muted)] leading-relaxed mt-3 max-w-2xl">
+            {L(
+              '🔍 لتحسين المنتج نستخدم Microsoft Clarity لقياس كيف تُستخدم الصفحات (النقرات والتمرير) بشكل مجهول الهوية — وتبقى أرقامك المالية ونصوصك مخفية عنه دائماً.',
+              '🔍 To improve the product we use Microsoft Clarity to measure, anonymously, how pages are used (clicks and scrolling) — your financial numbers and text are always hidden from it.'
+            )}
+          </p>
+
         </div>
       </div>
 
