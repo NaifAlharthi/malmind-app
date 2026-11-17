@@ -51,6 +51,10 @@ export default function HajisOpener() {
   const [howTools, setHowTools] = useState<string[]>([]);
   const [howNote, setHowNote] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
+  // choosing is a draft: chips toggle, Continue commits. `editing` reopens
+  // the list from the tracking view with the current picks preselected.
+  const [draft, setDraft] = useState<string[]>([]);
+  const [editing, setEditing] = useState(false);
   // the sigh: options float away like a released breath, then a wave
   // of relief washes over the cleared room
   const [sighing, setSighing] = useState(false);
@@ -84,12 +88,23 @@ export default function HajisOpener() {
     try { window.localStorage.setItem('mm-concern', JSON.stringify(c)); } catch { /* ignore */ }
     setConcern(c);
   };
-  const pick = (k: string) => {
-    const types = concern.types.includes(k) ? concern.types : [...concern.types, k].slice(0, 3);
-    // stamp the day the work on this concern began
-    const startedAt = { ...(concern.startedAt ?? {}) };
-    if (!startedAt[k]) startedAt[k] = new Date().toISOString();
-    saveConcern({ types, text: concern.text, none: false, startedAt });
+  const MAX_PICKS = 3;
+  const toggleDraft = (k: string) =>
+    setDraft((d) => (d.includes(k) ? d.filter((x) => x !== k) : d.length >= MAX_PICKS ? d : [...d, k]));
+  // commit the draft: kept concerns keep the day their work began, new
+  // ones are stamped today, dropped ones simply leave (a change of mind,
+  // not a resolution — they never reach the trophy shelf)
+  const commitDraft = () => {
+    if (draft.length === 0) return;
+    const prev = concern.startedAt ?? {};
+    const startedAt: Record<string, string> = {};
+    for (const k of draft) startedAt[k] = prev[k] ?? new Date().toISOString();
+    saveConcern({ types: draft, text: concern.text, none: false, startedAt });
+    setEditing(false);
+  };
+  const openPicker = () => {
+    setDraft(concern.types);
+    setEditing(true);
   };
   const chooseNone = () => {
     // let the options drift away first — THEN the room clears
@@ -97,6 +112,8 @@ export default function HajisOpener() {
     window.setTimeout(() => {
       saveConcern({ types: [], text: '', none: true, startedAt: concern.startedAt });
       setSighing(false);
+      setEditing(false);
+      setDraft([]);
       breatheOut();
     }, 750);
   };
@@ -194,8 +211,18 @@ export default function HajisOpener() {
           </div>
         )}
 
-        {hasAny ? (
+        {hasAny && !editing ? (
           <>
+            {/* the way back to the full list — picked by accident, or a
+                change of mind */}
+            <div className="flex justify-start mb-3">
+              <button
+                onClick={openPicker}
+                className="text-[11px] font-semibold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-3 py-1 transition-colors cursor-pointer"
+              >
+                {L('→ كل الهواجس — غيّر أو أضف', '← All concerns — change or add')}
+              </button>
+            </div>
             <div className="text-[11px] tracking-[0.16em] uppercase text-[var(--gold)] font-semibold mb-3 text-center">
               {L('هواجسك قيد المعالجة — واحداً بعد الآخر', 'Your concerns, being tackled — one after the other')}
             </div>
@@ -231,7 +258,7 @@ export default function HajisOpener() {
               </button>
             </div>
           </>
-        ) : concern.none ? (
+        ) : concern.none && !editing ? (
           <>
             <div className="text-[11px] tracking-[0.16em] uppercase text-[var(--gold)] font-semibold mb-3 text-center">
               {L('صافي البال', 'Clear-minded')}
@@ -251,7 +278,7 @@ export default function HajisOpener() {
             {/* the one quiet way back, should a season change */}
             <div className="text-center mt-4">
               <button
-                onClick={() => saveConcern({ types: [], text: '', none: false, startedAt: concern.startedAt })}
+                onClick={openPicker}
                 className="text-[11px] text-white/40 hover:text-white/75 underline underline-offset-4 transition-colors cursor-pointer"
               >
                 {L('طرأ هاجس؟ اختره', 'A concern came up? Pick it')}
@@ -260,30 +287,71 @@ export default function HajisOpener() {
           </>
         ) : (
           <>
+            {/* reopened from the tracking view: leave without changes */}
+            {editing && (
+              <div className="flex justify-start mb-3">
+                <button
+                  onClick={() => { setEditing(false); setDraft([]); }}
+                  className="text-[11px] font-semibold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-3 py-1 transition-colors cursor-pointer"
+                >
+                  {L('→ رجوع دون تغيير', '← Back without changes')}
+                </button>
+              </div>
+            )}
             <div className="text-[11px] tracking-[0.16em] uppercase text-[var(--gold)] font-semibold mb-3 text-center">
               {L('قبل الأرقام', 'Before the numbers')}
             </div>
-            <div className="font-serif text-2xl sm:text-4xl font-bold leading-snug text-center mb-6">
-              {L('ما أكبر هاجس يشغل بالك هذه الأيام؟', "What's the biggest thing on your mind these days?")}
+            <div className="font-serif text-2xl sm:text-4xl font-bold leading-snug text-center mb-2">
+              {L('ما الذي يشغل بالك هذه الأيام؟', "What's on your mind these days?")}
             </div>
-            {/* choose here, directly — up to three. When "nothing" is
-                chosen they all drift away like a released breath */}
-            <div className={`flex flex-wrap justify-center gap-2 mb-4 ${sighing ? 'mm-sigh-away pointer-events-none' : ''}`}>
-              {HAJIS_TYPES_LITE.slice(0, 8).map((c) => (
-                <button key={c.k} onClick={() => pick(c.k)} className="inline-flex items-center gap-1.5 text-xs border border-white/25 rounded-full px-3.5 py-2 text-white/90 hover:border-[var(--gold)]/60 hover:text-white transition-colors cursor-pointer">
-                  <span>{c.icon}</span><span>{ar ? c.ar : c.en}</span>
-                </button>
-              ))}
+            <p className="text-center text-[12px] text-white/60 mb-5">
+              {L(`اختر هاجساً أو أكثر — حتى ${MAX_PICKS}`, `Pick one or more — up to ${MAX_PICKS}`)}
+            </p>
+            {/* chips toggle; Continue commits. When "nothing" is chosen
+                they all drift away like a released breath */}
+            <div className={`flex flex-wrap justify-center gap-2 mb-5 ${sighing ? 'mm-sigh-away pointer-events-none' : ''}`}>
+              {HAJIS_TYPES_LITE.slice(0, 8).map((c) => {
+                const on = draft.includes(c.k);
+                const full = !on && draft.length >= MAX_PICKS;
+                return (
+                  <button
+                    key={c.k}
+                    onClick={() => toggleDraft(c.k)}
+                    disabled={full}
+                    aria-pressed={on}
+                    className={`inline-flex items-center gap-1.5 text-xs rounded-full px-3.5 py-2 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-35 ${
+                      on
+                        ? 'border border-[var(--gold)] bg-[var(--gold)]/20 text-white font-semibold'
+                        : 'border border-white/25 text-white/90 hover:border-[var(--gold)]/60 hover:text-white'
+                    }`}
+                  >
+                    {on && <span className="text-[var(--gold)]">✓</span>}
+                    <span>{c.icon}</span><span>{ar ? c.ar : c.en}</span>
+                  </button>
+                );
+              })}
             </div>
-            {/* no concern is a valid answer */}
-            <div className="text-center mb-7">
+            <div className="text-center mb-4">
+              <button
+                onClick={commitDraft}
+                disabled={draft.length === 0}
+                className="inline-block text-sm font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-xl px-6 py-3 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {draft.length === 0
+                  ? L('اختر هاجساً للمتابعة', 'Pick a concern to continue')
+                  : L(
+                      `تابِع ${draft.length === 1 ? 'بهاجس واحد' : draft.length === 2 ? 'بهاجسين' : `بـ${draft.length} هواجس`} ←`,
+                      `Continue with ${draft.length} ${draft.length === 1 ? 'concern' : 'concerns'} →`
+                    )}
+              </button>
+            </div>
+            {/* no concern is a valid answer; words beat chips for some */}
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
               <button onClick={chooseNone} className="text-[11px] text-white/50 hover:text-white/80 underline underline-offset-4 transition-colors cursor-pointer">
                 {L('لا شيء كبير يشغلني حالياً', 'Nothing major on my mind right now')}
               </button>
-            </div>
-            <div className="text-center">
-              <button onClick={goToday} className="inline-block text-sm font-semibold text-[#2A1F05] bg-[var(--gold)] rounded-xl px-6 py-3 hover:translate-x-0.5 transition-transform cursor-pointer">
-                {L('أو أخبرنا بكلماتك في «اليوم» ←', 'Or tell us in your own words in Today →')}
+              <button onClick={goToday} className="text-[11px] text-white/50 hover:text-white/80 underline underline-offset-4 transition-colors cursor-pointer">
+                {L('أو أخبرنا بكلماتك في «اليوم»', 'Or tell us in your own words in Today')}
               </button>
             </div>
           </>
