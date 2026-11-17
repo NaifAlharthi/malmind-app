@@ -50,6 +50,24 @@ const LOCALE_INIT_SCRIPT = `
 })();
 `;
 
+// Microsoft Clarity — heatmaps (click, scroll, mouse movement) and session
+// replays. Off unless NEXT_PUBLIC_CLARITY_ID is set; the id is validated
+// before it is inlined. Each session is tagged demo vs real and by
+// language so their heatmaps can be filtered apart. Financial numbers are
+// masked: AppShell marks the app's <main> with data-clarity-mask.
+const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID ?? '';
+const clarityScript = (id: string) => `
+(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${id}");
+try {
+  var demo = localStorage.getItem('mm-demo') === '1';
+  window.clarity('set', 'mode', demo ? 'demo' : 'real');
+  if (demo) window.clarity('set', 'persona', localStorage.getItem('mm-demo-persona') || 'unknown');
+  window.clarity('set', 'lang', localStorage.getItem('malmind-locale') || 'ar');
+} catch (e) {}
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -64,6 +82,11 @@ export default function RootLayout({
         <Script id="locale-init" strategy="beforeInteractive">
           {LOCALE_INIT_SCRIPT}
         </Script>
+        {/^[a-z0-9]{6,20}$/i.test(CLARITY_ID) && (
+          <Script id="clarity" strategy="lazyOnload">
+            {clarityScript(CLARITY_ID)}
+          </Script>
+        )}
         <ThemeProvider>
           <LocaleProvider>
             {/* web and mobile stay symmetrical — one product, both surfaces */}

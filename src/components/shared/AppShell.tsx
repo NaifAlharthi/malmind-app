@@ -454,7 +454,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* content clears the iceberg's lane on narrow widths (it floats in
             page-edge whitespace on lg+), so the rail never covers anything */}
-        <main className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-8 sm:pt-24 sm:ps-16 lg:ps-6 max-w-4xl mx-auto w-full">
+        {/* data-clarity-mask: heatmaps and replays keep the layout and
+            every click, but never the user's financial text or numbers */}
+        <main data-clarity-mask="True" className="flex-1 min-w-0 px-6 py-8 pb-24 sm:pb-8 sm:pt-24 sm:ps-16 lg:ps-6 max-w-4xl mx-auto w-full">
           <DepthStage>{children}</DepthStage>
         </main>
 
