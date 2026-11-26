@@ -67,6 +67,19 @@ export default function Welcome() {
           </T>
         </Animated.View>
 
+        {/* the showcase: the four problems, solved end to end */}
+        <Animated.View entering={enter(1)}>
+          <Press haptics="firm" onPress={() => router.push('/showcase')}>
+            <Card tone="gold" style={{ gap: 4, borderWidth: 1.5, borderColor: C.gold }}>
+              <Row gap={8}>
+                <Icon sf="play.circle.fill" emoji="▶" size={22} color={C.goldText} />
+                <T style={{ flex: 1, fontWeight: '800', color: C.goldText }}>{L('شاهد العقل يحلّ المشكلات الأربع', 'Watch the Brain solve the four problems')}</T>
+              </Row>
+              <Muted>{L('يقرأ، ويحلّل، ويقترح، وينفّذ — من البداية للنهاية، على بيانات أربع شخصيات.', 'It reads, analyses, proposes and acts — end to end, on four personas’ data.')}</Muted>
+            </Card>
+          </Press>
+        </Animated.View>
+
         {/* walk a ready-made life */}
         <View style={{ gap: 10 }}>
           <H2>{L('جرّب بحياة سعودية جاهزة', 'Try a ready-made Saudi life')}</H2>

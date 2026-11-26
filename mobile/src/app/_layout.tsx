@@ -53,6 +53,7 @@ function Routes() {
         />
         <Stack.Screen name="tool/volatility" options={pushed(L('التقلّب', 'Volatility'))} />
         <Stack.Screen name="tool/gosi" options={pushed(L('التأمينات', 'GOSI'))} />
+        <Stack.Screen name="showcase" options={{ ...pushed(L('العقل يعمل', 'The Brain at work')), headerLargeTitleEnabled: true }} />
       </Stack>
     </RouterDirection>
   );

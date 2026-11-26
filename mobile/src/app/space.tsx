@@ -69,6 +69,12 @@ export default function Space() {
       </Card>
 
       <Card style={{ gap: 8 }}>
+        <Heading icon="play.circle.fill" emoji="▶" color={C.goldText}>{L('العقل يعمل', 'The Brain at work')}</Heading>
+        <Muted>{L('المشكلات الأربع، محلولة من البداية للنهاية على بيانات أربع شخصيات.', 'The four problems, solved end to end on four personas’ data.')}</Muted>
+        <Button kind="gold" icon="play.fill" label={L('شغّل العرض', 'Play the showcase')} onPress={() => { router.back(); router.push('/showcase'); }} />
+      </Card>
+
+      <Card style={{ gap: 8 }}>
         <Heading icon="safari" emoji="🔗">malmind.ai</Heading>
         <Muted>{L('الأدوات الكاملة، والباقات، وعن مال مايند — على الموقع.', 'The full tools, the plans, and About MalMind — on the website.')}</Muted>
         <Button kind="secondary" label={L('افتح الموقع', 'Open the website')} icon="arrow.up.right" onPress={() => openWeb(SITE)} />

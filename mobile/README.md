@@ -35,7 +35,9 @@ the website for now.
 Pure modules are imported straight from `../src/lib` through the
 `@shared/*` alias (Metro watches that folder; see `metro.config.js`):
 `demoWorld`, `brainCompose` (the Brain's answers), `volatility`,
-`saudiReference`, `ledgerPresets`, `toolbox`, and `i18n/dictionaries`.
+`saudiReference`, `ledgerPresets`, `toolbox`, `showcase` (the four
+problems played end to end — also malmind.ai/showcase), and
+`i18n/dictionaries`.
 Keep those files free of web-only imports, and keep their own imports
 relative.
 

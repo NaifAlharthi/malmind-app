@@ -159,9 +159,18 @@ export default function AboutPage() {
           title={L('أربع مشكلات في المال الشخصي — وكيف نعالجها', 'Four problems in personal finance — and how we tackle them')}
         />
         <div className="grid sm:grid-cols-2 gap-3">
-          {PROBLEMS.map((p) => (
+          {PROBLEMS.map((p, i) => (
             <div key={p.problem} className="bg-[var(--surface-card)] border border-[var(--border-default)] rounded-2xl p-5 flex flex-col">
-              <div className="text-2xl mb-2">{p.icon}</div>
+              <div className="flex items-start justify-between mb-2">
+                <div className="text-2xl">{p.icon}</div>
+                {/* the problem, solved end to end by the Brain on a demo persona */}
+                <Link
+                  href={`/showcase?s=${['faisal', 'reem', 'layla', 'khalid'][i]}`}
+                  className="text-[11px] font-semibold text-[var(--green)] bg-[var(--green-bg)] border border-[var(--green-border)] rounded-full px-2.5 py-1 hover:opacity-80"
+                >
+                  ▶ {L('شاهده يُحلّ', 'Watch it solved')}
+                </Link>
+              </div>
               <div className="font-serif text-base font-semibold text-[var(--ink)] mb-1">{p.problem}</div>
               <p className="text-xs text-[var(--muted)] leading-relaxed mb-3">{p.desc}</p>
               <div className="mt-auto pt-3 border-t border-[var(--border-faint)]">

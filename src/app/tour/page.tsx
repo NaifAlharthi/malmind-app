@@ -88,6 +88,24 @@ export default function TourPage() {
         )}
       </p>
 
+      {/* ── the showcase: the four problems, solved end to end ── */}
+      <Link
+        href="/showcase"
+        className="mb-5 flex items-center gap-4 rounded-2xl border-2 border-[var(--gold)] bg-[var(--gold-bg)] p-4 sm:p-5 hover:opacity-90 transition-opacity"
+      >
+        <span className="text-3xl shrink-0">🧠</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[10px] tracking-[0.12em] uppercase text-[var(--gold)] font-semibold mb-0.5">{L('عرض حيّ', 'Showcase')}</span>
+          <span className="block font-serif text-lg font-semibold text-[var(--ink)] leading-snug">
+            {L('شاهد العقل يحلّ المشكلات الأربع — من البداية للنهاية', 'Watch the Brain solve the four problems — end to end')}
+          </span>
+          <span className="block text-xs text-[var(--ink-2)] mt-0.5">
+            {L('يقرأ، ويحلّل، ويقترح، وينفّذ — على بيانات أربع شخصيات.', 'It reads, analyses, proposes and acts — on four personas’ data.')}
+          </span>
+        </span>
+        <span className="text-sm font-semibold text-[var(--green)] shrink-0">▶</span>
+      </Link>
+
       {/* ── the 2D navigation system — a core feature, front and center ── */}
       <div className="mb-8 bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden">
         <div className="absolute -top-12 -end-12 w-44 h-44 rounded-full bg-[#5DCAA5]/15 blur-3xl pointer-events-none" />

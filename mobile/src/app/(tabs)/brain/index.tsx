@@ -4,6 +4,7 @@ import Animated, {
   ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Stack, router } from 'expo-router';
 
 import { Glass, HAS_GLASS } from '@/components/Glass';
 import { Icon } from '@/components/Icon';
@@ -85,6 +86,14 @@ export default function Brain() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
+      {/* the showcase: watch the Brain work four problems end to end */}
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <IconButton icon="play.circle" emoji="▶" label={L('شاهد العقل يعمل', 'Watch the Brain at work')} onPress={() => router.push('/showcase')} tint={C.goldText} bg="transparent" size={34} />
+          ),
+        }}
+      />
       <ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
