@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, Eyebrow, H2, Muted, Row, Segmented, T } from '@/components/ui';
+import { Icon } from '@/components/Icon';
+import { Button, Card, Eyebrow, H2, Muted, Press, Row, Segmented, T } from '@/components/ui';
 import { DEMO_PERSONAS } from '@shared/demoWorld';
 import { useLocale } from '@/lib/i18n';
-import { SITE } from '@/lib/links';
+import { haptic } from '@/lib/haptics';
+import { SITE, openWeb } from '@/lib/links';
+import { enter } from '@/lib/motion';
 import { useStore } from '@/lib/store';
 import { C, radius } from '@/lib/theme';
 
@@ -28,8 +31,8 @@ export default function Welcome() {
     setError(null);
     const err = await signIn(email, password);
     setBusy(false);
-    if (err) setError(err);
-    else router.replace('/home');
+    if (err) { haptic.error(); setError(err); }
+    else { haptic.success(); router.replace('/home'); }
   };
 
   const input = {
@@ -51,7 +54,7 @@ export default function Welcome() {
           />
         </Row>
 
-        <View style={{ gap: 10, paddingTop: 8 }}>
+        <Animated.View entering={enter(0)} style={{ gap: 10, paddingTop: 8 }}>
           <Eyebrow>{L('مال مايند', 'MALMIND')}</Eyebrow>
           <T style={{ fontSize: 32, fontWeight: '800', lineHeight: 42 }}>
             {L('طبقة تفكير لحياتك المالية', 'A thinking layer for your financial life')}
@@ -62,21 +65,22 @@ export default function Welcome() {
               'Every app holds one slice of your financial life — and none knows what the slices mean together. MalMind gathers them into one record, and answers from YOUR numbers.'
             )}
           </T>
-        </View>
+        </Animated.View>
 
         {/* walk a ready-made life */}
         <View style={{ gap: 10 }}>
           <H2>{L('جرّب بحياة سعودية جاهزة', 'Try a ready-made Saudi life')}</H2>
           <Muted>{L('أربع شخصيات ببيانات كاملة — دون تسجيل، ولا يُحفظ شيء.', 'Four personas with full data — no signup, nothing saved.')}</Muted>
           <View style={{ flexDirection: row, flexWrap: 'wrap', gap: 10 }}>
-            {DEMO_PERSONAS.map((p) => (
-              <Pressable
-                key={p.id}
+            {DEMO_PERSONAS.map((p, i) => (
+              <Animated.View key={p.id} entering={enter(i + 1)} style={{ width: '48%', flexGrow: 1 }}>
+              <Press
+                haptics="firm"
                 onPress={() => { enterDemo(p.id); router.replace('/home'); }}
-                style={({ pressed }) => ({
-                  width: '48%', flexGrow: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.14)', borderRadius: radius.lg, padding: 14, gap: 6, opacity: pressed ? 0.7 : 1,
-                })}
+                style={{
+                  flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.14)', borderRadius: radius.xl, borderCurve: 'continuous', padding: 14, gap: 6,
+                }}
               >
                 <Row>
                   <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' }}>
@@ -88,14 +92,18 @@ export default function Welcome() {
                   </View>
                 </Row>
                 <Muted style={{ fontSize: 11 }} numberOfLines={2}>{ar ? p.role.ar : p.role.en}</Muted>
-                <T style={{ fontSize: 11, fontWeight: '700', color: C.greenText }}>{L('امشِ في حياته ←', 'Walk this life →')}</T>
-              </Pressable>
+                <Row gap={4}>
+                  <T style={{ fontSize: 11, fontWeight: '700', color: C.greenText }}>{L('امشِ في حياته', 'Walk this life')}</T>
+                  <Icon sf={ar ? 'arrow.left' : 'arrow.right'} emoji={ar ? '←' : '→'} size={10} color={C.greenText} weight="bold" />
+                </Row>
+              </Press>
+              </Animated.View>
             ))}
           </View>
         </View>
 
         {/* or your own account */}
-        <Card style={{ gap: 10, backgroundColor: 'rgba(14,20,17,0.6)' }}>
+        <Card delay={5} style={{ gap: 10, backgroundColor: 'rgba(14,20,17,0.6)' }}>
           <H2>{L('أو ادخل بحسابك', 'Or sign in to your account')}</H2>
           <TextInput
             value={email}
@@ -121,9 +129,9 @@ export default function Welcome() {
           />
           {error ? <T style={{ color: C.red, fontSize: 12 }}>{error}</T> : null}
           <Button label={busy ? L('يدخل…', 'Signing in…') : L('ادخل', 'Sign in')} onPress={go} disabled={busy || !email || !password} />
-          <Pressable onPress={() => WebBrowser.openBrowserAsync(`${SITE}/signup`)}>
+          <Press haptics="select" onPress={() => openWeb(`${SITE}/signup`)}>
             <Muted center>{L('ليس لديك حساب؟ أنشئه على malmind.ai ↗', "No account? Create one on malmind.ai ↗")}</Muted>
-          </Pressable>
+          </Press>
         </Card>
       </ScrollView>
     </KeyboardAvoidingView>

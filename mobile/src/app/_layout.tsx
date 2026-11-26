@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, LocaleProvider as RouterDirection, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { headerOptions } from '@/components/TabStack';
 import { LocaleProvider, useLocale } from '@/lib/i18n';
 import { AppProvider, useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
@@ -15,7 +17,7 @@ const theme = {
 };
 
 function Routes() {
-  const { L } = useLocale();
+  const { L, ar } = useLocale();
   const { mode } = useStore();
 
   // keep the splash up until we know who you are
@@ -24,36 +26,49 @@ function Routes() {
   }, [mode]);
 
   const pushed = (title: string) => ({
-    headerShown: true,
+    ...headerOptions(false),
     title,
-    headerStyle: { backgroundColor: C.bg },
-    headerTintColor: C.greenText,
-    headerTitleStyle: { color: C.ink },
     headerBackTitle: L('رجوع', 'Back'),
+    headerBackButtonDisplayMode: 'minimal' as const,
   });
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="welcome" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="month" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="space" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="tool/volatility" options={pushed(L('التقلّب', 'Volatility'))} />
-      <Stack.Screen name="tool/gosi" options={pushed(L('التأمينات', 'GOSI'))} />
-    </Stack>
+    // Expo Go can't flip the app's native layout, but the router can: in
+    // Arabic every native bar runs right-to-left — titles on the right,
+    // the back chevron on the right, and swipe-back from the right edge.
+    <RouterDirection direction={ar ? 'rtl' : 'ltr'}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
+        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+        {/* the month editor: a full sheet you swipe down to close */}
+        <Stack.Screen
+          name="month"
+          options={{ presentation: 'formSheet', sheetAllowedDetents: [1], sheetGrabberVisible: true, contentStyle: { backgroundColor: C.bg } }}
+        />
+        {/* your space: a half sheet that pulls up to full */}
+        <Stack.Screen
+          name="space"
+          options={{ presentation: 'formSheet', sheetAllowedDetents: [0.62, 1], sheetGrabberVisible: true, contentStyle: { backgroundColor: C.bg } }}
+        />
+        <Stack.Screen name="tool/volatility" options={pushed(L('التقلّب', 'Volatility'))} />
+        <Stack.Screen name="tool/gosi" options={pushed(L('التأمينات', 'GOSI'))} />
+      </Stack>
+    </RouterDirection>
   );
 }
 
 export default function RootLayout() {
   return (
-    <LocaleProvider>
-      <AppProvider>
-        <ThemeProvider value={theme}>
-          <StatusBar style="light" />
-          <Routes />
-        </ThemeProvider>
-      </AppProvider>
-    </LocaleProvider>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: C.bg }}>
+      <LocaleProvider>
+        <AppProvider>
+          <ThemeProvider value={theme}>
+            <StatusBar style="light" />
+            <Routes />
+          </ThemeProvider>
+        </AppProvider>
+      </LocaleProvider>
+    </GestureHandlerRootView>
   );
 }

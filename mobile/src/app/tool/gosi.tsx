@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Card, H2, Muted, Row, Screen, Stat, T } from '@/components/ui';
+import { Button, Card, Heading, Muted, Row, Screen, Stat, T } from '@/components/ui';
 import { GOSI, REF_SOURCES } from '@shared/saudiReference';
 import { fmt, vitals } from '@/lib/finance';
 import { useLocale } from '@/lib/i18n';
@@ -21,8 +21,8 @@ export default function Gosi() {
   if (!v.hasData) {
     return (
       <Screen>
-        <Card style={{ gap: 10 }}>
-          <H2>🏛 {L('التأمينات الاجتماعية', 'GOSI')}</H2>
+        <Card delay={0} style={{ gap: 10 }}>
+          <Heading icon="building.columns" emoji="🏛">{L('التأمينات الاجتماعية', 'GOSI')}</Heading>
           <Muted>{L('سجّل دخلاً في السِّجل لتُحسب تأميناتك عليه.', 'Log income in the Log and your GOSI is computed on it.')}</Muted>
           <Button label={L('افتح السِّجل', 'Open the Log')} onPress={() => openPath('/log')} />
         </Card>
@@ -48,7 +48,7 @@ export default function Gosi() {
 
   return (
     <Screen>
-      <Card tone="hero" style={{ gap: 10 }}>
+      <Card tone="hero" delay={0} style={{ gap: 10 }}>
         <Row gap={8}>
           <Stat label={L('أجرك الخاضع ≈', 'Contributory wage ≈')} value={fmt(wage)} style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'transparent' }} />
           <Stat label={L('يُقتطع منك', 'From your payslip')} value={fmt(yours)} style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'transparent' }} />
@@ -62,8 +62,8 @@ export default function Gosi() {
         </Muted>
       </Card>
 
-      <Card style={{ gap: 8 }}>
-        <H2>⚙️ {L('ثلاثة فروع، واقتطاع واحد', 'Three branches, one deduction')}</H2>
+      <Card delay={1} style={{ gap: 8 }}>
+        <Heading icon="gearshape.2" emoji="⚙️">{L('ثلاثة فروع، واقتطاع واحد', 'Three branches, one deduction')}</Heading>
         {[
           [L('المعاشات', 'Annuities'), GOSI.annuities.totalPct, GOSI.annuities.employeePct, GOSI.annuities.employerPct],
           [L('الأخطار المهنية', 'Occupational hazards'), GOSI.hazardsPct, 0, GOSI.hazardsPct],
@@ -82,8 +82,8 @@ export default function Gosi() {
         </Muted>
       </Card>
 
-      <Card style={{ gap: 8 }}>
-        <H2>🛟 {L('ساند — الشبكة تحت دخلك', 'SANED — the net under your income')}</H2>
+      <Card delay={2} style={{ gap: 8 }}>
+        <Heading icon="lifepreserver" emoji="🛟">{L('ساند — الشبكة تحت دخلك', 'SANED — the net under your income')}</Heading>
         <Row gap={8}>
           <Stat label={L('الأشهر ١–٣', 'Months 1–3')} value={fmt(saned1)} />
           <Stat label={L('بعدها', 'After that')} value={fmt(saned2)} />
@@ -95,8 +95,8 @@ export default function Gosi() {
         </Muted>
       </Card>
 
-      <Card style={{ gap: 10 }}>
-        <H2>⏳ {L('الأفق — معاشك والتحوّل إلى ٦٥', 'The horizon — your pension and the move to 65')}</H2>
+      <Card delay={3} style={{ gap: 10 }}>
+        <Heading icon="hourglass" emoji="⏳">{L('الأفق — معاشك والتحوّل إلى ٦٥', 'The horizon — your pension and the move to 65')}</Heading>
         <Row style={{ justifyContent: 'space-between' }}>
           <Muted>{L('سن التقاعد المفترض', 'Assumed retirement age')}</Muted>
           <Row gap={8}>

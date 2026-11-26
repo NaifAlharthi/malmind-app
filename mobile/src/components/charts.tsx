@@ -1,9 +1,15 @@
 // Small, dependency-light charts drawn with react-native-svg (bundled in
 // Expo Go). Time flows in reading direction: right-to-left in Arabic, like
 // the website's charts. Width comes from the container via onLayout.
+// On the phone they draw themselves in: lines trace from the oldest month
+// to the newest, bars rise from zero, meters fill — and Reduce Motion
+// shows them finished.
 
-import { useState } from 'react';
-import { View, type LayoutChangeEvent } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, View, type LayoutChangeEvent } from 'react-native';
+import Animated, {
+  Easing, ReduceMotion, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withTiming,
+} from 'react-native-reanimated';
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import { compact } from '@/lib/finance';
@@ -11,6 +17,23 @@ import { useLocale } from '@/lib/i18n';
 import { C } from '@/lib/theme';
 
 const PAD = { top: 8, bottom: 20, side: 38 };
+
+// SVG prop animation runs on the phone; the browser preview draws at once
+const ANIMATE = Platform.OS !== 'web';
+const DRAW = { duration: 900, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.System };
+
+const APath = Animated.createAnimatedComponent(Path);
+const ACircle = Animated.createAnimatedComponent(Circle);
+const ARect = Animated.createAnimatedComponent(Rect);
+
+/** 0 → 1 once, when the chart piece mounts */
+function useDrawIn(delay = 0) {
+  const p = useSharedValue(ANIMATE ? 0 : 1);
+  useEffect(() => {
+    if (ANIMATE) p.set(withDelay(delay, withTiming(1, DRAW)));
+  }, [p, delay]);
+  return p;
+}
 
 function useWidth(): [number, (e: LayoutChangeEvent) => void] {
   const [w, setW] = useState(0);
@@ -27,6 +50,39 @@ function scale(values: number[], height: number) {
   max += span * 0.06;
   const plotH = height - PAD.top - PAD.bottom;
   return { min, max, y: (v: number) => PAD.top + (1 - (v - min) / (max - min)) * plotH };
+}
+
+/** a line that traces itself from its first point to its last */
+function TracedLine({ pts, color, strong }: { pts: [number, number][]; color: string; strong?: boolean }) {
+  const d = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  len = Math.ceil(len) + 2;
+  const p = useDrawIn();
+  const lineProps = useAnimatedProps(() => ({ strokeDashoffset: len * (1 - p.get()) }));
+  const dotProps = useAnimatedProps(() => ({ opacity: Math.max(0, (p.get() - 0.7) / 0.3) }));
+  return (
+    <>
+      <APath
+        d={d} fill="none" stroke={color} strokeWidth={strong ? 2.6 : 1.8} strokeLinejoin="round" strokeLinecap="round"
+        strokeDasharray={ANIMATE ? [len, len] : undefined}
+        animatedProps={ANIMATE ? lineProps : undefined}
+      />
+      {pts.length <= 14 && pts.map(([x, y], i) => (
+        <ACircle key={i} cx={x} cy={y} r={2.4} fill={color} animatedProps={ANIMATE ? dotProps : undefined} />
+      ))}
+    </>
+  );
+}
+
+/** a bar that grows from the zero line toward its value, up or down */
+function RisingBar({ x, top, h, base, w, fill, i }: { x: number; top: number; h: number; base: number; w: number; fill: string; i: number }) {
+  const p = useDrawIn(Math.min(i, 14) * 35);
+  const props = useAnimatedProps(() => {
+    const k = p.get();
+    return { y: top < base ? base - (base - top) * k : top, height: Math.max(0.5, h * k) };
+  });
+  return <ARect x={x} y={top} width={w} height={h} rx={3} fill={fill} animatedProps={ANIMATE ? props : undefined} />;
 }
 
 export interface Series { key: string; data: number[]; color: string; strong?: boolean }
@@ -57,15 +113,9 @@ export function LineChart({ labels, series, height = 170 }: { labels: string[]; 
               {compact(t)}
             </SvgText>
           ))}
-          {series.map((s) => {
-            if (s.data.length === 0) return null;
-            const d = s.data.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-            return (
-              <Path key={s.key} d={d} fill="none" stroke={s.color} strokeWidth={s.strong ? 2.6 : 1.8} strokeLinejoin="round" strokeLinecap="round" />
-            );
-          })}
-          {n <= 14 && series.map((s) => s.data.map((v, i) => (
-            <Circle key={`${s.key}${i}`} cx={x(i)} cy={y(v)} r={2.4} fill={s.color} />
+          {series.map((s) => (s.data.length === 0 ? null : (
+            // keyed by its values, so a changed or re-enabled line draws in again
+            <TracedLine key={`${s.key}:${s.data.join(',')}:${w}:${min}:${max}`} pts={s.data.map((v, i) => [x(i), y(v)])} color={s.color} strong={s.strong} />
           )))}
           {n > 0 && [0, n - 1].filter((i, k, arr) => arr.indexOf(i) === k).map((i) => (
             <SvgText key={`x${i}`} x={x(i)} y={height - 5} fontSize={9} fill={C.muted} textAnchor={i === 0 ? (ar ? 'end' : 'start') : (ar ? 'start' : 'end')}>
@@ -106,7 +156,7 @@ export function BarChart({
           {values.map((v, i) => {
             const top = Math.min(y(v), y(0));
             const h = Math.max(1.5, Math.abs(y(v) - y(0)));
-            return <Rect key={i} x={xAt(i) - barW / 2} y={top} width={barW} height={h} rx={3} fill={color ? color(v, i) : C.green} />;
+            return <RisingBar key={`${i}:${v}:${w}:${min}:${max}`} i={i} x={xAt(i) - barW / 2} top={top} h={h} base={y(0)} w={barW} fill={color ? color(v, i) : C.green} />;
           })}
           {refLine !== undefined && (
             <Line x1={plotL} x2={plotR} y1={y(refLine)} y2={y(refLine)} stroke={C.gold} strokeDasharray="4 3" strokeWidth={1.2} />
@@ -122,13 +172,18 @@ export function BarChart({
   );
 }
 
-/** A thin horizontal meter, filled to `value` of `max`. */
+/** A thin horizontal meter that eases in to `value` of `max`. */
 export function Meter({ value, max, color = C.green, height = 6 }: { value: number; max: number; color?: string; height?: number }) {
   const { row } = useLocale();
   const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
+  const fill = useSharedValue(ANIMATE ? 0 : pct);
+  useEffect(() => {
+    fill.set(withDelay(120, withTiming(pct, { ...DRAW, duration: 800 })));
+  }, [fill, pct]);
+  const anim = useAnimatedStyle(() => ({ width: `${fill.get() * 100}%` }));
   return (
     <View style={{ height, borderRadius: height, backgroundColor: C.borderFaint, overflow: 'hidden', flexDirection: row }}>
-      <View style={{ width: `${pct * 100}%`, backgroundColor: color, borderRadius: height }} />
+      <Animated.View style={[{ backgroundColor: color, borderRadius: height }, anim]} />
     </View>
   );
 }

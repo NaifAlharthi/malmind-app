@@ -4,12 +4,14 @@
 // picker of predefined Saudi-life ledgers.
 
 import { useState } from 'react';
-import { Alert, Pressable, TextInput, View } from 'react-native';
+import { Alert, TextInput, View } from 'react-native';
 
 import { BarChart, LineChart, Meter } from '@/components/charts';
-import { Button, Chip, H2, Muted, Row, Segmented, Stat, T } from '@/components/ui';
+import { Icon } from '@/components/Icon';
+import { Button, Chip, H2, IconButton, Muted, Press, Row, Segmented, Stat, T } from '@/components/ui';
 import { CUSTOM_ICONS, PRESETS, ledgerHeadline, type CustomLedger } from '@shared/ledgerPresets';
 import { compact, fmt } from '@/lib/finance';
+import { haptic } from '@/lib/haptics';
 import { MONTHS_AR, MONTHS_EN, monthShort, useLocale } from '@/lib/i18n';
 import { useStore, type Data, type Field, type Snap } from '@/lib/store';
 import { C, radius } from '@/lib/theme';
@@ -199,13 +201,13 @@ const thisMonth = () => {
 const ymLabel = (ym: string, ar: boolean) => `${(ar ? MONTHS_AR : MONTHS_EN)[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 
 export function MonthStepper({ ym, onChange }: { ym: string; onChange: (ym: string) => void }) {
-  const { ar } = useLocale();
-  const btn = { paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.sm, borderWidth: 1, borderColor: C.border };
+  const { ar, L } = useLocale();
+  const btn = { width: 36, height: 32, alignItems: 'center' as const, justifyContent: 'center' as const, borderRadius: radius.sm, backgroundColor: C.card2 };
   return (
     <Row gap={8}>
-      <Pressable onPress={() => onChange(addMonths(ym, -1))} style={btn}><T center>{ar ? '›' : '‹'}</T></Pressable>
+      <Press haptics="select" scaleTo={0.9} accessibilityLabel={L('الشهر السابق', 'Previous month')} onPress={() => onChange(addMonths(ym, -1))} style={btn}><Icon sf={ar ? 'chevron.right' : 'chevron.left'} emoji={ar ? '›' : '‹'} size={13} color={C.ink2} weight="bold" /></Press>
       <T style={{ fontWeight: '700', minWidth: 110 }} center>{ymLabel(ym, ar)}</T>
-      <Pressable onPress={() => onChange(addMonths(ym, 1))} style={btn}><T center>{ar ? '‹' : '›'}</T></Pressable>
+      <Press haptics="select" scaleTo={0.9} accessibilityLabel={L('الشهر التالي', 'Next month')} onPress={() => onChange(addMonths(ym, 1))} style={btn}><Icon sf={ar ? 'chevron.left' : 'chevron.right'} emoji={ar ? '‹' : '›'} size={13} color={C.ink2} weight="bold" /></Press>
     </Row>
   );
 }
@@ -224,18 +226,21 @@ function CustomPanel({ ledger }: { ledger: CustomLedger }) {
     if (amount.trim() === '' || !Number.isFinite(v)) return;
     saveLedger({ ...ledger, entries: [...ledger.entries.filter((e) => e.month !== ym), { month: ym, amount: v }] });
     setAmount('');
+    haptic.success();
   };
-  const confirmDelete = () =>
+  const confirmDelete = () => {
+    haptic.warn();
     Alert.alert(L('حذف الدفتر؟', 'Delete ledger?'), L(`«${ledger.name}» وكل قيوده.`, `«${ledger.name}» and all its entries.`), [
       { text: L('إلغاء', 'Cancel'), style: 'cancel' },
       { text: L('احذف', 'Delete'), style: 'destructive', onPress: () => deleteLedger(ledger.id) },
     ]);
+  };
 
   return (
     <View style={{ gap: 10 }}>
       <Row style={{ justifyContent: 'space-between' }}>
         <H2 style={{ flex: 1 }}>{ledger.icon} {ledger.name}</H2>
-        <Pressable onPress={confirmDelete}><Muted style={{ fontSize: 11 }}>{L('حذف', 'Delete')}</Muted></Pressable>
+        <IconButton icon="trash" emoji="🗑" label={L('حذف الدفتر', 'Delete ledger')} onPress={confirmDelete} tint={C.red} bg={C.redBg} size={30} />
       </Row>
       <Muted>
         {ledger.kind === 'balance'
@@ -273,9 +278,10 @@ function CustomPanel({ ledger }: { ledger: CustomLedger }) {
           <Muted>{ymLabel(e.month, ar)}</Muted>
           <Row gap={12}>
             <T style={{ fontWeight: '700' }}>{fmt(e.amount)}</T>
-            <Pressable onPress={() => saveLedger({ ...ledger, entries: ledger.entries.filter((x) => x.month !== e.month) })}>
-              <Muted>✕</Muted>
-            </Pressable>
+            <IconButton
+              icon="xmark" emoji="✕" size={24} label={L('احذف القيد', 'Remove entry')}
+              onPress={() => saveLedger({ ...ledger, entries: ledger.entries.filter((x) => x.month !== e.month) })}
+            />
           </Row>
         </Row>
       ))}
@@ -304,6 +310,7 @@ function AddPanel({ onCreated }: { onCreated: (id: string) => void }) {
   const create = (l: Omit<CustomLedger, 'id' | 'entries'>) => {
     const id = uuid();
     saveLedger({ ...l, id, entries: [] });
+    haptic.success();
     onCreated(id);
   };
 
@@ -315,19 +322,20 @@ function AddPanel({ onCreated }: { onCreated: (id: string) => void }) {
         {PRESETS.map((p) => {
           const used = taken.has(p.key);
           return (
-            <Pressable
+            <Press
               key={p.key}
               disabled={used}
+              haptics={false}
               onPress={() => create({ name: ar ? p.name.ar : p.name.en, icon: p.icon, kind: p.kind, direction: p.direction, preset: p.key })}
-              style={({ pressed }) => ({
-                width: '48%', flexGrow: 1, padding: 10, borderRadius: radius.md, borderWidth: 1, borderColor: C.border,
-                backgroundColor: C.card2, opacity: used ? 0.4 : pressed ? 0.7 : 1, gap: 2,
-              })}
+              style={{
+                width: '48%', flexGrow: 1, padding: 10, borderRadius: radius.md, borderCurve: 'continuous', borderWidth: 1, borderColor: C.borderFaint,
+                backgroundColor: C.card2, opacity: used ? 0.4 : 1, gap: 2,
+              }}
             >
               <T style={{ fontSize: 18 }}>{p.icon}</T>
               <T style={{ fontSize: 12, fontWeight: '700' }}>{ar ? p.name.ar : p.name.en}</T>
               <Muted style={{ fontSize: 10 }}>{used ? L('مضاف ✓', 'added ✓') : (ar ? p.hint.ar : p.hint.en)}</Muted>
-            </Pressable>
+            </Press>
           );
         })}
       </View>
