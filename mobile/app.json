@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "MalMind",
+    "slug": "malmind",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "malmind",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0E1411",
+    "ios": {
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "ai.malmind.app",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "ai.malmind.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#073626",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#073626",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-localization",
+        {
+          "supportsRTL": false,
+          "supportedLocales": { "ios": ["ar", "en"], "android": ["ar", "en"] }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false,
+      "reactCompiler": true
+    }
+  }
+}

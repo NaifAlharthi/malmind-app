@@ -1,0 +1,3 @@
+# The iPhone app (Expo) lives beside the website but is never part of its
+# Vercel build.
+mobile
