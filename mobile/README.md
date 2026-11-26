@@ -13,12 +13,17 @@ both surfaces, and the same four demo personas.
 
    ```bash
    npm install
-   npx expo start --tunnel
+   npx expo start --tunnel ngrok
    ```
 
-   `--tunnel` lets the phone reach your computer from any network (cellular
-   included). If the phone and computer share a Wi-Fi network, plain
+   `--tunnel ngrok` lets the phone reach your computer from any network
+   (cellular included) without an Expo account; the first run asks to
+   install `@expo/ngrok` — answer Y. (Plain `--tunnel` needs `npx expo login`
+   first.) If the phone and computer share a Wi-Fi network, plain
    `npx expo start` is faster.
+
+   On Windows PowerShell with scripts disabled, use `npx.cmd` in place of
+   `npx`.
 4. Scan the QR code with the iPhone **Camera** app and open it in Expo Go.
 
 Pick a persona on the welcome screen to explore with demo data, or sign in
