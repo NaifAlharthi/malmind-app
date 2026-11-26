@@ -10,7 +10,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 
-import { buildDemoDb, getPersona } from '@shared/demoWorld';
+import { DEMO_PERSONAS, buildDemoDb, getPersona } from '@shared/demoWorld';
 import type { CustomLedger } from '@shared/ledgerPresets';
 import { kv } from '@/lib/kv';
 import { supabase, supabaseConfigured } from '@/lib/supabase';
@@ -86,15 +86,31 @@ function shape(t: {
   };
 }
 
-// ── demo backend: the persona's world, in memory ──
+// ── demo backend: the persona's world, in memory and kept on the phone ──
+// Edits (a month saved, a ledger added, a Showcase plan carried out)
+// survive the app restarting, until you leave the persona.
 let demoDb: Record<string, Row[]> | null = null;
 let demoFor: string | null = null;
+const worldKey = (personaId: string) => `mm-demo-world:${personaId}`;
 function demoTables(personaId: string) {
   if (!demoDb || demoFor !== personaId) {
-    demoDb = buildDemoDb(personaId);
+    let saved: Record<string, Row[]> | null = null;
+    try {
+      const raw = kv.getItem(worldKey(personaId));
+      saved = raw ? JSON.parse(raw) : null;
+    } catch { saved = null; }
+    demoDb = saved ?? buildDemoDb(personaId);
     demoFor = personaId;
   }
   return demoDb;
+}
+function keepDemoWorld() {
+  if (!demoDb || !demoFor) return;
+  try { kv.setItem(worldKey(demoFor), JSON.stringify(demoDb)); } catch { /* memory still holds it */ }
+}
+function forgetDemoWorld(personaId: string) {
+  try { kv.removeItem(worldKey(personaId)); } catch { /* ignore */ }
+  if (demoFor === personaId) { demoDb = null; demoFor = null; }
 }
 
 // ── live backend: Supabase, with a device fallback for custom ledgers ──
@@ -156,6 +172,8 @@ interface Store {
   refreshing: boolean;
   refresh: () => Promise<void>;
   enterDemo: (personaId: string) => void;
+  /** A persona's fresh world with changes applied (the Showcase's approved plans). */
+  enterDemoWith: (personaId: string, change: (db: Record<string, Row[]>) => void) => void;
   leaveDemo: () => void;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
@@ -216,20 +234,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try { await load(mode, personaId, uid); } finally { setRefreshing(false); }
   }, [load, mode, personaId, uid]);
 
-  const store = useMemo<Store>(() => ({
-    mode, personaId, email: session?.user.email ?? null, data, refreshing, refresh,
-
-    enterDemo: (id) => {
+  const store = useMemo<Store>(() => {
+    const enterDemoWith = (id: string, change: (db: Record<string, Row[]>) => void) => {
       try { kv.setItem(PERSONA_KEY, id); } catch { /* ignore */ }
-      demoDb = null; // a fresh, untouched world each time
+      forgetDemoWorld(id); // a fresh, untouched world each time…
+      change(demoTables(id)); // …with any changes applied before anyone sees it
+      keepDemoWorld();
       setPersonaId(id);
       setMode('demo');
       setData(loadDemo(id));
-    },
+    };
+    return {
+    mode, personaId, email: session?.user.email ?? null, data, refreshing, refresh,
+
+    enterDemo: (id) => enterDemoWith(id, () => {}),
+    enterDemoWith,
 
     leaveDemo: () => {
       try { kv.removeItem(PERSONA_KEY); } catch { /* ignore */ }
-      demoDb = null;
+      for (const p of DEMO_PERSONAS) forgetDemoWorld(p.id); // every kept world, the Showcase's too
       setPersonaId(null);
       if (session) { setMode('live'); load('live', null, session.user.id); }
       else { setMode('signedOut'); setData(EMPTY); }
@@ -263,6 +286,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (at >= 0) rows[at] = { ...rows[at], ...s };
           else rows.push({ id: `demo-${s.year}-${s.month}`, user_id: `demo-${personaId}`, ...s });
         }
+        keepDemoWorld();
       } else if (mode === 'live' && uid) {
         const { error } = await supabase.from('financial_snapshots').upsert(
           snaps.map((s) => ({ user_id: uid, ...s })),
@@ -281,6 +305,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (mode === 'demo' && personaId) {
         const db = demoTables(personaId);
         db.financial_snapshots = db.financial_snapshots.filter((r) => !(num(r.year) === year && num(r.month) === month));
+        keepDemoWorld();
       } else if (mode === 'live' && uid) {
         const { error } = await supabase.from('financial_snapshots').delete().eq('user_id', uid).eq('year', year).eq('month', month);
         if (error) return error.message;
@@ -296,6 +321,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setData((d) => ({ ...d, ledgers: all }));
       if (mode === 'demo' && personaId) {
         demoTables(personaId).custom_ledgers = all as unknown as Row[];
+        keepDemoWorld();
       } else if (mode === 'live' && uid) {
         if (dataRef.current.ledgerStore === 'db') {
           const { error } = await supabase.from('custom_ledgers').upsert(
@@ -312,13 +338,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteLedger: async (id) => {
       const all = dataRef.current.ledgers.filter((l) => l.id !== id);
       setData((d) => ({ ...d, ledgers: all }));
-      if (mode === 'demo' && personaId) demoTables(personaId).custom_ledgers = all as unknown as Row[];
-      else if (mode === 'live' && uid) {
+      if (mode === 'demo' && personaId) {
+        demoTables(personaId).custom_ledgers = all as unknown as Row[];
+        keepDemoWorld();
+      } else if (mode === 'live' && uid) {
         if (dataRef.current.ledgerStore === 'db') await supabase.from('custom_ledgers').delete().eq('id', id).eq('user_id', uid);
         else writeDeviceLedgers(uid, all);
       }
     },
-  }), [mode, personaId, session, data, refreshing, refresh, load, uid]);
+    };
+  }, [mode, personaId, session, data, refreshing, refresh, load, uid]);
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

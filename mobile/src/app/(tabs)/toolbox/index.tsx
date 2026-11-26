@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Link } from 'expo-router';
+import { ZoomLink } from '@/components/ZoomLink';
 import Animated from 'react-native-reanimated';
 
 import { Icon, type SFSymbol } from '@/components/Icon';
@@ -68,11 +68,7 @@ export default function Toolbox() {
                 <Animated.View key={`${v.key}${tool.href}`} entering={enter(vi * 2 + Math.min(i, 6))} style={{ width: '48%', flexGrow: 1 }}>
                   {screen ? (
                     // a native tool zooms open from its tile (iOS 18+)
-                    <Link href={screen} asChild>
-                      <Link.AppleZoom>
-                        <Press style={box}>{tile(tool, true)}</Press>
-                      </Link.AppleZoom>
-                    </Link>
+                    <ZoomLink href={screen} style={box}>{tile(tool, true)}</ZoomLink>
                   ) : (
                     <Press style={box} onPress={() => openPath(tool.href)}>{tile(tool, native)}</Press>
                   )}

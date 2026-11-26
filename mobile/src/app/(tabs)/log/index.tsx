@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, ScrollView, View, type ScrollViewInstance } from 'react-native';
+import { Alert, Platform, ScrollView, View, type ScrollViewInstance } from 'react-native';
 import { Link, Stack, router, useLocalSearchParams } from 'expo-router';
 import Animated from 'react-native-reanimated';
 
@@ -38,7 +38,8 @@ export default function LogScreen() {
   const [seenSpot, setSeenSpot] = useState<string | undefined>(undefined);
   if (params.spot !== seenSpot) {
     setSeenSpot(params.spot);
-    if (params.spot && (CORE_KEYS as string[]).includes(params.spot)) setOpenKey(params.spot);
+    // a core ledger, or one of yours (custom:<id> — e.g. a Showcase plan's)
+    if (params.spot && ((CORE_KEYS as string[]).includes(params.spot) || params.spot.startsWith('custom:'))) setOpenKey(params.spot);
   }
 
   const monthLong = (s: Snap) => `${(ar ? MONTHS_AR : MONTHS_EN)[s.month - 1]} ${s.year}`;
@@ -206,28 +207,33 @@ export default function LogScreen() {
                 onContentSizeChange={() => { if (!ar) gridRef.current?.scrollToEnd({ animated: false }); }}
                 contentContainerStyle={{ flexDirection: row }}
               >
-                {cols.map((s) => (
-                  // tap a month to edit it; touch and hold to peek at it, with
-                  // Edit and Delete in the menu beneath the preview
+                {cols.map((s) => {
+                  const edit = () => router.push({ pathname: '/month', params: { ym: ymKey(s) } });
+                  const column = (onPress?: () => void) => (
+                    <Press key={ymKey(s)} scaleTo={0.96} style={{ width: COL_W }} onPress={onPress}>
+                      <View style={{ height: ROW_H, justifyContent: 'center', paddingHorizontal: 6 }}>
+                        <T center style={{ fontSize: 10, color: C.greenText, fontWeight: '700' }}>{shortOf(s)}</T>
+                      </View>
+                      {ROWS.map((r) => {
+                        const val = r.get(s);
+                        return (
+                          <View key={r.key} style={{ height: ROW_H, justifyContent: 'center', paddingHorizontal: 6, borderTopWidth: 1, borderTopColor: C.borderFaint }}>
+                            <T center style={{ fontSize: 11, fontWeight: r.strong ? '700' : '400', color: r.color ? r.color(val) : r.strong ? C.ink : C.ink2, fontVariant: ['tabular-nums'] }}>{fmt(val)}</T>
+                          </View>
+                        );
+                      })}
+                    </Press>
+                  );
+                  // off iPhone: tap to edit (Link's web handler ignores press events)
+                  if (Platform.OS !== 'ios') return column(edit);
+                  // on iPhone: tap to edit; touch and hold to peek at the month,
+                  // with Edit and Delete in the menu beneath the preview
+                  return (
                   <Link key={ymKey(s)} href={{ pathname: '/month', params: { ym: ymKey(s) } }} asChild>
-                    <Link.Trigger>
-                      <Press scaleTo={0.96} style={{ width: COL_W }}>
-                        <View style={{ height: ROW_H, justifyContent: 'center', paddingHorizontal: 6 }}>
-                          <T center style={{ fontSize: 10, color: C.greenText, fontWeight: '700' }}>{shortOf(s)}</T>
-                        </View>
-                        {ROWS.map((r) => {
-                          const val = r.get(s);
-                          return (
-                            <View key={r.key} style={{ height: ROW_H, justifyContent: 'center', paddingHorizontal: 6, borderTopWidth: 1, borderTopColor: C.borderFaint }}>
-                              <T center style={{ fontSize: 11, fontWeight: r.strong ? '700' : '400', color: r.color ? r.color(val) : r.strong ? C.ink : C.ink2, fontVariant: ['tabular-nums'] }}>{fmt(val)}</T>
-                            </View>
-                          );
-                        })}
-                      </Press>
-                    </Link.Trigger>
+                    <Link.Trigger>{column()}</Link.Trigger>
                     <Link.Preview />
                     <Link.Menu>
-                      <Link.MenuAction icon="square.and.pencil" onPress={() => router.push({ pathname: '/month', params: { ym: ymKey(s) } })}>
+                      <Link.MenuAction icon="square.and.pencil" onPress={edit}>
                         {L('عدّل الشهر', 'Edit the month')}
                       </Link.MenuAction>
                       <Link.MenuAction icon="trash" destructive onPress={() => confirmDelete(s)}>
@@ -235,7 +241,8 @@ export default function LogScreen() {
                       </Link.MenuAction>
                     </Link.Menu>
                   </Link>
-                ))}
+                  );
+                })}
               </ScrollView>
             </View>
             <Muted style={{ fontSize: 10 }}>{L('اضغط أي شهر لتعديله، أو اضغط مطوّلاً لمعاينته. القيم بالريال.', 'Tap a month to edit it, or touch and hold to peek. Values in SAR.')}</Muted>
@@ -254,7 +261,12 @@ export default function LogScreen() {
             ref={drawerRef}
             horizontal
             showsHorizontalScrollIndicator={false}
-            onContentSizeChange={() => { if (ar) drawerRef.current?.scrollToEnd({ animated: false }); }}
+            onContentSizeChange={() => {
+              // your own ledgers sit at the row's far end; open there when one was pointed at
+              const mine = openKey?.startsWith('custom:');
+              if (ar ? !mine : mine) drawerRef.current?.scrollToEnd({ animated: false });
+              else if (ar && mine) drawerRef.current?.scrollTo({ x: 0, animated: false });
+            }}
             contentContainerStyle={{ flexDirection: row, gap: 14, paddingVertical: 2 }}
           >
             {SEGMENTS.map((seg, si) => (

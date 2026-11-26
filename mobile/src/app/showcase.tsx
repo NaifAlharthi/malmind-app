@@ -13,6 +13,7 @@ import { haptic } from '@/lib/haptics';
 import { useLocale } from '@/lib/i18n';
 import { openPath } from '@/lib/links';
 import { bubble, enter } from '@/lib/motion';
+import { IN_APP, SHOWCASE_OPEN, SHOWCASE_SEE, showcaseEffect } from '@/lib/showcaseEffects';
 import { useStore } from '@/lib/store';
 import { C, radius } from '@/lib/theme';
 
@@ -48,7 +49,7 @@ function feel(finished: ShowStep, next: ShowStep | undefined) {
 export default function Showcase() {
   const insets = useSafeAreaInsets();
   const { L, ar, row } = useLocale();
-  const { enterDemo } = useStore();
+  const { enterDemoWith, mode, personaId } = useStore();
   const params = useLocalSearchParams<{ s?: string }>();
   const b = (x: Bi) => (ar ? x.ar : x.en);
 
@@ -70,16 +71,30 @@ export default function Showcase() {
     setAuto(autoplay);
     setRun({ idx, shown: 1, approved: false });
   };
+  // approving carries the plan out for real: the persona's demo world opens
+  // fresh, with the plan's changes applied (lib/showcaseEffects.ts)
+  const carryOut = (id: string) => enterDemoWith(id, showcaseEffect(id, ar));
   const approve = () => {
     haptic.success();
+    carryOut(sc.id);
     setRun((r) => ({ ...r, approved: true, shown: r.shown + 1 }));
+  };
+  const skip = () => {
+    if (!run.approved) carryOut(sc.id);
+    setRun((r) => ({ ...r, approved: true, shown: steps.length }));
   };
 
   // the clock: reveal the next step after this one's dwell; pause on the plan
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | undefined;
     if (waiting) {
-      if (auto) t = setTimeout(() => { haptic.success(); setRun((r) => ({ ...r, approved: true, shown: r.shown + 1 })); }, 2600 / speed);
+      if (auto) {
+        t = setTimeout(() => {
+          haptic.success();
+          enterDemoWith(sc.id, showcaseEffect(sc.id, ar));
+          setRun((r) => ({ ...r, approved: true, shown: r.shown + 1 }));
+        }, 2600 / speed);
+      }
     } else if (!done) {
       t = setTimeout(() => {
         feel(steps[run.shown - 1], steps[run.shown]);
@@ -89,12 +104,14 @@ export default function Showcase() {
       t = setTimeout(() => { haptic.firm(); setRun({ idx: run.idx + 1, shown: 1, approved: false }); }, 4000 / speed);
     }
     return () => clearTimeout(t);
-  }, [run, waiting, done, auto, speed, steps, scenarios.length]);
+  }, [run, waiting, done, auto, speed, steps, scenarios.length, sc.id, ar, enterDemoWith]);
 
+  // open the app as this persona — the plan already carried out in their
+  // world (re-applied if another persona has been opened since)
   const openAs = (href: string) => {
-    enterDemo(sc.personaId);
+    if (!(mode === 'demo' && personaId === sc.personaId)) carryOut(sc.id);
     if (router.canDismiss()) router.dismissAll();
-    openPath(href);
+    openPath(IN_APP[href] ?? href);
   };
 
   // [label](/path) in the Brain's words → tappable, as this persona
@@ -210,6 +227,8 @@ export default function Showcase() {
                 <Button icon="checkmark" haptics={false} label={L('وافق ونفّذ', 'Approve & run')} onPress={approve} />
                 <Muted center style={{ fontSize: 11 }}>
                   {auto ? L('موافقة تلقائية بعد لحظات…', 'Auto-approving in a moment…') : L('لا شيء يُنفَّذ قبل موافقتك.', 'Nothing runs until you approve.')}
+                  {' '}
+                  {L(`تُنفَّذ في عالم ${persona.firstNameAr} التجريبي — بياناتك لا تُمسّ.`, `It runs in ${persona.firstName}'s demo world — your own data is untouched.`)}
                 </Muted>
               </View>
             ) : (
@@ -299,7 +318,7 @@ export default function Showcase() {
         <Button small kind="secondary" icon="arrow.counterclockwise" haptics={false} label={L('أعد', 'Replay')} onPress={() => go(run.idx)} />
         <Chip label={`${speed}×`} on={speed === 2} onPress={() => setSpeed((x) => (x === 1 ? 2 : 1))} />
         <Chip label={L('موافقة تلقائية', 'Auto-approve')} on={auto} onPress={() => setAuto((x) => !x)} />
-        {!done && <Chip label={L('إلى النتيجة ⇥', 'Skip ⇥')} on={false} onPress={() => setRun((r) => ({ ...r, approved: true, shown: steps.length }))} />}
+        {!done && <Chip label={L('إلى النتيجة ⇥', 'Skip ⇥')} on={false} onPress={skip} />}
       </Row>
 
       {/* the case file */}
@@ -326,7 +345,13 @@ export default function Showcase() {
 
       {done && (
         <Animated.View entering={enter(1)} style={{ gap: 8 }}>
-          <Button icon="arrow.up.forward.app" label={b(sc.open.label)} onPress={() => openAs(sc.open.app)} />
+          <Row gap={6} style={{ alignItems: 'flex-start' }}>
+            <Icon sf="checkmark.seal.fill" emoji="✅" size={14} color={C.greenText} />
+            <T style={{ flex: 1, fontSize: 12, color: C.ink2 }}>
+              {`${L('نُفّذت الخطة. تجدها في ', 'The plan is carried out. Find it in ')}${b(SHOWCASE_SEE[sc.id])}`}
+            </T>
+          </Row>
+          <Button icon="arrow.up.forward.app" label={b(sc.open.label)} onPress={() => openAs(SHOWCASE_OPEN[sc.id] ?? sc.open.app)} />
           {auto && run.idx < scenarios.length - 1 && <Muted center>{L('المشكلة التالية بعد لحظات…', 'Next problem in a moment…')}</Muted>}
         </Animated.View>
       )}

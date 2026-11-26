@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { ZoomLink } from '@/components/ZoomLink';
 
 import { Meter } from '@/components/charts';
 import { Icon, type SFSymbol } from '@/components/Icon';
@@ -94,9 +94,7 @@ export default function Today() {
 
       {/* the calm score — how much the financial life shakes; on iPhone the
           card zooms open into the Volatility screen */}
-      <Link href="/tool/volatility" asChild>
-        <Link.AppleZoom>
-          <Press>
+      <ZoomLink href="/tool/volatility">
             <Card tone="hero" delay={5} style={{ gap: 6 }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Row gap={8} style={{ flex: 1 }}>
@@ -115,9 +113,7 @@ export default function Today() {
                 <Icon sf={ar ? 'chevron.left' : 'chevron.right'} emoji={ar ? '←' : '→'} size={10} color={C.greenText} weight="bold" />
               </Row>
             </Card>
-          </Press>
-        </Link.AppleZoom>
-      </Link>
+      </ZoomLink>
 
       <Card delay={6} style={{ gap: 8 }}>
         <Row style={{ justifyContent: 'space-between' }}>

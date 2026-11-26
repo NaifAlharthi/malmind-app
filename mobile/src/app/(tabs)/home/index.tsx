@@ -78,7 +78,7 @@ export default function Home() {
             <Row gap={8}>
               <Icon sf="eyes" emoji="👀" size={15} />
               <T style={{ flex: 1, fontSize: 12, color: C.greenText, fontWeight: '600' }}>
-                {L(`تستكشف بصفة ${name} — بيانات تجريبية، لا يُحفظ شيء. اضغط لتغيير الشخصية.`, `Exploring as ${name} — demo data, nothing saved. Tap to change persona.`)}
+                {L(`تستكشف بصفة ${name} — بيانات تجريبية، وتعديلاتك تبقى حتى تغادرها. اضغط لتغيير الشخصية.`, `Exploring as ${name} — demo data; your edits stay until you leave. Tap to change persona.`)}
               </T>
             </Row>
           </Card>
